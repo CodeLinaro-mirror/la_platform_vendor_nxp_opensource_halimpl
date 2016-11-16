@@ -588,7 +588,8 @@ void nfc_ncif_check_cmd_queue (BT_HDR *p_buf)
                 nfc_cb.nxpCbflag = TRUE;
             }
 #endif
-
+            /* Indicate command is pending */
+            nfc_cb.nci_cmd_window--;
             /* send to HAL */
             HAL_WRITE(p_buf);
             if (get_i2c_fragmentation_enabled () == I2C_FRAGMENATATION_ENABLED)
@@ -596,8 +597,6 @@ void nfc_ncif_check_cmd_queue (BT_HDR *p_buf)
                 nfc_cb.i2c_data_t.nci_cmd_channel_busy= 1;
                 NFC_TRACE_DEBUG0 ("setting channel busy flag");
             }
-            /* Indicate command is pending */
-            nfc_cb.nci_cmd_window--;
 
             /* start NFC command-timeout timer */
             nfc_start_timer (&nfc_cb.nci_wait_rsp_timer, (UINT16)(NFC_TTYPE_NCI_WAIT_RSP), nfc_cb.nci_wait_rsp_tout);
