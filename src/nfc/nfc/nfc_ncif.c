@@ -2500,6 +2500,9 @@ BOOLEAN nfc_ncif_proc_proprietary_rsp (UINT8 mt, UINT8 gid, UINT8 oid)
             case 0x09:      /*NFA_EE_ACTION_NTF*/
                 stat = FALSE;
                 break;
+            case 0x0A:      /*NFA_EE_DISCOVERY_REQ_NTF*/
+                stat = FALSE;
+                break;
             default:
                 stat = TRUE;
                 break;
