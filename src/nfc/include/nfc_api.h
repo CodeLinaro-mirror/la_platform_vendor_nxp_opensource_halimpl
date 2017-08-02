@@ -93,8 +93,8 @@
 #define NXP_EN_PN553                    1
 #define NXP_EN_PN80T                    1
 #define NXP_ANDROID_VER                 (7U) /* NXP android version */
-#define NFC_NXP_MW_VERSION_MAJ          (4U) /* MW Major Version */
-#define NFC_NXP_MW_VERSION_MIN          (8U) /* MW Minor Version */
+#define NFC_NXP_MW_VERSION_MAJ          (5U) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MIN          (0U) /* MW Minor Version */
 #endif
 /* 0xE0 ~0xFF are proprietary status codes */
 #define NFC_STATUS_CMD_STARTED          0xE3/* Command started successfully                     */
@@ -349,10 +349,10 @@ typedef struct
 
 typedef enum jcop_dwnld_state{
     JCP_DWNLD_IDLE = ESE_STATE_JCOP_DWNLD,  /* jcop dwnld is not ongoing*/
-    JCP_DWNLD_INIT,                         /* jcop dwonload init state*/
-    JCP_DWNLD_START,                        /* download started */
-    JCP_SPI_DWNLD_COMPLETE,                 /* jcop download complete in spi interface*/
-    JCP_DWP_DWNLD_COMPLETE,                 /* jcop download complete */
+    JCP_DWNLD_INIT = 0x8010,                         /* jcop dwonload init state*/
+    JCP_DWNLD_START = 0x8020,                        /* download started */
+    JCP_SPI_DWNLD_COMPLETE = 0x8040,                 /* jcop download complete in spi interface*/
+    JCP_DWP_DWNLD_COMPLETE = 0x8080,                 /* jcop download complete */
 } jcop_dwnld_state_t;
 #endif
 #endif
@@ -483,7 +483,6 @@ typedef UINT8 tNFC_RF_TECH;
 #define NFC_PROTOCOL_MIFARE     NCI_PROTOCOL_MIFARE
 #if (NXP_EXTNS == TRUE)
 #define NFC_PROTOCOL_ISO7816    NCI_PROTOCOL_ISO7816 /*ISO7816 -AID default Routing */
-#define NFC_PROTOCOL_ISO7816    NCI_PROTOCOL_ISO7816
 #define NFC_PROTOCOL_T3BT       NCI_PROTOCOL_T3BT
 #endif
 #define NFC_PROTOCOL_B_PRIME    NCI_PROTOCOL_B_PRIME
