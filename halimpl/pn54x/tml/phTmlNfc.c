@@ -358,8 +358,7 @@ static void phTmlNfc_TmlThread(void *pParam)
 {
     NFCSTATUS wStatus = NFCSTATUS_SUCCESS;
     int32_t dwNoBytesWrRd = PH_TMLNFC_RESET_VALUE;
-    const size_t BUFF_SIZE = 260;
-    uint8_t temp[BUFF_SIZE];
+    uint8_t temp[260];
 #if (NXP_NFCC_I2C_READ_WRITE_IMPROVEMENT == TRUE)
     static uint8_t read_count = 0;
 #endif
@@ -396,7 +395,7 @@ static void phTmlNfc_TmlThread(void *pParam)
             if (((uintptr_t)gpphTmlNfc_Context->pDevHandle) > 0)
             {
                 NXPLOG_TML_D("PN54X - Invoking I2C Read.....\n");
-                dwNoBytesWrRd = phTmlNfc_i2c_read(gpphTmlNfc_Context->pDevHandle, temp, BUFF_SIZE);
+                dwNoBytesWrRd = phTmlNfc_i2c_read(gpphTmlNfc_Context->pDevHandle, temp, 260);
 
                 if (-1 == dwNoBytesWrRd)
                 {
@@ -430,7 +429,7 @@ static void phTmlNfc_TmlThread(void *pParam)
 #endif
                     sem_post(&gpphTmlNfc_Context->rxSemaphore);
                 }
-                else if(dwNoBytesWrRd > (int32_t) BUFF_SIZE)
+                else if(dwNoBytesWrRd > 260)
                 {
                     NXPLOG_TML_E("Numer of bytes read exceeds the limit 260.....\n");
 #if (NXP_NFCC_I2C_READ_WRITE_IMPROVEMENT == TRUE)
@@ -441,8 +440,9 @@ static void phTmlNfc_TmlThread(void *pParam)
                 else
                 {
                     memcpy(gpphTmlNfc_Context->tReadInfo.pBuffer, temp, dwNoBytesWrRd);
-
+#if (NXP_NFCC_I2C_READ_WRITE_IMPROVEMENT == TRUE)
                     read_count = 0;
+#endif
                     NXPLOG_TML_D("PN54X - I2C Read successful.....len = %d\n", dwNoBytesWrRd);
                     /* This has to be reset only after a successful read */
                     gpphTmlNfc_Context->tReadInfo.bEnable = 0;

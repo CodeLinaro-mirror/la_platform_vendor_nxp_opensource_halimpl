@@ -1007,8 +1007,11 @@ static void nfa_rw_handle_t3t_evt (tRW_EVENT event, tRW_DATA *p_rw_data)
             tag_params.t3t.num_system_codes = 0;
             tag_params.t3t.p_system_codes = NULL;
         }
-
+#if(NXP_EXTNS == TRUE)
+        nfa_dm_notify_activation_status(p_rw_data->status, &tag_params);
+#else
         nfa_dm_notify_activation_status(NFA_STATUS_OK, &tag_params);
+#endif
         break;
 
     case RW_T3T_FORMAT_CPLT_EVT:        /* Format completed */
@@ -2856,8 +2859,6 @@ BOOLEAN nfa_rw_activate_ntf(tNFA_RW_MSG *p_data)
 #if(NXP_EXTNS == TRUE)
     else if (NFC_PROTOCOL_T3BT == nfa_rw_cb.protocol)
     {
-
-
         activate_notify = FALSE;                    /* Delay notifying upper layer of NFA_ACTIVATED_EVT until system codes are retrieved */
         msg.op = NFA_RW_OP_T3BT_PUPI;
         nfa_rw_handle_op_req((void *)&msg);
