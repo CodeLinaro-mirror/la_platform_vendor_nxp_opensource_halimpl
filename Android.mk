@@ -23,6 +23,7 @@ PN547C2 := 1
 PN548C2 := 2
 PN551   := 3
 PN553   := 4
+PN557   := 5
 
 ifeq ($(PN547C2),1)
 D_CFLAGS += -DPN547C2=1
@@ -35,6 +36,9 @@ D_CFLAGS += -DPN551=3
 endif
 ifeq ($(PN553),4)
 D_CFLAGS += -DPN553=4
+endif
+ifeq ($(PN557),5)
+D_CFLAGS += -DPN557=5
 endif
 
 #### Select the JCOP OS Version ####
@@ -56,6 +60,12 @@ else
 LOCAL_CFLAGS += -DNFC_NXP_ESE=FALSE
 endif
 
+ifeq ($(call is-board-platform-in-list,msm8909w msm8916 msm8994 msm8909 msm8996 msm8992 msm8952 msm8937 msm8953 msm8998),true)
+D_CFLAGS += -DNQ_NFC_DUAL_UICC=FALSE
+else
+D_CFLAGS += -DNQ_NFC_DUAL_UICC=TRUE
+endif
+
 #### Select the CHIP ####
 ifeq ($(strip $(NQ3XX_PRESENT)),true)
 NXP_CHIP_TYPE := $(PN553)
@@ -71,6 +81,8 @@ else ifeq ($(NXP_CHIP_TYPE),$(PN551))
 D_CFLAGS += -DNFC_NXP_CHIP_TYPE=PN551
 else ifeq ($(NXP_CHIP_TYPE),$(PN553))
 D_CFLAGS += -DNFC_NXP_CHIP_TYPE=PN553
+else ifeq ($(NXP_CHIP_TYPE),$(PN557))
+D_CFLAGS += -DNFC_NXP_CHIP_TYPE=PN557
 endif
 
 #Gemalto SE support
