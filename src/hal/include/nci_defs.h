@@ -41,6 +41,7 @@ extern "C" {
 #define NCI_MAX_CTRL_SIZE 0xFF /* max control message size */
 #define NCI_CTRL_INIT_SIZE 32  /* initial NFCC control payload size */
 #define NCI_MAX_VSC_SIZE 0xFF
+#define APPL_DTA_MODE FALSE
 /* NCI header (3) + callback function pointer(8; use 8 to be safe) + HCIT (1
  * byte) */
 #define NCI_VSC_MSG_HDR_SIZE 12
@@ -386,7 +387,7 @@ typedef uint8_t tNCI_STATUS;
 #define NCI_INTERFACE_ISO_DEP 2
 #define NCI_INTERFACE_NFC_DEP 3
 #define NCI_INTERFACE_MAX NCI_INTERFACE_NFC_DEP
-#define NCI_INTERFACE_EXTENSION_MAX 1
+#define NCI_INTERFACE_EXTENSION_MAX 2
 #define NCI_INTERFACE_FIRST_VS 0x80
 typedef uint8_t tNCI_INTF_TYPE;
 

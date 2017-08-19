@@ -272,6 +272,8 @@ static void phNxpNciHal_kill_client_thread(
  ******************************************************************************/
 static NFCSTATUS phNxpNciHal_fw_download(void) {
   NFCSTATUS status = NFCSTATUS_FAILED;
+  /*NCI_RESET_CMD*/
+  static uint8_t cmd_reset_nci[] = {0x20, 0x00, 0x01, 0x00};
 
   phNxpNciHal_get_clk_freq();
   status = phTmlNfc_IoCtl(phTmlNfc_e_EnableDownloadMode);
@@ -281,6 +283,12 @@ static NFCSTATUS phNxpNciHal_fw_download(void) {
     NXPLOG_NCIHAL_D("Calling Seq handler for FW Download \n");
     status = phNxpNciHal_fw_download_seq(nxpprofile_ctrl.bClkSrcVal,
                                          nxpprofile_ctrl.bClkFreqVal);
+    if (status != NFCSTATUS_SUCCESS) {
+      /* Abort any pending read and write */
+      phNxpNciHal_send_ext_cmd(sizeof(cmd_reset_nci), cmd_reset_nci);
+      phTmlNfc_ReadAbort();
+      phTmlNfc_WriteAbort();
+    }
     phDnldNfc_ReSetHwDevHandle();
   } else {
     status = NFCSTATUS_FAILED;
@@ -606,8 +614,8 @@ init_retry:
   phNxpNciHal_enable_i2c_fragmentation();
   /*Get FW version from device*/
   status = phDnldNfc_InitImgInfo();
-  NXPLOG_NCIHAL_D("FW version for FW file = 0x%x", wFwVer);
-  NXPLOG_NCIHAL_D("FW version from device = 0x%x", wFwVerRsp);
+  NXPLOG_NCIHAL_E("FW version for FW file = 0x%x", wFwVer);
+  NXPLOG_NCIHAL_E("FW version from device = 0x%x", wFwVerRsp);
   if ((wFwVerRsp & 0x0000FFFF) == wFwVer) {
     NXPLOG_NCIHAL_D("FW uptodate not required");
     phDnldNfc_ReSetHwDevHandle();
@@ -623,10 +631,7 @@ init_retry:
       if (status != NFCSTATUS_SUCCESS) {
         if (NFCSTATUS_SUCCESS != phNxpNciHal_fw_mw_ver_check()) {
           NXPLOG_NCIHAL_D("Chip Version Middleware Version mismatch!!!!");
-          /* Abort any pending read and write */
-          phNxpNciHal_send_ext_cmd(sizeof(cmd_reset_nci), cmd_reset_nci);
-          phTmlNfc_ReadAbort();
-          phTmlNfc_WriteAbort();
+          phOsalNfc_Timer_Cleanup();
           phTmlNfc_Shutdown();
           wConfigStatus = NFCSTATUS_FAILED;
           goto clean_and_return;
@@ -1811,19 +1816,17 @@ NFCSTATUS phNxpNciHalRFConfigCmdRecSequence() {
       status = phNxpNciHal_fw_download();
       if (status == NFCSTATUS_SUCCESS) {
         fw_download_success = 1;
-        status = phTmlNfc_Read(
-            nxpncihal_ctrl.p_cmd_data, NCI_MAX_DATA_LEN,
-            (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
-        if (status != NFCSTATUS_PENDING) {
-          NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
-          phTmlNfc_Shutdown();
-          status = NFCSTATUS_FAILED;
-          break;
-        }
-      } else {
-        status = NFCSTATUS_FAILED;
-        break;
       }
+      status = phTmlNfc_Read(
+          nxpncihal_ctrl.p_cmd_data, NCI_MAX_DATA_LEN,
+          (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
+      if (status != NFCSTATUS_PENDING) {
+        NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
+        phOsalNfc_Timer_Cleanup();
+        phTmlNfc_Shutdown();
+        status = NFCSTATUS_FAILED;
+      }
+      break;
     }
     gRecFWDwnld = false;
   } while (recFWState--);
@@ -2630,7 +2633,7 @@ retry_core_init:
     retry_core_init_cnt++;
     goto retry_core_init;
   }
-  if (nxpncihal_ctrl.nci_data.nci_version == NCI_VERSION_2_0) {
+  if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
     status = phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci2_0), cmd_init_nci2_0);
   } else {
     status = phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci), cmd_init_nci);
