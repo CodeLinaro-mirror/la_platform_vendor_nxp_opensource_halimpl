@@ -882,7 +882,7 @@ static void nfa_hci_sys_disable (void)
 void nfa_hci_conn_cback (UINT8 conn_id, tNFC_CONN_EVT event, tNFC_CONN *p_data)
 {
     UINT8   *p;
-    BT_HDR  *p_pkt = (BT_HDR *) p_data->data.p_data;
+    BT_HDR  *p_pkt = NULL;
     UINT8   chaining_bit;
     UINT8   pipe;
     UINT16  pkt_len;
@@ -948,8 +948,12 @@ void nfa_hci_conn_cback (UINT8 conn_id, tNFC_CONN_EVT event, tNFC_CONN *p_data)
 #endif
     }
 
-    if ((event != NFC_DATA_CEVT) || (p_pkt == NULL))
-            return;
+    if (event != NFC_DATA_CEVT)
+        return;
+
+    p_pkt = (BT_HDR *) p_data->data.p_data;
+    if (p_pkt == NULL)
+        return;
 
     if (  (nfa_hci_cb.hci_state == NFA_HCI_STATE_WAIT_NETWK_ENABLE)
         ||(nfa_hci_cb.hci_state == NFA_HCI_STATE_RESTORE_NETWK_ENABLE)  )
