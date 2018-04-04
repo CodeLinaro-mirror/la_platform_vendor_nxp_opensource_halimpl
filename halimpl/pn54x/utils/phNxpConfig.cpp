@@ -135,7 +135,10 @@ typedef enum
   TARGET_MSM8940                       = 313, /**< 8940 target */
   TARGET_SDM660                        = 317, /**< SDM660 target */
   TARGET_SDM630                        = 318, /**< SDM630 target */
+  TARGET_SDM632                        = 349, /**< SDM632 target */
+  TARGET_SDM439                        = 353, /**< SDM439 target */
   TARGET_SDM845                        = 321, /**< SDM845 target */
+  TARGET_SDM450                        = 338, /**< SDM450 target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -398,14 +401,20 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 strlcpy(config_file, config_name_qrd_NQ3XX, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
+        case TARGET_SDM450:
+        case TARGET_SDM632:
+        case TARGET_SDM439:
+            config_id = QRD_TYPE_NQ4XX;
+            strlcpy(config_file, config_name_qrd_NQ4XX, MAX_DATA_CONFIG_PATH_LEN);
+            break;
         default:
             config_id = QRD_TYPE_DEFAULT;
             strlcpy(config_file, config_name_qrd, MAX_DATA_CONFIG_PATH_LEN);
             break;
         }
     }
-    // if target is MTP platform then config id is assigned here
-    else if (0 == strncmp(target_type, MTP_HW_PLATFORM, MAX_SOC_INFO_NAME_LEN)) {
+    // if target is not QRD platform then default config id is assigned here
+    else {
         switch (idx)
         {
         case TARGET_GENERIC:
@@ -447,6 +456,12 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 config_id = MTP_TYPE_NQ3XX;
                 strlcpy(config_file, config_name_mtp_NQ3XX, MAX_DATA_CONFIG_PATH_LEN);
             }
+            break;
+        case TARGET_SDM450:
+        case TARGET_SDM632:
+        case TARGET_SDM439:
+            config_id = MTP_TYPE_NQ4XX;
+            strlcpy(config_file, config_name_mtp_NQ4XX, MAX_DATA_CONFIG_PATH_LEN);
             break;
         default:
             config_id = MTP_TYPE_DEFAULT;
@@ -834,7 +849,21 @@ CNfcConfig& CNfcConfig::GetInstance() {
         ALOGI("config file used = %s\n",strPath.c_str());
         theInstance.readConfig(strPath.c_str(), true);
 #if(NXP_EXTNS == TRUE)
-        readOptionalConfig("brcm");
+
+        int rc = 0;
+        char nq_fw_ver[PROPERTY_VALUE_MAX] = {0};
+
+        rc = __system_property_get("sys.nfc.nq.fwver", nq_fw_ver);
+        if (rc <= 0)
+            ALOGE("get sys.nfc.nq.fwver fail, rc = %d\n", rc);
+        else
+            ALOGD("sys.nfc.nq.fwver = %s\n", nq_fw_ver);
+
+        if (!strncmp(nq_fw_ver, FW_MAJOR_NUM_NQ4xx, FW_MAJOR_NUM_LENGTH))
+           readOptionalConfig("brcm_NCI2_0");
+        else
+           readOptionalConfig("brcm");
+
         theInstance.readNxpTransitConfig("nxpTransit");
 #endif
     }
