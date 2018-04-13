@@ -949,11 +949,11 @@ void nfa_hci_conn_cback (UINT8 conn_id, tNFC_CONN_EVT event, tNFC_CONN *p_data)
     }
 
     if (event != NFC_DATA_CEVT)
-            return;
+        return;
 
     p_pkt = (BT_HDR *) p_data->data.p_data;
     if (p_pkt == NULL)
-            return;
+        return;
 
     if (  (nfa_hci_cb.hci_state == NFA_HCI_STATE_WAIT_NETWK_ENABLE)
         ||(nfa_hci_cb.hci_state == NFA_HCI_STATE_RESTORE_NETWK_ENABLE)  )
