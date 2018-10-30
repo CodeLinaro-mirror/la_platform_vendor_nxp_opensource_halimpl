@@ -779,6 +779,11 @@ void nfa_hci_startup_complete(tNFA_STATUS status) {
   else
     nfa_hci_cb.hci_state = NFA_HCI_STATE_DISABLED;
 #if(NXP_EXTNS == TRUE)
+  if (nfcFL.eseFL._NCI_NFCEE_PWR_LINK_CMD) {
+        if (nfa_hci_cb.curr_nfcee == NFA_HCI_FIRST_PROP_HOST) {
+            NFC_NfceePLConfig(NFA_HCI_FIRST_PROP_HOST, 0x01);
+        }
+  }
   nfa_hci_handle_pending_host_reset();
 #endif
 }
@@ -862,13 +867,10 @@ bool nfa_hci_enable_one_nfcee(void) {
                           continue;
                         }
                     }
-                    if (nfa_hciu_find_dyn_apdu_pipe_for_host (nfceeid) == NULL)
+                    if(nfcFL.eseFL._NCI_NFCEE_PWR_LINK_CMD)
                     {
-                      if(nfcFL.eseFL._NCI_NFCEE_PWR_LINK_CMD)
-                      {
-                        if(nfceeid == NFA_HCI_FIRST_PROP_HOST)
-                          status = NFC_NfceePLConfig(nfceeid, 0x03);
-                      }
+                      if(nfceeid == NFA_HCI_FIRST_PROP_HOST)
+                        status = NFC_NfceePLConfig(nfceeid, 0x03);
                     }
                     status = NFC_NfceeModeSet(nfceeid, NFC_MODE_ACTIVATE);
                     if(status == NFA_STATUS_OK) {
@@ -996,8 +998,8 @@ static void nfa_hci_sys_disable(void) {
       if (NFC_GetNCIVersion() == NCI_VERSION_1_0) {
         nfa_hciu_send_to_all_apps(NFA_HCI_EXIT_EVT, &evt_data);
         NFC_ConnClose(nfa_hci_cb.conn_id);
+        return;
       }
-      return;
     }
     nfa_hci_cb.conn_id = 0;
   }
@@ -1710,7 +1712,7 @@ void nfa_hci_release_transceive(uint8_t host_id) {
   tNFA_HCI_DYN_GATE         *p_gate;
 
   p_pipe = nfa_hciu_find_dyn_apdu_pipe_for_host (host_id);
-  if ((p_pipe == NULL) || (p_pipe->pipe_id != NFA_HCI_INVALID_PIPE))
+  if ((p_pipe != NULL) && (p_pipe->pipe_id != NFA_HCI_INVALID_PIPE))
   {
       p_pipe_cmdrsp_info = nfa_hciu_get_pipe_cmdrsp_info (p_pipe->pipe_id);
   }
@@ -1842,14 +1844,16 @@ static void nfa_hci_timer_cback (TIMER_LIST_ENT *p_tle)
     uint8_t                     cmd_inst_param;
     TIMER_LIST_ENT            *p_timer;
     tNFA_HCI_DYN_PIPE         *p_pipe;
-    tNFA_HCI_DYN_GATE         *p_gate;
+    tNFA_HCI_DYN_GATE         *p_gate = NULL;
     tNFA_HCI_EVT_DATA         evt_data;
     tNFA_HCI_PIPE_CMDRSP_INFO *p_pipe_cmdrsp_info = NULL;
 
     DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf ("nfa_hci_timer_cback () Timeout on pipe connected to Generic gate");
+      << StringPrintf
+    ("nfa_hci_timer_cback() state = %d", nfa_hci_cb.hci_state);
 
-    if (nfa_hci_cb.hci_state == NFA_HCI_STATE_STARTUP)
+    if ((nfa_hci_cb.hci_state == NFA_HCI_STATE_STARTUP)
+      || (nfa_hci_cb.hci_state == NFA_HCI_STATE_WAIT_NETWK_ENABLE))
     {
         LOG(ERROR) << StringPrintf ("nfa_hci_timer_cback - Initialization failed!");
         /* Timeout to Read Registry from APDU gate pipe */
@@ -1865,12 +1869,13 @@ static void nfa_hci_timer_cback (TIMER_LIST_ENT *p_tle)
 
         memset (&evt_data, 0, sizeof (evt_data));
 
-        if (p_pipe_cmdrsp_info->w4_cmd_rsp)
+        if (p_pipe_cmdrsp_info != NULL && p_pipe_cmdrsp_info->w4_cmd_rsp)
         {
             /* Timeout to command response on host specific generic pipe */
             p_pipe_cmdrsp_info->w4_cmd_rsp = false;
 
-            p_gate = nfa_hciu_find_gate_by_gid (p_pipe->local_gate);
+            if (p_pipe != NULL)
+              p_gate = nfa_hciu_find_gate_by_gid (p_pipe->local_gate);
 
             if (p_gate == NULL)
             {
@@ -1945,7 +1950,8 @@ static void nfa_hci_timer_cback (TIMER_LIST_ENT *p_tle)
                 p_pipe_cmdrsp_info->w4_rsp_apdu_evt = false;
 
                 evt_data.apdu_aborted.status  = NFA_STATUS_TIMEOUT;
-                evt_data.apdu_aborted.host_id = p_pipe->dest_host;
+                if (p_pipe != NULL)
+                  evt_data.apdu_aborted.host_id = p_pipe->dest_host;
 
                 /* Send NFA_HCI_APDU_ABORTED_EVT to notify status */
                 nfa_hciu_send_to_app (NFA_HCI_APDU_ABORTED_EVT, &evt_data,
@@ -1958,7 +1964,8 @@ static void nfa_hci_timer_cback (TIMER_LIST_ENT *p_tle)
 
                 evt_data.apdu_rcvd.status  = NFA_STATUS_TIMEOUT;
                 evt_data.apdu_rcvd.p_apdu  = NULL;
-                evt_data.apdu_rcvd.host_id = p_pipe->dest_host;
+                if (p_pipe != NULL)
+                  evt_data.apdu_rcvd.host_id = p_pipe->dest_host;
                 nfa_hci_cb.hci_state = NFA_HCI_STATE_IDLE;
                 /* notify NFA_HCI_RSP_APDU_RCVD_EVT to the application */
                 nfa_hciu_send_to_app (NFA_HCI_RSP_APDU_RCVD_EVT, &evt_data,
