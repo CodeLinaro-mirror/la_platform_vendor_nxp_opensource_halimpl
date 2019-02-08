@@ -250,8 +250,8 @@ static void* phNxpNciHal_client_thread(void* arg) {
           /* Send the event */
           (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_NFC_CLOSE_CPLT_EVT,
                                               HAL_NFC_STATUS_OK);
-          phNxpNciHal_kill_client_thread(&nxpncihal_ctrl);
         }
+        phNxpNciHal_kill_client_thread(&nxpncihal_ctrl);
         REENTRANCE_UNLOCK();
         break;
       }
@@ -668,17 +668,12 @@ int phNxpNciHal_MinOpen (){
       nfc_dev_node = NULL;
     }
   }
-
   /* Create the client thread */
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  ret_val = pthread_create(&nxpncihal_ctrl.client_thread, &attr,
+  ret_val = pthread_create(&nxpncihal_ctrl.client_thread, NULL,
                            phNxpNciHal_client_thread, &nxpncihal_ctrl);
-  pthread_attr_destroy(&attr);
   if (ret_val != 0) {
     NXPLOG_NCIHAL_E("pthread_create failed");
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     goto clean_and_return;
   }
 
@@ -690,7 +685,7 @@ int phNxpNciHal_MinOpen (){
       (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
   if (status != NFCSTATUS_PENDING) {
     NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     wConfigStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
@@ -717,7 +712,7 @@ init_retry:
           NXPLOG_NCIHAL_E("invlaid core reset rsp received. Trying Force FW download");
           goto force_download;
       } else init_retry_cnt = 0;
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     wConfigStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
@@ -745,7 +740,7 @@ init_retry:
       goto init_retry;
     } else
       init_retry_cnt = 0;
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     wConfigStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
@@ -794,7 +789,7 @@ init_retry:
           if (NFCSTATUS_SUCCESS != phNxpNciHal_fw_mw_ver_check()) {
             NXPLOG_NCIHAL_D("Chip Version Middleware Version mismatch!!!!");
             phOsalNfc_Timer_Cleanup();
-            phTmlNfc_Shutdown();
+            phTmlNfc_Shutdown_CleanUp();
             wConfigStatus = NFCSTATUS_FAILED;
             goto clean_and_return;
           }
@@ -810,7 +805,7 @@ init_retry:
           (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
         if (status != NFCSTATUS_PENDING) {
           NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
-          wConfigStatus = phTmlNfc_Shutdown();
+          wConfigStatus = phTmlNfc_Shutdown_CleanUp();
           wConfigStatus = NFCSTATUS_FAILED;
           goto clean_and_return;
         } else {
@@ -1985,7 +1980,7 @@ NFCSTATUS phNxpNciHalRFConfigCmdRecSequence() {
       if (status != NFCSTATUS_PENDING) {
         NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
         phOsalNfc_Timer_Cleanup();
-        phTmlNfc_Shutdown();
+        phTmlNfc_Shutdown_CleanUp();
         status = NFCSTATUS_FAILED;
       }
 #endif
@@ -2183,6 +2178,11 @@ close_and_return:
     phOsalNfc_Timer_Cleanup();
 
     status = phTmlNfc_Shutdown();
+
+    if (0 != pthread_join(nxpncihal_ctrl.client_thread, (void **)NULL)) {
+      NXPLOG_TML_E("Fail to kill client thread!");
+    }
+    phTmlNfc_CleanUp();
 
     phDal4Nfc_msgrelease(nxpncihal_ctrl.gDrvCfg.nClientId);
 
