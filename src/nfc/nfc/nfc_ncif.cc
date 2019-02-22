@@ -38,6 +38,9 @@
 #include "rw_api.h"
 #include "rw_int.h"
 
+#include <statslog.h>
+#include "metrics.h"
+
 using android::base::StringPrintf;
 
 #if (NFC_RW_ONLY == FALSE)
@@ -53,6 +56,9 @@ static tNFC_FW_VERSION nfc_fw_version;
 
 extern unsigned char appl_dta_mode_flag;
 extern bool nfc_debug_enabled;
+
+static struct timeval timer_start;
+static struct timeval timer_end;
 
 /*******************************************************************************
 **
@@ -227,6 +233,16 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
     }
   }
 
+  // log duration for the first hce data response
+  if (timer_start.tv_sec != 0 || timer_start.tv_usec != 0) {
+    gettimeofday(&timer_end, nullptr);
+    uint32_t delta_time_ms = (timer_end.tv_sec - timer_start.tv_sec) * 1000 +
+                             (timer_end.tv_usec - timer_start.tv_usec) / 1000;
+    memset(&timer_start, 0, sizeof(timer_start));
+    memset(&timer_end, 0, sizeof(timer_end));
+    android::util::stats_write(android::util::NFC_HCE_TRANSACTION_OCCURRED,
+                               (int32_t)delta_time_ms);
+  }
   return (NCI_STATUS_OK);
 }
 
@@ -522,8 +538,13 @@ void nfc_ncif_set_config_status(uint8_t* p, uint8_t len) {
 *******************************************************************************/
 void nfc_ncif_event_status(tNFC_RESPONSE_EVT event, uint8_t status) {
   tNFC_RESPONSE evt_data;
-  if (event == NFC_NFCC_TIMEOUT_REVT && status == NFC_STATUS_HW_TIMEOUT)
+  if (event == NFC_NFCC_TIMEOUT_REVT && status == NFC_STATUS_HW_TIMEOUT) {
     android::metricslogger::LogCounter("nfc_hw_timeout_error", 1);
+    uint32_t cmd_hdr = (nfc_cb.last_hdr[0] << 8) | nfc_cb.last_hdr[1];
+    android::util::stats_write(android::util::NFC_ERROR_OCCURRED,
+                               (int32_t)NCI_TIMEOUT, (int32_t)cmd_hdr,
+                               (int32_t)status);
+  }
   if (nfc_cb.p_resp_cback) {
     evt_data.status = (tNFC_STATUS)status;
     (*nfc_cb.p_resp_cback)(event, &evt_data);
@@ -547,6 +568,9 @@ void nfc_ncif_error_status(uint8_t conn_id, uint8_t status) {
     nfc_conn.status = status;
     (*p_cb->p_cback)(conn_id, NFC_ERROR_CEVT, &nfc_conn);
   }
+  android::util::stats_write(android::util::NFC_ERROR_OCCURRED,
+                             (int32_t)ERROR_NTF, (int32_t)0, (int32_t)status);
+
   if (status == NFC_STATUS_TIMEOUT)
     android::metricslogger::LogCounter("nfc_rf_timeout_error", 1);
   else if (status == NFC_STATUS_EE_TIMEOUT)
@@ -594,31 +618,38 @@ void nfc_ncif_proc_rf_field_ntf(uint8_t rf_status) {
 ** Returns          void
 **
 *******************************************************************************/
-void nfc_ncif_proc_credits(uint8_t* p, __attribute__((unused)) uint16_t plen) {
+void nfc_ncif_proc_credits(uint8_t* p, uint16_t plen) {
   uint8_t num, xx;
   tNFC_CONN_CB* p_cb;
 
-  num = *p++;
-  for (xx = 0; xx < num; xx++) {
-    p_cb = nfc_find_conn_cb_by_conn_id(*p++);
-    if (p_cb && p_cb->num_buff != NFC_CONN_NO_FC) {
-      p_cb->num_buff += (*p);
-#if (BT_USE_TRACES == TRUE)
-      if (p_cb->num_buff > p_cb->init_credits) {
-        if (nfc_cb.nfc_state == NFC_STATE_OPEN) {
-          /* if this happens in activated state, it's very likely that our NFCC
-           * has issues */
-          /* However, credit may be returned after deactivation */
-          LOG(ERROR) << StringPrintf("num_buff:0x%x, init_credits:0x%x",
-                                     p_cb->num_buff, p_cb->init_credits);
-        }
-        p_cb->num_buff = p_cb->init_credits;
-      }
-#endif
-      /* check if there's nay data in tx q to be sent */
-      nfc_ncif_send_data(p_cb, nullptr);
+  if (plen != 0) {
+    num = *p++;
+    plen--;
+    if (num > plen) {
+      android_errorWriteLog(0x534e4554, "118148142");
+      return;
     }
-    p++;
+    for (xx = 0; xx < num; xx++) {
+      p_cb = nfc_find_conn_cb_by_conn_id(*p++);
+      if (p_cb && p_cb->num_buff != NFC_CONN_NO_FC) {
+        p_cb->num_buff += (*p);
+#if (BT_USE_TRACES == TRUE)
+        if (p_cb->num_buff > p_cb->init_credits) {
+          if (nfc_cb.nfc_state == NFC_STATE_OPEN) {
+            /* if this happens in activated state, it's very likely that our
+             * NFCC has issues */
+            /* However, credit may be returned after deactivation */
+            LOG(ERROR) << StringPrintf("num_buff:0x%x, init_credits:0x%x",
+                                       p_cb->num_buff, p_cb->init_credits);
+          }
+          p_cb->num_buff = p_cb->init_credits;
+        }
+#endif
+        /* check if there's nay data in tx q to be sent */
+        nfc_ncif_send_data(p_cb, nullptr);
+      }
+      p++;
+    }
   }
 }
 /*******************************************************************************
@@ -922,6 +953,7 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
 
       case NCI_DISCOVERY_TYPE_LISTEN_A:
         p_intf->intf_param.la_iso.rats = *p++;
+        gettimeofday(&timer_start, nullptr);
         break;
 
       case NCI_DISCOVERY_TYPE_POLL_B:
@@ -972,6 +1004,7 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
                  &p_lb_iso->attrib_req[NFC_LB_ATTRIB_REQ_FIXED_BYTES],
                  p_lb_iso->hi_info_len);
         }
+        gettimeofday(&timer_start, nullptr);
         break;
     }
 
@@ -1109,6 +1142,11 @@ void nfc_ncif_proc_deactivate(uint8_t status, uint8_t deact_type, bool is_ntf) {
 
   if (nfc_cb.p_discv_cback) {
     (*nfc_cb.p_discv_cback)(NFC_DEACTIVATE_DEVT, &evt_data);
+  }
+
+  // clear previous stored tick count if not comsumed
+  if (timer_start.tv_sec != 0 || timer_start.tv_usec != 0) {
+    memset(&timer_start, 0, sizeof(timer_start));
   }
 }
 /*******************************************************************************
