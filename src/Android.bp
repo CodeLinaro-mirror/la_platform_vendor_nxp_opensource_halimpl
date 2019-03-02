@@ -14,6 +14,7 @@ cc_library_shared {
         "libz",
         "libchrome",
         "libbase",
+	"libstatslog",
 
         // Treble configuration
         "libhidlbase",
@@ -22,6 +23,7 @@ cc_library_shared {
         "libutils",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
+        "android.hardware.nfc@1.2",
     ],
     static_libs: [
         "libnfcutils",

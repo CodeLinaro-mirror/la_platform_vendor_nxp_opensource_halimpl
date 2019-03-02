@@ -336,6 +336,70 @@ tNFA_STATUS NFA_EeSetDefaultTechRouting(
 
 /*******************************************************************************
 **
+** Function         NFA_EeClearDefaultTechRouting
+**
+** Description      This function is called to remove the default routing based
+**                  on RF technology in the listen mode routing table for the
+**                  given ee_handle. The status of this operation is reported
+**                  as the NFA_EE_CLEAR_TECH_CFG_EVT.
+**
+** Note:            If RF discovery is started,
+**                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT should
+**                  happen before calling this function
+**
+** Note:            NFA_EeUpdateNow() should be called after last NFA-EE
+**                  function to change the listen mode routing is called.
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**                  NFA_STATUS_INVALID_PARAM If bad parameter
+**
+*******************************************************************************/
+tNFA_STATUS NFA_EeClearDefaultTechRouting(
+    tNFA_HANDLE ee_handle, tNFA_TECHNOLOGY_MASK clear_technology) {
+  tNFA_EE_API_SET_TECH_CFG* p_msg;
+  tNFA_STATUS status = NFA_STATUS_FAILED;
+  uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
+  tNFA_EE_ECB* p_cb;
+
+  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+      "handle:<0x%x>clear technology_mask:<0x%x>", ee_handle, clear_technology);
+  if (!clear_technology) {
+    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nothing to clear");
+    status = NFA_STATUS_OK;
+    return status;
+  }
+
+  p_cb = nfa_ee_find_ecb(nfcee_id);
+
+  if (p_cb == nullptr) {
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
+    status = NFA_STATUS_INVALID_PARAM;
+  } else {
+    p_msg = (tNFA_EE_API_CLEAR_TECH_CFG*)GKI_getbuf(
+        sizeof(tNFA_EE_API_CLEAR_TECH_CFG));
+    if (p_msg != nullptr) {
+      p_msg->hdr.event = NFA_EE_API_CLEAR_TECH_CFG_EVT;
+      p_msg->nfcee_id = nfcee_id;
+      p_msg->p_cb = p_cb;
+      p_msg->technologies_switch_on = clear_technology;
+      p_msg->technologies_switch_off = clear_technology;
+      p_msg->technologies_battery_off = clear_technology;
+      p_msg->technologies_screen_lock = clear_technology;
+      p_msg->technologies_screen_off = clear_technology;
+      p_msg->technologies_screen_off_lock = clear_technology;
+
+      nfa_sys_sendmsg(p_msg);
+
+      status = NFA_STATUS_OK;
+    }
+  }
+
+  return status;
+}
+
+/*******************************************************************************
+**
 ** Function         NFA_EeSetDefaultProtoRouting
 **
 ** Description      This function is called to add, change or remove the
@@ -402,6 +466,70 @@ tNFA_STATUS NFA_EeSetDefaultProtoRouting(
 
 /*******************************************************************************
 **
+** Function         NFA_EeClearDefaultProtoRouting
+**
+** Description      This function is called to remove the default routing based
+**                  on RF technology in the listen mode routing table for the
+**                  given ee_handle. The status of this operation is reported
+**                  as the NFA_EE_CLEAR_TECH_CFG_EVT.
+**
+** Note:            If RF discovery is started,
+**                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT should
+**                  happen before calling this function
+**
+** Note:            NFA_EeUpdateNow() should be called after last NFA-EE
+**                  function to change the listen mode routing is called.
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**                  NFA_STATUS_INVALID_PARAM If bad parameter
+**
+*******************************************************************************/
+tNFA_STATUS NFA_EeClearDefaultProtoRouting(tNFA_HANDLE ee_handle,
+                                           tNFA_PROTOCOL_MASK clear_protocol) {
+  tNFA_EE_API_SET_PROTO_CFG* p_msg;
+  tNFA_STATUS status = NFA_STATUS_FAILED;
+  uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
+  tNFA_EE_ECB* p_cb;
+
+  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+      "handle:<0x%x>clear protocol_mask:<0x%x>", ee_handle, clear_protocol);
+  if (!clear_protocol) {
+    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nothing to clear");
+    status = NFA_STATUS_OK;
+    return status;
+  }
+
+  p_cb = nfa_ee_find_ecb(nfcee_id);
+
+  if (p_cb == nullptr) {
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
+    status = NFA_STATUS_INVALID_PARAM;
+  } else {
+    p_msg = (tNFA_EE_API_SET_PROTO_CFG*)GKI_getbuf(
+        sizeof(tNFA_EE_API_SET_PROTO_CFG));
+    if (p_msg != nullptr) {
+      p_msg->hdr.event = NFA_EE_API_CLEAR_PROTO_CFG_EVT;
+      p_msg->nfcee_id = nfcee_id;
+      p_msg->p_cb = p_cb;
+      p_msg->protocols_switch_on = clear_protocol;
+      p_msg->protocols_switch_off = clear_protocol;
+      p_msg->protocols_battery_off = clear_protocol;
+      p_msg->protocols_screen_lock = clear_protocol;
+      p_msg->protocols_screen_off = clear_protocol;
+      p_msg->protocols_screen_off_lock = clear_protocol;
+
+      nfa_sys_sendmsg(p_msg);
+
+      status = NFA_STATUS_OK;
+    }
+  }
+
+  return status;
+}
+
+/*******************************************************************************
+**
 ** Function         NFA_EeAddAidRouting
 **
 ** Description      This function is called to add an AID entry in the
@@ -433,15 +561,20 @@ tNFA_STATUS NFA_EeAddAidRouting(tNFA_HANDLE ee_handle, uint8_t aid_len,
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   /* validate parameters - make sure the AID is in valid length range */
-  if ((p_cb == nullptr) || (aid_len == 0) || (p_aid == nullptr) ||
-      (aid_len < NFA_MIN_AID_LEN) || (aid_len > NFA_MAX_AID_LEN)) {
+  if ((p_cb == nullptr) ||
+      ((NFA_GetNCIVersion() == NCI_VERSION_2_0) && (aid_len != 0) &&
+       (p_aid == nullptr)) ||
+      ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+       ((aid_len == 0) || (p_aid == nullptr) || (aid_len < NFA_MIN_AID_LEN))) ||
+      (aid_len > NFA_MAX_AID_LEN)) {
     LOG(ERROR) << StringPrintf("Bad ee_handle or AID (len=%d)", aid_len);
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_ADD_AID*)GKI_getbuf(size);
     if (p_msg != nullptr) {
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("aid:<%02x%02x>", p_aid[0], p_aid[1]);
+      if (p_aid != nullptr)
+        DLOG_IF(INFO, nfc_debug_enabled)
+            << StringPrintf("aid:<%02x%02x>", p_aid[0], p_aid[1]);
       p_msg->hdr.event = NFA_EE_API_ADD_AID_EVT;
       p_msg->nfcee_id = nfcee_id;
       p_msg->p_cb = p_cb;
@@ -449,7 +582,7 @@ tNFA_STATUS NFA_EeAddAidRouting(tNFA_HANDLE ee_handle, uint8_t aid_len,
       p_msg->power_state = power_state;
       p_msg->p_aid = (uint8_t*)(p_msg + 1);
       p_msg->aidInfo = aidInfo;
-      memcpy(p_msg->p_aid, p_aid, aid_len);
+      if (p_aid != nullptr) memcpy(p_msg->p_aid, p_aid, aid_len);
 
       nfa_sys_sendmsg(p_msg);
 
@@ -487,7 +620,11 @@ tNFA_STATUS NFA_EeRemoveAidRouting(uint8_t aid_len, uint8_t* p_aid) {
   uint16_t size = sizeof(tNFA_EE_API_REMOVE_AID) + aid_len;
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
-  if ((aid_len == 0) || (p_aid == nullptr) || (aid_len > NFA_MAX_AID_LEN)) {
+  if (((NFA_GetNCIVersion() == NCI_VERSION_2_0) && (aid_len != 0) &&
+       (p_aid == nullptr)) ||
+      ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+       ((aid_len == 0) || (p_aid == nullptr) || (aid_len < NFA_MIN_AID_LEN))) ||
+      (aid_len > NFA_MAX_AID_LEN)) {
     LOG(ERROR) << StringPrintf("Bad AID");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
@@ -603,6 +740,18 @@ tNFA_STATUS NFA_EeRemoveSystemCodeRouting(uint16_t systemcode) {
   }
   return status;
 }
+
+/*******************************************************************************
+**
+** Function         NFA_GetAidTableSize
+**
+** Description      This function is called to get the Maximum AID routing table
+*size.
+**
+** Returns          AID routing table maximum size
+**
+*******************************************************************************/
+uint16_t NFA_GetAidTableSize() { return nfa_ee_find_max_aid_cfg_len(); }
 
 /*******************************************************************************
 **
