@@ -71,7 +71,9 @@ ThreadMutex NfcAdaptation::sLock;
 tHAL_NFC_CBACK* NfcAdaptation::mHalCallback = NULL;
 tHAL_NFC_DATA_CBACK* NfcAdaptation::mHalDataCallback = NULL;
 ThreadCondVar NfcAdaptation::mHalOpenCompletedEvent;
+#if (NXP_EXTNS == FALSE)
 ThreadCondVar NfcAdaptation::mHalCloseCompletedEvent;
+#endif
 sp<INfc> NfcAdaptation::mHal;
 sp<INfcV1_1> NfcAdaptation::mHal_1_1;
 INfcClientCallback* NfcAdaptation::mCallback;
@@ -844,9 +846,7 @@ void NfcAdaptation::DownloadFirmware() {
   if(status == NfcStatus::OK){
     mHalOpenCompletedEvent.wait();
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: try close HAL", func);
-    mHalCloseCompletedEvent.lock();
     status =mHal->close();
-    mHalCloseCompletedEvent.wait();
   }
 #else
   HalOpen(HalDownloadFirmwareCallback, HalDownloadFirmwareDataCallback);
@@ -889,10 +889,9 @@ void NfcAdaptation::HalDownloadFirmwareCallback(nfc_event_t event,
     case HAL_NFC_CLOSE_CPLT_EVT: {
       DLOG_IF(INFO, nfc_debug_enabled)
           << StringPrintf("%s: HAL_NFC_CLOSE_CPLT_EVT", func);
-#if (NXP_EXTNS == TRUE)
-     if(event_status == HAL_NFC_STATUS_OK)
-#endif
+#if (NXP_EXTNS == FALSE)
         mHalCloseCompletedEvent.signal();
+#endif
       break;
     }
   }
