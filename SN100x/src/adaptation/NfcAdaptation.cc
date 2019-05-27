@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 1999-2012 Broadcom Corporation
  *
- *  Copyright (C) 2018 NXP
+ *  Copyright (C) 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -58,6 +58,7 @@ using android::hardware::hidl_death_recipient;
 using android::hardware::configureRpcThreadpool;
 #if (NXP_EXTNS == TRUE)
 using ::android::hardware::nfc::V1_0::NfcStatus;
+
 ThreadMutex NfcAdaptation::sIoctlLock;
 #endif
 extern bool nfc_debug_enabled;
@@ -517,7 +518,7 @@ void NfcAdaptation::InitializeHalDeviceContext() {
   mHalEntryFuncs.close = HalClose;
   mHalEntryFuncs.core_initialized = HalCoreInitialized;
   mHalEntryFuncs.write = HalWrite;
- #if (NXP_EXTNS == TRUE)
+#if (NXP_EXTNS == TRUE)
   mHalEntryFuncs.ioctl = HalIoctl;
 #endif
   mHalEntryFuncs.prediscover = HalPrediscover;
@@ -724,6 +725,26 @@ int NfcAdaptation::HalIoctl(long arg, void* p_data) {
       mNqHal->ioctl(arg, data, IoctlCallback);
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s Ioctl Completed for Type=%llu", func, (unsigned long long)pInpOutData->out.ioctlType);
   return (pInpOutData->out.result);
+}
+
+/******************************************************************************
+ * Function         phNxpNciHal_getNxpConfig
+ *
+ * Description      This function can be used by libnfc-nci to
+ *                 to update vendor configuration parametres
+ *
+ * Returns          void.
+ *
+ ******************************************************************************/
+void NfcAdaptation::GetNxpConfigs(
+    std::map<std::string, ConfigValue>& configMap) {
+  nfc_nci_IoctlInOutData_t inpOutData;
+  int ret = HalIoctl(HAL_NFC_IOCTL_GET_NXP_CONFIG, &inpOutData);
+  DLOG_IF(INFO, nfc_debug_enabled)
+      << StringPrintf("HAL_NFC_IOCTL_GET_NXP_CONFIG ioctl return value = %d", ret);
+  configMap.emplace(
+      NAME_NXP_SE_COLD_TEMP_ERROR_DELAY,
+      ConfigValue(inpOutData.out.data.nxpConfigs.eSeLowTempErrorDelay));
 }
 #endif
 /*******************************************************************************
