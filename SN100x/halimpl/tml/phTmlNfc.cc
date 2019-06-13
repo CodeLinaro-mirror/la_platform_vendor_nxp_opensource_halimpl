@@ -27,7 +27,6 @@
 #include <phOsalNfc_Timer.h>
 #include <phTmlNfc.h>
 #include <phTmlNfc_i2c.h>
-#include "phNxpConfig.h"
 
 /*
  * Duration of Timer to wait after sending an Nci packet
@@ -567,16 +566,11 @@ static void * phTmlNfc_TmlWriterThread(void* pParam) {
 **
 *******************************************************************************/
 void phTmlNfc_CleanUp(void) {
-  unsigned long num = 0;
   if (NULL == gpphTmlNfc_Context) {
     return;
   }
   if (NULL != gpphTmlNfc_Context->pDevHandle) {
-      if (GetNxpNumValue(NAME_ENABLE_VEN_TOGGLE, &num, sizeof(num))) {
-          if (num == 1) {
-              (void)phTmlNfc_i2c_reset(gpphTmlNfc_Context->pDevHandle, MODE_POWER_OFF);
-          }
-      }
+    (void)phTmlNfc_i2c_reset(gpphTmlNfc_Context->pDevHandle, MODE_POWER_OFF);
     gpphTmlNfc_Context->bThreadDone = 0;
   }
   sem_destroy(&gpphTmlNfc_Context->rxSemaphore);
