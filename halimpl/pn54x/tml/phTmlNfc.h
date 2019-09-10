@@ -224,6 +224,8 @@ typedef enum
 /* Function declarations */
 NFCSTATUS phTmlNfc_Init(pphTmlNfc_Config_t pConfig);
 NFCSTATUS phTmlNfc_Shutdown(void);
+NFCSTATUS phTmlNfc_Shutdown_CleanUp();
+void phTmlNfc_CleanUp(void);
 NFCSTATUS phTmlNfc_Write(uint8_t *pBuffer, uint16_t wLength, pphTmlNfc_TransactCompletionCb_t pTmlWriteComplete,  void *pContext);
 NFCSTATUS phTmlNfc_Read(uint8_t *pBuffer, uint16_t wLength, pphTmlNfc_TransactCompletionCb_t pTmlReadComplete,  void *pContext);
 NFCSTATUS phTmlNfc_WriteAbort(void);
