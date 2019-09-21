@@ -203,8 +203,8 @@ static void* phNxpNciHal_client_thread(void* arg) {
           /* Send the event */
           (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_NFC_CLOSE_CPLT_EVT,
                                               HAL_NFC_STATUS_OK);
-          phNxpNciHal_kill_client_thread(&nxpncihal_ctrl);
         }
+        phNxpNciHal_kill_client_thread(&nxpncihal_ctrl);
         REENTRANCE_UNLOCK();
         break;
       }
@@ -328,7 +328,7 @@ else {
         (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
     if (wConfigStatus != NFCSTATUS_PENDING) {
       NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
-      phTmlNfc_Shutdown();
+      phTmlNfc_Shutdown_CleanUp();
       status = NFCSTATUS_FAILED;
     }
   } else {
@@ -566,7 +566,7 @@ int phNxpNciHal_MinOpen(nfc_stack_callback_t* p_cback,
     /* print message*/
     phNxpNciHal_core_MinInitialized_complete(status);
   } else {
-    phTmlNfc_Shutdown();
+    phTmlNfc_Shutdown_CleanUp();
     (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_NFC_POST_MIN_INIT_CPLT_EVT,
                                         HAL_NFC_STATUS_FAILED);
     /* Report error status */
@@ -706,15 +706,11 @@ int phNxpNciHal_open(nfc_stack_callback_t* p_cback,
     }
   }
   /* Create the client thread */
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  ret_val = pthread_create(&nxpncihal_ctrl.client_thread, &attr,
+  ret_val = pthread_create(&nxpncihal_ctrl.client_thread, NULL,
                            phNxpNciHal_client_thread, &nxpncihal_ctrl);
-  pthread_attr_destroy(&attr);
   if (ret_val != 0) {
     NXPLOG_NCIHAL_E("pthread_create failed");
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     goto clean_and_return;
   }
 
@@ -725,7 +721,7 @@ int phNxpNciHal_open(nfc_stack_callback_t* p_cback,
       (pphTmlNfc_TransactCompletionCb_t)&phNxpNciHal_read_complete, NULL);
   if (status != NFCSTATUS_PENDING) {
     NXPLOG_NCIHAL_E("TML Read status error status = %x", status);
-    wConfigStatus = phTmlNfc_Shutdown();
+    wConfigStatus = phTmlNfc_Shutdown_CleanUp();
     wConfigStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
@@ -748,7 +744,7 @@ int phNxpNciHal_open(nfc_stack_callback_t* p_cback,
         goto init_retry;
       } else
         init_retry_cnt = 0;
-      wConfigStatus = phTmlNfc_Shutdown();
+      wConfigStatus = phTmlNfc_Shutdown_CleanUp();
       wConfigStatus = NFCSTATUS_FAILED;
       goto clean_and_return;
     }
@@ -2583,6 +2579,12 @@ close_and_return:
 
     status = phTmlNfc_Shutdown();
 
+    if (0 != pthread_join(nxpncihal_ctrl.client_thread, (void **)NULL)) {
+      NXPLOG_TML_E("Fail to kill client thread!");
+    }
+
+    phTmlNfc_CleanUp();
+
     phDal4Nfc_msgrelease(nxpncihal_ctrl.gDrvCfg.nClientId);
 
     memset(&nxpncihal_ctrl, 0x00, sizeof(nxpncihal_ctrl));
@@ -2628,6 +2630,12 @@ int phNxpNciHal_Minclose(void) {
 
     status = phTmlNfc_Shutdown();
 
+    if (0 != pthread_join(nxpncihal_ctrl.client_thread, (void **)NULL)) {
+      NXPLOG_TML_E("Fail to kill client thread!");
+    }
+
+    phTmlNfc_CleanUp();
+
     phDal4Nfc_msgrelease(nxpncihal_ctrl.gDrvCfg.nClientId);
 
     memset(&nxpncihal_ctrl, 0x00, sizeof(nxpncihal_ctrl));
@@ -2639,6 +2647,8 @@ int phNxpNciHal_Minclose(void) {
 
   phNxpNciHal_cleanup_monitor();
 
+  write_unlocked_status = NFCSTATUS_SUCCESS;
+  phNxpNciHal_release_info();
   /* Return success always */
   return NFCSTATUS_SUCCESS;
 }
