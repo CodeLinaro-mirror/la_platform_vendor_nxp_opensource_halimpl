@@ -134,6 +134,7 @@ void nfa_dm_init(void) {
   nfa_dm_cb.poll_disc_handle = NFA_HANDLE_INVALID;
   nfa_dm_cb.disc_cb.disc_duration = NFA_DM_DISC_DURATION_POLL;
   nfa_dm_cb.nfcc_pwr_mode = NFA_DM_PWR_MODE_FULL;
+  nfa_dm_cb.pending_power_state = SCREEN_STATE_INVALID;
 #if (NXP_EXTNS == TRUE)
   nfa_dm_cb.selected_uicc_id = UICC1_HOST;
 #endif
@@ -213,7 +214,8 @@ bool nfa_dm_is_protocol_supported(tNFC_PROTOCOL protocol, uint8_t sel_res) {
            (sel_res == NFC_SEL_RES_NFC_FORUM_T2T)) ||
           (protocol == NFC_PROTOCOL_T3T) ||
           (protocol == NFC_PROTOCOL_ISO_DEP) ||
-          (protocol == NFC_PROTOCOL_NFC_DEP) || (protocol == NFC_PROTOCOL_T5T)
+          (protocol == NFC_PROTOCOL_NFC_DEP) ||
+          (protocol == NFC_PROTOCOL_T5T) || (protocol == NFC_PROTOCOL_MIFARE)
 #if (NXP_EXTNS == TRUE)
           || (protocol == NFC_PROTOCOL_T3BT)
 #endif
@@ -253,7 +255,7 @@ bool nfa_dm_is_active(void) {
 tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
                                     bool app_init) {
 #if (NXP_EXTNS == TRUE)
-  uint8_t type, len, *p_value, * p_stored = NULL, max_len = 0;
+  uint8_t type, len, *p_value, * p_stored = nullptr, max_len = 0;
 #else
   uint8_t type, len, *p_value, *p_stored, max_len;
 #endif
@@ -278,7 +280,7 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
     type = *(p_tlv_list + xx);
     len = *(p_tlv_list + xx + 1);
     p_value = p_tlv_list + xx + 2;
-    p_cur_len = NULL;
+    p_cur_len = nullptr;
 
     switch (type) {
       /*
@@ -409,7 +411,7 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
         } else {
           /* we don't stored this config items */
           update = true;
-          p_stored = NULL;
+          p_stored = nullptr;
         }
         break;
     }
@@ -460,7 +462,7 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
    * application, then send the SET_CONFIG command */
   if (((updated_len || app_init) &&
        (appl_dta_mode_flag == 0x00 ||
-        (nfa_dm_cb.eDtaMode & 0x0F) == NFA_DTA_HCEF_MODE)) ||
+        (nfa_dm_cb.eDtaMode & NFA_DTA_HCEF_MODE) == NFA_DTA_HCEF_MODE)) ||
       (appl_dta_mode_flag && app_init)) {
 #if (NXP_EXTNS == TRUE)
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nfa_dm_check_set_config () updated_len=%d", updated_len);
@@ -471,7 +473,7 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
     nfc_status = NFC_SetConfig(updated_len, p_tlv_list);
 
     if (nfc_status == NFC_STATUS_OK) {
-      if ((nfa_dm_cb.eDtaMode & 0x0F) == NFA_DTA_HCEF_MODE) {
+      if ((nfa_dm_cb.eDtaMode & NFA_DTA_HCEF_MODE) == NFA_DTA_HCEF_MODE) {
         nfa_dm_cb.eDtaMode &= ~NFA_DTA_HCEF_MODE;
         nfa_dm_cb.eDtaMode |= NFA_DTA_DEFAULT_MODE;
       }

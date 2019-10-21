@@ -14,6 +14,7 @@ cc_library_shared {
         "libchrome",
         "libbase",
         "libz",
+        "libstatslog",
 
         // Treble configuration
         "libhidlbase",
@@ -22,9 +23,9 @@ cc_library_shared {
         "libutils",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
-        "android.hardware.nfc@1.2",
         "vendor.nxp.hardware.nfc@1.0",
         "vendor.nxp.hardware.nfc@1.1",
+        "android.hardware.nfc@1.2",
     ],
     static_libs: [
         "libnqnfcutils",
@@ -46,9 +47,6 @@ cc_library_shared {
         "nfa/include",
         "nfc/include",
     ],
-    include_dirs: [
-        "vendor/nxp/opensource/halimpl/extns/impl/",
-    ],
     srcs: [
         "nfa/ce/*.cc",
         "nfa/dm/*.cc",
@@ -56,6 +54,7 @@ cc_library_shared {
         "nfa/hci/*.cc",
         "nfa/p2p/*.cc",
         "nfa/rw/*.cc",
+        "nfa/scr/*.cc",
         "nfa/sys/*.cc",
         "nfc/llcp/*.cc",
         "nfc/nci/*.cc",
