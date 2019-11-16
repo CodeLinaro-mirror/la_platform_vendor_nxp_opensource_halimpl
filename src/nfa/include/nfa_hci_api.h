@@ -19,7 +19,7 @@
  *
  *  The original Work has been changed by NXP Semiconductors.
  *
- *  Copyright (C) 2015-2018 NXP Semiconductors
+ *  Copyright (C) 2015-2019 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -120,18 +120,8 @@ typedef uint8_t tNFA_HCI_EVT;
 #define NFA_MAX_HCI_CMD_LEN 255
 /* Max HCI event length */
 #define NFA_MAX_HCI_RSP_LEN 255
-#if (NXP_EXTNS == TRUE)
-/*
- * increased the the buffer size, since as per HCI specification connectivity
- * event may
- * take up 271 bytes. (MAX AID length:16, MAX PARAMETERS length:255)
- * */
 /* Max HCI event length */
 #define NFA_MAX_HCI_EVENT_LEN 300
-#else
-/* Max HCI event length */
-#define NFA_MAX_HCI_EVENT_LEN 260
-#endif
 /* Max HCI data length */
 #define NFA_MAX_HCI_DATA_LEN 260
 
@@ -660,18 +650,6 @@ extern tNFA_STATUS NFA_HciDeletePipe(tNFA_HANDLE hci_handle, uint8_t pipe);
 extern tNFA_STATUS NFA_HciAddStaticPipe(tNFA_HANDLE hci_handle, uint8_t host,
                                         uint8_t gate, uint8_t pipe);
 
-#if (NXP_EXTNS == TRUE)
-/*******************************************************************************
-**
-** Function         NFA_MW_Fwdnlwd_Recovery
-**
-** Description      This function is called to make the MW_RCVRY_FW_DNLD_ALLOWED
-*true
-**                  not allowing the FW download while MW recovery.
-**
-*******************************************************************************/
-extern bool NFA_MW_Fwdnlwd_Recovery(bool mw_fwdnld_recovery);
-#endif
 /*******************************************************************************
 **
 ** Function         NFA_HciDebug

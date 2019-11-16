@@ -19,7 +19,7 @@
  *
  *  The original Work has been changed by NXP Semiconductors.
  *
- *  Copyright (C) 2015-2018 NXP Semiconductors
+ *  Copyright (C) 2015-2019 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -294,12 +294,6 @@
 #define NCI_RF_PARAM_ID_B_DATA_EX_PARAM \
   0x03 /* B Data Exchange config param  \
           */
-/****************************************************
- * NCI NFCEE status
- ****************************************************/
-#define NCI_NFCEE_STS_UNRECOVERABLE_ERROR 0x00
-#define NCI_NFCEE_STS_INIT_STARTED        0x01
-#define NCI_NFCEE_STS_INIT_COMPLETED      0x02
 
 #define NCI_NFCEE_INTERFACE_APDU 0x00
 #define NCI_NFCEE_INTERFACE_HCI_ACCESS 0x01
@@ -310,6 +304,7 @@
 /****************************************************
  * NCI NFCEE INterface specific status Codes
  ****************************************************/
+#define NCI_NFCEE_STS_UNRECOVERABLE_ERROR 0x00
 #define NCI_NFCEE_STS_INTF_ACTIVATION_FAILED 0xC0
 #define NCI_NFCEE_STS_TRANSMISSION_ERROR     0xC1
 #define NCI_NFCEE_STS_PROTOCOL_ERROR         0xC2
@@ -362,6 +357,10 @@ typedef uint8_t tNCI_NFCEE_PL_CONFIG;
 /**********************************************
  * NCI Interface Types
  **********************************************/
+#if (NXP_EXTNS == TRUE)
+#define NCI_INTERFACE_UICC_DIRECT 0x82
+#define NCI_INTERFACE_ESE_DIRECT 0x83
+#endif
 #define NCI_INTERFACE_EE_DIRECT_RF 0
 #define NCI_INTERFACE_FRAME 1
 #define NCI_INTERFACE_ISO_DEP 2
@@ -421,6 +420,9 @@ typedef uint8_t tNCI_INTF_TYPE;
 #define NCI_DISCOVERY_TYPE_LISTEN_ACTIVE 0x83
 #define NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE 0x85
 #define NCI_DISCOVERY_TYPE_LISTEN_ISO15693 0x86
+#if (NXP_EXTNS == TRUE)
+#define NCI_DISCOVERY_TYPE_FIELD_DETECT 0xFF
+#endif
 
 typedef uint8_t tNCI_DISCOVERY_TYPE;
 
@@ -539,6 +541,8 @@ typedef uint8_t tNCI_DISCOVERY_TYPE;
 
 #define NCI_PARAM_ID_RF_FIELD_INFO 0x80
 #define NCI_PARAM_ID_NFC_DEP_OP 0x82
+
+#define NCI_PARAM_ID_NFCC_CONFIG_CONTROL 0x85
 
 #define NCI_LISTEN_DH_NFCEE_ENABLE_MASK 0x00 /* The DH-NFCEE listen is considered as a enable NFCEE */
 #define NCI_LISTEN_DH_NFCEE_DISABLE_MASK 0x02 /* The DH-NFCEE listen is considered as a disable NFCEE */

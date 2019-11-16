@@ -81,7 +81,9 @@ const tNFA_EE_SM_ACT nfa_ee_actions[] = {
     nfa_ee_api_deregister,    /* NFA_EE_API_DEREGISTER_EVT    */
     nfa_ee_api_mode_set,      /* NFA_EE_API_MODE_SET_EVT      */
     nfa_ee_api_set_tech_cfg,  /* NFA_EE_API_SET_TECH_CFG_EVT  */
+    nfa_ee_api_clear_tech_cfg,  /*NFA_EE_API_CLEAR_TECH_CFG_EVT */
     nfa_ee_api_set_proto_cfg, /* NFA_EE_API_SET_PROTO_CFG_EVT */
+    nfa_ee_api_clear_proto_cfg, /*NFA_EE_API_CLEAR_PROTO_CFG_EVT*/
     nfa_ee_api_add_aid,       /* NFA_EE_API_ADD_AID_EVT       */
     nfa_ee_api_remove_aid,    /* NFA_EE_API_REMOVE_AID_EVT    */
     nfa_ee_api_add_sys_code,  /* NFA_EE_API_ADD_SYSCODE_EVT   */
@@ -107,9 +109,9 @@ const tNFA_EE_SM_ACT nfa_ee_actions[] = {
     nfa_ee_rout_timeout,     /* NFA_EE_ROUT_TIMEOUT_EVT      */
     nfa_ee_discv_timeout,    /* NFA_EE_DISCV_TIMEOUT_EVT     */
     nfa_ee_lmrt_to_nfcc,      /* NFA_EE_CFG_TO_NFCC_EVT       */
+    nfa_ee_nci_nfcee_status_ntf, /*NFA_EE_NCI_NFCEE_STATUS_NTF_EVT*/
     nfa_ee_api_add_apdu,       /* NFA_EE_API_ADD_AID_EVT       */
     nfa_ee_api_remove_apdu,    /* NFA_EE_API_REMOVE_AID_EVT    */
-    nfa_ee_nci_nfcee_status_ntf        /*NFA_EE_NCI_NFCEE_STATUS_NTF_EVT*/
 };
 
 /*******************************************************************************
@@ -159,16 +161,9 @@ void nfa_ee_sys_enable(void) {
 
   nfa_ee_cb.route_block_control = 0x00;
 
-  if (NfcConfig::hasKey(NAME_NXP_PROP_BLACKLIST_ROUTING)) {
-    unsigned retlen = NfcConfig::getUnsigned(NAME_NXP_PROP_BLACKLIST_ROUTING);
-    if ((retlen == 0x01) && ((NFC_GetNCIVersion() == NCI_VERSION_1_0) ||
-                             (nfcFL.nfccFL._NFCC_ROUTING_BLOCK_BIT == true))) {
-      enableBlockRoute = true;
-    }
-  } else if (NfcConfig::hasKey(NAME_AID_BLOCK_ROUTE)) {
+  if (NfcConfig::hasKey(NAME_AID_BLOCK_ROUTE)) {
     unsigned retlen = NfcConfig::getUnsigned(NAME_AID_BLOCK_ROUTE);
-    if ((retlen == 0x01) && ((NFC_GetNCIVersion() == NCI_VERSION_2_0)
-        || (nfcFL.nfccFL._NFCC_ROUTING_BLOCK_BIT == true))) {
+    if ((retlen == 0x01) && (nfcFL.nfccFL._NFCC_ROUTING_BLOCK_BIT == true)) {
       enableBlockRoute = true;
     }
   }
@@ -396,6 +391,10 @@ void nfa_ee_proc_evt(tNFC_RESPONSE_EVT event, void* p_data) {
       cbk.opcode = NCI_MSG_RF_SET_ROUTING;
       break;
 
+    case NFC_NFCEE_STATUS_REVT:
+      int_event = NFA_EE_NCI_NFCEE_STATUS_NTF_EVT;
+      break;
+
 #if (NXP_EXTNS == TRUE)
     case NFC_NFCEE_MODE_SET_INFO:
       int_event = NFA_EE_NCI_MODE_SET_INFO;
@@ -407,9 +406,6 @@ void nfa_ee_proc_evt(tNFC_RESPONSE_EVT event, void* p_data) {
       break;
 #endif
 
-    case NFC_NFCEE_STATUS_REVT:
-      int_event = NFA_EE_NCI_NFCEE_STATUS_NTF_EVT;
-      break;
   }
 
    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nfa_ee_proc_evt: event=0x%02x int_event:0x%x", event,
@@ -454,7 +450,7 @@ uint8_t nfa_ee_ecb_to_mask(tNFA_EE_ECB* p_cb) {
 *******************************************************************************/
 tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
   uint32_t xx;
-  tNFA_EE_ECB* p_ret = NULL, *p_cb;
+  tNFA_EE_ECB* p_ret = nullptr, *p_cb;
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nfa_ee_find_ecb ()");
 
   if (nfcee_id == NFC_DH_ID) {
@@ -483,7 +479,7 @@ tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
 *******************************************************************************/
 tNFA_EE_ECB* nfa_ee_find_ecb_by_conn_id(uint8_t conn_id) {
   uint32_t xx;
-  tNFA_EE_ECB* p_ret = NULL, *p_cb;
+  tNFA_EE_ECB* p_ret = nullptr, *p_cb;
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nfa_ee_find_ecb_by_conn_id ()");
 
   p_cb = nfa_ee_cb.ecb;
@@ -662,8 +658,12 @@ static std::string nfa_ee_sm_evt_2_str(uint16_t event) {
       return "API_MODE_SET";
     case NFA_EE_API_SET_TECH_CFG_EVT:
       return "API_SET_TECH_CFG";
+    case NFA_EE_API_CLEAR_TECH_CFG_EVT:
+      return "API_CLEAR_TECH_CFG";
     case NFA_EE_API_SET_PROTO_CFG_EVT:
       return "API_SET_PROTO_CFG";
+    case NFA_EE_API_CLEAR_PROTO_CFG_EVT:
+      return "API_CLEAR_PROTO_CFG";
     case NFA_EE_API_ADD_AID_EVT:
       return "API_ADD_AID";
     case NFA_EE_API_REMOVE_AID_EVT:

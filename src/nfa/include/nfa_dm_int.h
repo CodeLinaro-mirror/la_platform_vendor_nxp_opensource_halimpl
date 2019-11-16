@@ -19,7 +19,7 @@
  *
  *  The original Work has been changed by NXP Semiconductors.
  *
- *  Copyright (C) 2015-2018 NXP Semiconductors
+ *  Copyright (C) 2015-2019 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -326,7 +326,8 @@ typedef uint8_t tNFA_DM_RF_DISC_EVT;
 #define NFA_DM_DISC_MASK_PFA_NFC_DEP 0x00001000
 /* Legacy/proprietary/non-NFC Forum protocol (e.g Shanghai transit card) */
 #define NFA_DM_DISC_MASK_P_LEGACY 0x00002000
-#define NFA_DM_DISC_MASK_PB_T3BT 0x00004000
+#define NFA_DM_DISC_MASK_PA_MIFARE 0x00004000
+#define NFA_DM_DISC_MASK_PB_T3BT 0x00008000
 #define NFA_DM_DISC_MASK_POLL 0x0000FFFF
 
 #define NFA_DM_DISC_MASK_LA_T1T 0x00010000
@@ -588,8 +589,12 @@ typedef struct {
                                          sent in case of error scenerio */
 
   uint32_t eDtaMode;        /* For enable the DTA type modes. */
+  uint8_t pending_power_state; /* pending screen state change received in
+                                  LISTEN_ACTIVE state which needs to be applied
+                                  after current transaction is completed*/
 #if (NXP_EXTNS == TRUE)
   uint8_t selected_uicc_id; /* Current selected UICC ID */
+  bool isFieldDetectEnabled; /*Field Detect Enable status*/
 #endif
   uint8_t power_state;    /* current screen/power  state */
 } tNFA_DM_CB;
@@ -645,9 +650,15 @@ void nfa_snep_init(bool is_dta_mode);
 #if (NFC_NFCEE_INCLUDED == true)
 void nfa_ee_init(void);
 void nfa_hci_init(void);
+#if (NXP_EXTNS == TRUE)
+void nfa_scr_init(void);
+#endif
 #else
 #define nfa_ee_init()
 #define nfa_hci_init()
+#if (NXP_EXTNS == TRUE)
+#define nfa_scr_init()
+#endif
 #endif
 
 /* Action function prototypes */
