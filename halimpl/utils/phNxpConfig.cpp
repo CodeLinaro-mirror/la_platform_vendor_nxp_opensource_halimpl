@@ -144,6 +144,7 @@ typedef enum
   TARGET_SDM450                        = 338, /**< SDM450 target */
   TARGET_SDM455                        = 385, /**< SDM455 target */
   TARGET_SDM845                        = 321, /**< SDM845 target */
+  TARGET_SXR1130                       = 371, /**< SXR1130 target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -417,6 +418,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             strlcpy(config_file, config_name_qrd1, MAX_DATA_CONFIG_PATH_LEN);
             config_id = QRD_TYPE_1;
             break;
+        case TARGET_SXR1130:
         case TARGET_SDM845:
         case TARGET_SDM670:
         case TARGET_SDM710:
@@ -478,6 +480,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 strlcpy(config_file, config_name_mtp_NQ3XX, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
+        case TARGET_SXR1130:
         case TARGET_SDM845:
         case TARGET_SDM670:
         case TARGET_SDM710:
