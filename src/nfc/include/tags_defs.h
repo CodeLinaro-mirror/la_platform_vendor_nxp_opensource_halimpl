@@ -436,6 +436,7 @@ typedef uint8_t tT3T_POLL_RC;
 
 #define T4T_FILE_LENGTH_SIZE 0x02
 #define T4T_ADDI_FRAME_RESP 0xAFU
+#define T4T_DES_GET_VERSION_LEN 0x09
 #define T4T_SIZE_IDENTIFIER_2K 0x16U
 #define T4T_SIZE_IDENTIFIER_4K 0x18U
 #define T4T_SIZE_IDENTIFIER_8K 0x1AU
@@ -534,6 +535,8 @@ typedef uint8_t tT3T_POLL_RC;
 #define I93_INFO_FLAG_AFI 0x02
 /* VICC memory size field is present             */
 #define I93_INFO_FLAG_MEM_SIZE 0x04
+/* 16bit num of blocks info length */
+#define I93_INFO_16BIT_NUM_BLOCK_LEN 0x02
 /* IC reference field is present                 */
 #define I93_INFO_FLAG_IC_REF 0x08
 /* Memory coded in 2 bytes address               */
