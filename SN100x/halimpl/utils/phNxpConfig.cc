@@ -22,7 +22,7 @@
  *
  *  The original Work has been changed by NXP Semiconductors.
  *
- *  Copyright (C) 2013-2019 NXP Semiconductors
+ *  Copyright (C) 2013-2020 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@
 #include <string>
 #include <vector>
 #include <log/log.h>
+#include <android-base/properties.h>
 
 #include <phNxpConfig.h>
 #include <phNxpLog.h>
@@ -151,10 +152,12 @@ typedef enum
   TARGET_SM8150_SDx55                  = 361, /**< SM8150_SDx55 target */
   TARGET_SM8250                        = 356, /**< SM8250 target */
   TARGET_SM7250                        = 400, /**< SM7250 target */
+  TARGET_SM7250_M                      = 440, /**< SM7250_M target */
   TARGET_SM6125                        = 394, /**< SM6125 target */
   TARGET_BENGAL                        = 417, /**< BENGAL target */
   TARGET_SM_BENGAL_H                   = 444, /**< SM_BENGAL_H target */
   TARGET_SMP_BENGAL_H                  = 445, /**< SMP_BENGAL_H target */
+  TARGET_SM8350                        = 415, /**< SM8350 target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -192,7 +195,7 @@ size_t readConfigFile(const char* fileName, uint8_t** p_data) {
 
 using namespace ::std;
 
-void findConfigFilePathFromTransportConfigPaths(const string& configName, string& filePath);
+bool findConfigFilePathFromTransportConfigPaths(const string& configName, string& filePath);
 
 class CNfcParam : public string {
  public:
@@ -425,8 +428,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM7150:
         case TARGET_SM8250:
         case TARGET_SM7250:
+        case TARGET_SM7250_M:
         case TARGET_SM8150_SDx55:
         case TARGET_SM6125:
+        case TARGET_SM8350:
             config_id = QRD_TYPE_SN100;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -492,8 +497,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM7150:
         case TARGET_SM8250:
         case TARGET_SM7250:
+        case TARGET_SM7250_M:
         case TARGET_SM8150_SDx55:
         case TARGET_SM6125:
+        case TARGET_SM8350:
             config_id = MTP_TYPE_SN100;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -600,18 +607,19 @@ inline int getDigitValue(char c, int base) {
 ** Returns:     none
 **
 *******************************************************************************/
-void findConfigFilePathFromTransportConfigPaths(const string& configName,
+bool findConfigFilePathFromTransportConfigPaths(const string& configName,
                                                 string& filePath) {
   for (int i = 0; i < transport_config_path_size - 1; i++) {
+    if (configName.empty()) break;
     filePath.assign(transport_config_paths[i]);
     filePath += configName;
     struct stat file_stat;
     if (stat(filePath.c_str(), &file_stat) == 0 && S_ISREG(file_stat.st_mode)) {
-      return;
+      return true;
     }
   }
-  filePath.assign(transport_config_paths[transport_config_path_size - 1]);
-  filePath += configName;
+  filePath = "";
+  return false;
 }
 
 /*******************************************************************************

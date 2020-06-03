@@ -18,9 +18,9 @@
 
 /******************************************************************************
  *
- *  The original Work has been changed by NXP Semiconductors.
+ *  The original Work has been changed by NXP.
  *
- *  Copyright (C) 2013-2019 NXP Semiconductors
+ *  Copyright (C) 2013-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ extern char Fw_Lib_Path[256];
 #define NAME_NXPLOG_TML_LOGLEVEL "NXPLOG_TML_LOGLEVEL"
 
 #define NAME_MIFARE_READER_ENABLE "MIFARE_READER_ENABLE"
+#define NAME_LEGACY_MIFARE_READER "LEGACY_MIFARE_READER"
 #define NAME_FW_STORAGE "FW_STORAGE"
 #define NAME_NXP_NFC_DEV_NODE "NXP_NFC_DEV_NODE"
 #define NAME_NXP_NFC_CHIP "NXP_NFC_CHIP"
@@ -178,6 +179,7 @@ extern char Fw_Lib_Path[256];
 #define NAME_NFA_CONFIG_FORMAT "NFA_CONFIG_FORMAT"
 #define NAME_NXP_DISCONNECT_TAG_IN_SCRN_OFF "NXP_DISCONNECT_TAG_IN_SCRN_OFF"
 #define NAME_NXP_ENABLE_DISABLE_LOGS "NXP_ENABLE_DISABLE_LOGS"
+#define NAME_NXP_RDR_DISABLE_ENABLE_LPCD "NXP_RDR_DISABLE_ENABLE_LPCD"
 #endif
 
 /**

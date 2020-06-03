@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2019 NXP Semiconductors
+ * Copyright (C) 2012-2020 NXP Semiconductors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,9 @@ uint8_t icode_detected = 0x00;
 uint8_t icode_send_eof = 0x00;
 static uint8_t ee_disc_done = 0x00;
 uint8_t EnableP2P_PrioLogic = false;
+extern bool bEnableMfcExtns;
+extern bool bEnableMfcReader;
+extern bool bDisableLegacyMfcExtns;
 static uint32_t RfDiscID = 1;
 static uint32_t RfProtocolType = 4;
 /* NFCEE Set mode */
@@ -73,6 +76,7 @@ static void hal_extns_write_rsp_timeout_cb(uint32_t TimerId, void* pContext);
  */
 #define PROPRIETARY_CMD_FELICA_READER_MODE 0xFE
 static uint8_t gFelicaReaderMode;
+static bool mfc_mode = false;
 
 static NFCSTATUS phNxpNciHal_ext_process_nfc_init_rsp(uint8_t* p_ntf,
                                                       uint16_t* p_len);
@@ -177,8 +181,20 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
 
   status = NFCSTATUS_SUCCESS;
 
-  if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05) {
+  if (bDisableLegacyMfcExtns && bEnableMfcExtns && p_ntf[0] == 0) {
+    uint16_t extlen;
+    extlen = *p_len - NCI_HEADER_SIZE;
+    NxpMfcReaderInstance.AnalyzeMfcResp(&p_ntf[3], &extlen);
+    p_ntf[2] = extlen;
+    *p_len = extlen + NCI_HEADER_SIZE;
+  }
 
+  if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05) {
+    bEnableMfcExtns = false;
+    if (bDisableLegacyMfcExtns && p_ntf[4] == 0x80 && p_ntf[5] == 0x80) {
+      bEnableMfcExtns = true;
+      NXPLOG_NCIHAL_D("NxpNci: RF Interface = Mifare Enable MifareExtns");
+    }
     switch (p_ntf[4]) {
       case 0x00:
         NXPLOG_NCIHAL_D("NxpNci: RF Interface = NFCEE Direct RF");
@@ -614,7 +630,6 @@ clean_and_return:
  *                  do not send anything to NFCC.
  *
  ******************************************************************************/
-
 NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
                                 uint16_t* rsp_len, uint8_t* p_rsp_data) {
   NFCSTATUS status = NFCSTATUS_SUCCESS;
@@ -683,24 +698,42 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
     }
   }
 
-  if ((p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x00) &&
+  if (mfc_mode == true && p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x03) {
+    NXPLOG_NCIHAL_D("EmvCo Poll mode - Discover map only for A and B");
+    p_cmd_data[2] = 0x03;
+    p_cmd_data[3] = 0x01;
+    p_cmd_data[4] = 0x00;
+    p_cmd_data[5] = 0x01;
+    *cmd_len = 6;
+    mfc_mode = false;
+  }
+
+  if (bEnableMfcReader && (p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x00) &&
       (nxpprofile_ctrl.profile_type == NFC_FORUM_PROFILE)) {
     unsigned long retval = 0;
-
-    if (!GetNxpNumValue(NAME_MIFARE_READER_ENABLE, &retval, sizeof(unsigned long))) {
-      NXPLOG_NCIHAL_E("Reading of MIFARE_READER_ENABLE failed. Default retval = %lu", retval);
-    }
-    if(retval == 0x01) {
-      NXPLOG_NCIHAL_D("Going through extns - Adding Mifare in RF Discovery");
-      p_cmd_data[2] += 3;
-      p_cmd_data[3] += 1;
-      p_cmd_data[*cmd_len] = 0x80;
-      p_cmd_data[*cmd_len + 1] = 0x01;
-      p_cmd_data[*cmd_len + 2] = 0x80;
-      *cmd_len += 3;
-      status = NFCSTATUS_SUCCESS;
-      NXPLOG_NCIHAL_D(
-          "Going through extns - Adding Mifare in RF Discovery - END");
+    if (p_cmd_data[2] == 0x04 && p_cmd_data[3] == 0x01 &&
+        p_cmd_data[4] == 0x80 && p_cmd_data[5] == 0x01 &&
+        p_cmd_data[6] == 0x83) {
+      mfc_mode = true;
+    } else {
+      if (!GetNxpNumValue(NAME_MIFARE_READER_ENABLE, &retval,
+                          sizeof(unsigned long))) {
+        NXPLOG_NCIHAL_E(
+            "Reading of MIFARE_READER_ENABLE failed. Default retval = %lu",
+            retval);
+      }
+      if (retval == 0x01) {
+        NXPLOG_NCIHAL_D("Going through extns - Adding Mifare in RF Discovery");
+        p_cmd_data[2] += 3;
+        p_cmd_data[3] += 1;
+        p_cmd_data[*cmd_len] = 0x80;
+        p_cmd_data[*cmd_len + 1] = 0x01;
+        p_cmd_data[*cmd_len + 2] = 0x80;
+        *cmd_len += 3;
+        status = NFCSTATUS_SUCCESS;
+        NXPLOG_NCIHAL_D(
+            "Going through extns - Adding Mifare in RF Discovery - END");
+      }
     }
   } else if ((*cmd_len >= 6) &&
              (p_cmd_data[3] == 0x81 && p_cmd_data[4] == 0x01 &&
@@ -1005,6 +1038,7 @@ NFCSTATUS request_EEPROM(phNxpNci_EEPROM_info_t* mEEPROM_info) {
       len = fieldLen + 4;
       addr[0] = 0xA0;
       addr[1] = 0x0F;
+      mEEPROM_info->update_mode = BYTEWISE;
       break;
 
     case EEPROM_WIREDMODE_RESUME_TIMEOUT:

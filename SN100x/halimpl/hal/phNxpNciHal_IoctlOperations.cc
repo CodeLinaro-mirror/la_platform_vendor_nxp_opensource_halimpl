@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 NXP Semiconductors
+ * Copyright (C) 2019-2020 NXP Semiconductors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <android-base/file.h>
 #include <android-base/strings.h>
 #include <android-base/parseint.h>
+#include "phTmlNfc_i2c.h"
 #include <cutils/properties.h>
 #include "phNxpNciHal_ext.h"
 #include "phNxpNciHal_utils.h"
@@ -55,9 +56,10 @@ extern nfc_stack_callback_t *p_nfc_stack_cback_backup;
 extern uint8_t fw_dwnld_flag;
 #endif
 
+/* TML Context */
+extern phTmlNfc_Context_t* gpphTmlNfc_Context;
 extern bool nfc_debug_enabled;
 extern NFCSTATUS phNxpLog_EnableDisableLogLevel(uint8_t enable);
-
 
 /*******************************************************************************
  **
@@ -146,6 +148,8 @@ systemProperty gsystemProperty = {
     {"nfc.fw.rfreg_ver", ""},
     {"nfc.fw.rfreg_display_ver", ""},
     {"nfc.fw.dfl_areacode", ""},
+    {"nfc.cover.cover_id", ""},
+    {"nfc.cover.state", ""},
 };
 char default_nxp_config_path[MAX_DATA_CONFIG_PATH_LEN] = "/vendor/etc/libnfc-nxp.conf";
 std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
@@ -187,77 +191,12 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NXP_DISCONNECT_TAG_IN_SCRN_OFF",
                                 "NXP_RDR_REQ_GUARD_TIME",
                                 "OFF_HOST_SIM2_PIPE_ID",
-                                "NXP_ENABLE_DISABLE_LOGS"};
+                                "NXP_ENABLE_DISABLE_LOGS",
+                                "NXP_RDR_DISABLE_ENABLE_LPCD"};
 
 /****************************************************************
  * Local Functions
  ***************************************************************/
-
-/******************************************************************************
- ** Function         phNxpNciHal_nfcStackCb
- **
- ** Description      This function shall be used to post events to the nfc
- *stack.
- **
- ** Parameters       pCb: Callback handle for NFC stack callback
- **                  evt: event to be posted to the given callback.
- **
- ** Returns          Always Zero.
- **
- *******************************************************************************/
-static int phNxpNciHal_nfcStackCb(nfc_stack_callback_t *pCb, int evt);
-
-/*******************************************************************************
- **
- ** Function         phNxpNciHal_getChipType
- **
- ** Description      Gets the chipType which is configured during bootup
- **
- ** Parameters       none
- **
- ** Returns          chipType
- *******************************************************************************/
-static tNFC_chipType phNxpNciHal_getChipType();
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_NciTransceive
-**
-** Description      This method shall be called to send NCI command and receive
-*RSP
-**
-** Parameters       Pointer to the IOCTL data
-**
-** Returns          status of the Transceive
-**                  return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_NciTransceive(nfc_nci_IoctlInOutData_t *pInpOutData);
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_CheckFlashReq
-**
-** Description      Updates FW and Reg configurations if required
-**
-** Parameters       Pointer to the IOCTL data
-**
-** Returns          return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_CheckFlashReq(nfc_nci_IoctlInOutData_t *pInpOutData);
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_GetFeatureList
-**
-** Description      Gets the chipType which is configured during bootup
-**
-** Parameters       Pointer to the IOCTL data
-**
-** Returns          return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_GetFeatureList(nfc_nci_IoctlInOutData_t *pInpOutData);
-
-/*******************************************************************************/
 
 /******************************************************************************
  ** Function         phNxpNciHal_ioctlIf
@@ -267,28 +206,21 @@ static int phNxpNciHal_GetFeatureList(nfc_nci_IoctlInOutData_t *pInpOutData);
  **
  ** Returns          return 0 on success and -1 on fail,
  ******************************************************************************/
-int phNxpNciHal_ioctlIf(long arg, void *p_data) {
-  NXPLOG_NCIHAL_D("%s : enter - arg = %ld", __func__, arg);
-  nfc_nci_IoctlInOutData_t *pInpOutData = (nfc_nci_IoctlInOutData_t *)p_data;
+int phNxpNciHal_ioctlIf(long /* arg */, void* /* p_data */) {
   int ret = -1;
+#ifdef ENABLE_ESE_CLIENT
+  NXPLOG_NCIHAL_D("%s : enter - arg = %ld", __func__, arg);
+  ese_nxp_IoctlInOutData_t *pInpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
 
   switch (arg) {
-  case (long)NfcEvent2::HAL_NFC_IOCTL_CHECK_FLASH_REQ:
-    ret = phNxpNciHal_CheckFlashReq(pInpOutData);
-    break;
-  case (long)NfcEvent1::HAL_NFC_IOCTL_NCI_TRANSCEIVE:
-    ret = phNxpNciHal_NciTransceive(pInpOutData);
-    break;
-  case (long)NfcEvent2::HAL_NFC_IOCTL_GET_FEATURE_LIST:
-    ret = phNxpNciHal_GetFeatureList(pInpOutData);
-    break;
-#ifdef ENABLE_ESE_CLIENT
   case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
+
     if (pInpOutData == NULL) {
       NXPLOG_NCIHAL_E("%s : received invalid param", __func__);
     } else{
+
       NXPLOG_NCIHAL_D("HAL_ESE_IOCTL_NFC_JCOP_DWNLD Enter value is %d: \n",
-              pInpOutData->inp.data.nciCmd.p_cmd[0]);
+              pInpOutData->inp.data.nxpCmd.p_cmd[0]);
     }
     if (gpEseAdapt == NULL) {
       gpEseAdapt = &EseAdaptation::GetInstance();
@@ -296,51 +228,20 @@ int phNxpNciHal_ioctlIf(long arg, void *p_data) {
     }
     if (gpEseAdapt != NULL)
       ret = gpEseAdapt->HalIoctl(HAL_ESE_IOCTL_NFC_JCOP_DWNLD, pInpOutData);
-    [[fallthrough]];
-#endif
-  case (long)NfcEvent2::HAL_NFC_IOCTL_ESE_JCOP_DWNLD:
     if (pInpOutData == NULL) {
       NXPLOG_NCIHAL_E("%s : received invalid param", __func__);
     } else{
-      NXPLOG_NCIHAL_D("HAL_NFC_IOCTL_ESE_JCOP_DWNLD Enter value is %d: \n",
-              pInpOutData->inp.data.nciCmd().p_cmd[0]);
+       NXPLOG_NCIHAL_D("HAL_NFC_IOCTL_ESE_JCOP_DWNLD Enter value is %d: \n",
+              pInpOutData->inp.data.nxpCmd.p_cmd[0]);
     }
-    phNxpNciHal_nfcStackCb(p_nfc_stack_cback_backup, (int)NxpNfcHalStatus::HAL_NFC_HCI_NV_RESET);
     ret = 0;
-    break;
-  case (long)NfcEvent2::HAL_NFC_IOCTL_GET_ESE_UPDATE_STATE:
-    ret = 0;
-    break;
-  case (long)NfcEvent2::HAL_NFC_IOCTL_ESE_UPDATE_COMPLETE:
-#ifdef ENABLE_ESE_CLIENT
-    ese_update = ESE_UPDATE_COMPLETED;
-#endif
-    NXPLOG_NCIHAL_D("HAL_NFC_IOCTL_ESE_UPDATE_COMPLETE \n");
-    phNxpNciHal_nfcStackCb(p_nfc_stack_cback_backup, (int)NxpNfcHalStatus::HAL_NFC_STATUS_RESTART);
-    ret = 0;
-    break;
-  case (long)NfcEvent1::HAL_NFC_IOCTL_ESE_HARD_RESET:
-    [[fallthrough]];
-  case (long)NfcEvent2::HAL_NFC_SET_SPM_PWR: {
-    long level = pInpOutData->inp.level;
-    if ((long)Constants::NCI_ESE_HARD_RESET_IOCTL == level) {
-      ret = phNxpNciHal_resetEse();
-    }
-    break;
-  }
-  case (long)NfcEvent2::HAL_NFC_IOCTL_SET_TRANSIT_CONFIG:
-    if (pInpOutData != NULL) {
-      phNxpNciHal_setNxpTransitConfig((char *)&(pInpOutData->inp.data.transitConfig().val[0]));
-      ret = 0;
-    } else {
-      NXPLOG_NCIHAL_E("%s : received invalid param", __func__);
-    }
     break;
   default:
     NXPLOG_NCIHAL_E("%s : Wrong arg = %ld", __func__, arg);
     break;
   }
   NXPLOG_NCIHAL_D("%s : exit - ret = %d", __func__, ret);
+#endif
   return ret;
 }
 
@@ -435,6 +336,15 @@ bool phNxpNciHal_setSystemProperty(string key, string value) {
     ParseUint(value.c_str(), &tmp);
     if (phNxpLog_EnableDisableLogLevel((uint8_t)tmp) != NFCSTATUS_SUCCESS) {
       stat = false;
+    }
+  } else if(strcmp(key.c_str(), "nfc.cover.state") == 0){
+    unsigned cid,cstate;
+    string strtmp;
+    ParseUint(value.c_str(), &cstate);
+    strtmp = phNxpNciHal_getSystemProperty("nfc.cover.cover_id");
+    ParseUint(strtmp.c_str(), &cid);
+    if (fpPropConfCover != NULL) {
+      stat = (fpPropConfCover(cstate, cid) == NFCSTATUS_SUCCESS ) ? true : false;
     }
   }
 
@@ -693,9 +603,10 @@ static string phNxpNciHal_parseBytesString(string in) {
 **
 ** Returns          status of eSE reset response
 *******************************************************************************/
-NFCSTATUS phNxpNciHal_resetEse() {
+NFCSTATUS phNxpNciHal_resetEse(uint64_t resetType) {
   NFCSTATUS status = NFCSTATUS_FAILED;
-  uint8_t cmd_ese_pwrcycle[] = {0x2F, 0x1E, 0x00};
+
+UNUSED(resetType);
 
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
     if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
@@ -704,8 +615,7 @@ NFCSTATUS phNxpNciHal_resetEse() {
   }
 
   CONCURRENCY_LOCK();
-  status = phNxpNciHal_send_ext_cmd(
-      sizeof(cmd_ese_pwrcycle) / sizeof(cmd_ese_pwrcycle[0]), cmd_ese_pwrcycle);
+  status = phTmlNfc_ese_reset(gpphTmlNfc_Context->pDevHandle, MODE_ESE_COLD_RESET);
   CONCURRENCY_UNLOCK();
   if (status != NFCSTATUS_SUCCESS) {
     NXPLOG_NCIHAL_E("EsePowerCycle failed");
@@ -724,46 +634,56 @@ NFCSTATUS phNxpNciHal_resetEse() {
  * Description      This function overwrite libnfc-nxpTransit.conf file
  *                  with transitConfValue.
  *
- * Returns          void.
+ * Returns          bool.
  *
  ******************************************************************************/
-void phNxpNciHal_setNxpTransitConfig(char *transitConfValue) {
+bool phNxpNciHal_setNxpTransitConfig(char *transitConfValue) {
+  bool status = true;
   NXPLOG_NCIHAL_D("%s : Enter", __func__);
   std::string transitConfFileName = "/data/vendor/nfc/libnfc-nxpTransit.conf";
 
   if (transitConfValue != NULL) {
     if (!WriteStringToFile(transitConfValue, transitConfFileName)) {
       NXPLOG_NCIHAL_E("WriteStringToFile: Failed");
+      status = false;
     }
   } else {
     if (!WriteStringToFile("", transitConfFileName)) {
       NXPLOG_NCIHAL_E("WriteStringToFile: Failed");
+      status = false;
     }
     if (!remove(transitConfFileName.c_str())) {
       NXPLOG_NCIHAL_E("Unable to remove file");
+      status = false;
     }
   }
   NXPLOG_NCIHAL_D("%s : Exit", __func__);
+  return status;
 }
 
 /******************************************************************************
-** Function         phNxpNciHal_nfcStackCb
+** Function         phNxpNciHal_Abort
 **
-** Description      This function shall be used to post events to the nfc stack.
+** Description      This function shall be used to trigger the abort
 **
-** Parameters       pCb: Callback handle for NFC stack callback
-**                  evt: event to be posted to the given callback.
+** Parameters       None
 **
-** Returns          void.
+** Returns          bool.
 **
 *******************************************************************************/
-static int phNxpNciHal_nfcStackCb(nfc_stack_callback_t *pCb, int evt) {
-  int ret = 0;
-  if (pCb != NULL) {
-    (*pCb)(HAL_NFC_OPEN_CPLT_EVT, evt);
-  } else {
-    NXPLOG_NCIHAL_D("p_nfc_stack_cback_backup cback NULL \n");
-    ret = -1;
+bool phNxpNciHal_Abort() {
+  bool ret = true;
+
+  NXPLOG_NCIHAL_D("phNxpNciHal_Abort aborting. \n");
+  /* When JCOP download is triggered phNxpNciHal_open is blocked, in this case only
+     we need to abort the libnfc , this can be done only by check the p_nfc_stack_cback_backup
+     pointer which is assigned before the JCOP download.*/
+  if (p_nfc_stack_cback_backup != NULL){
+      abort();
+  }
+  else {
+    ret = false;
+    NXPLOG_NCIHAL_D("phNxpNciHal_Abort not triggered\n");
   }
   return ret;
 }
@@ -824,135 +744,4 @@ int phNxpNciHal_CheckFwRegFlashRequired(uint8_t *fw_update_req,
                   "wFwUpdateReq=%u, wRfUpdateReq=%u",
                   status, *fw_update_req, *rf_update_req);
   return status;
-}
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_getChipType
-**
-** Description      Gets the chipType which is configured during bootup
-**
-** Parameters       none
-**
-** Returns          chipType
-*******************************************************************************/
-static tNFC_chipType phNxpNciHal_getChipType() {
-  return nxpncihal_ctrl.chipType;
-}
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_NciTransceive
-**
-** Description      This API shall be called to to send NCI command and receive
-*RSP
-**
-** Parameters       IOCTL data pointer
-**
-** Returns          status of the Transceive
-**                  return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_NciTransceive(nfc_nci_IoctlInOutData_t *pInpOutData) {
-  int ret = -1;
-
-  if (pInpOutData == NULL || pInpOutData->inp.data.nciCmd().cmd_len == 0) {
-    NXPLOG_NCIHAL_E("%s : received invalid arguments", __func__);
-    return ret;
-  }
-
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
-    if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
-      pInpOutData->out.data.nciRsp().p_rsp[3] = 1;
-      return ret;
-    }
-  }
-
-  ret = phNxpNciHal_send_ext_cmd(pInpOutData->inp.data.nciCmd().cmd_len,
-                                &(pInpOutData->inp.data.nciCmd().p_cmd[0]));
-
-  pInpOutData->out.data.nciRsp().rsp_len = nxpncihal_ctrl.rx_data_len;
-
-  if ((nxpncihal_ctrl.rx_data_len > 0) &&
-      (nxpncihal_ctrl.rx_data_len <= (uint16_t)Constants::MAX_IOCTL_TRANSCEIVE_RESP_LEN) &&
-      (nxpncihal_ctrl.p_rx_data != NULL)) {
-    memcpy(&(pInpOutData->out.data.nciRsp().p_rsp), nxpncihal_ctrl.p_rx_data,
-           nxpncihal_ctrl.rx_data_len);
-  }
-
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN) {
-    phNxpNciHal_close(false);
-  }
-  return ret;
-}
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_CheckFlashReq
-**
-** Description      Updates FW and Reg configurations if required
-**
-** Parameters       IOCTL data pointer
-**
-** Returns          return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_CheckFlashReq(nfc_nci_IoctlInOutData_t *pInpOutData) {
-  int ret = -1;
-  phNxpNciHal_FwRfupdateInfo_t *FwRfInfo;
-
-  if (pInpOutData == NULL) {
-    NXPLOG_NCIHAL_E("%s : received invalid param", __func__);
-    return ret;
-  }
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
-    if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
-      return ret;
-    }
-  }
-
-  FwRfInfo = (phNxpNciHal_FwRfupdateInfo_t *)&pInpOutData->out.data.fwUpdateInf();
-
-  if (NFCSTATUS_SUCCESS ==
-      phNxpNciHal_CheckFwRegFlashRequired(&FwRfInfo->fw_update_reqd,
-                                          &FwRfInfo->rf_update_reqd, false)) {
-#ifndef FW_DWNLD_FLAG
-    fw_dwnld_flag = FwRfInfo->fw_update_reqd;
-#endif
-    ret = 0;
-  }
-
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN) {
-    phNxpNciHal_close(false);
-  }
-
-  return ret;
-}
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_GetFeatureList
-**
-** Description      Gets the chipType which is configured during bootup
-**
-** Parameters       IOCTL data pointer
-**
-** Returns          return 0 on success and -1 on fail
-*******************************************************************************/
-static int phNxpNciHal_GetFeatureList(nfc_nci_IoctlInOutData_t *pInpOutData) {
-  int ret = -1;
-  if (pInpOutData == NULL) {
-    NXPLOG_NCIHAL_E("%s : received invalid param", __func__);
-    return ret;
-  }
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
-    if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
-      return ret;
-    }
-  }
-
-  pInpOutData->out.data.chipType((uint8_t)phNxpNciHal_getChipType());
-  ret = 0;
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN) {
-    phNxpNciHal_close(false);
-  }
-  return ret;
 }
