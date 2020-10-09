@@ -152,6 +152,8 @@ typedef enum
   TARGET_SM7250                        = 400, /**< SM7250 target */
   TARGET_SM7250_M                      = 440, /**< SM7250_M target */
   TARGET_SM6125                        = 394, /**< SM6125 target */
+  TARGET_SM6125_QCM                    = 467, /**< QCM6125 target */
+  TARGET_SM6125_QCS                    = 468, /**< QCS6125 target */
   TARGET_SM_LAGOON_H                   = 459, /**< SM_LAGOON_H target */
   TARGET_LAGOON                        = 434, /**< LAGOON target */
   TARGET_SCUBA                         = 441, /**< SCUBA  target */
@@ -435,6 +437,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM7250_M:
         case TARGET_SM8150_SDx55:
         case TARGET_SM6125:
+        case TARGET_SM6125_QCM:
+        case TARGET_SM6125_QCS:
         case TARGET_LAGOON:
         case TARGET_SM_LAGOON_H:
             config_id = QRD_TYPE_SN100;
@@ -506,6 +510,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM7250_M:
         case TARGET_SM8150_SDx55:
         case TARGET_SM6125:
+        case TARGET_SM6125_QCM:
+        case TARGET_SM6125_QCS:
         case TARGET_LAGOON:
         case TARGET_SM_LAGOON_H:
             config_id = MTP_TYPE_SN100;
