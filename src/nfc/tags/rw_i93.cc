@@ -1128,6 +1128,13 @@ tNFC_STATUS rw_i93_send_cmd_write_multi_blocks(uint16_t first_block_number,
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
+  if (number_blocks * rw_cb.tcb.i93.block_size >
+      GKI_get_pool_bufsize(NFC_RW_POOL_ID) - NCI_MSG_OFFSET_SIZE -
+          NCI_DATA_HDR_SIZE - 1 -
+          (rw_cb.tcb.i93.intl_flags & RW_I93_FLAG_EXT_COMMANDS ? 2 : 0) - 12) {
+    android_errorWriteLog(0x534e4554, "157650365");
+    return NFC_STATUS_FAILED;
+  }
   p_cmd = (NFC_HDR*)GKI_getpoolbuf(NFC_RW_POOL_ID);
 
   if (!p_cmd) {
@@ -1162,9 +1169,6 @@ tNFC_STATUS rw_i93_send_cmd_write_multi_blocks(uint16_t first_block_number,
     UINT8_TO_STREAM(
         p, number_blocks - 1); /* Number of blocks, 0x00 to read one block */
   }
-
-  UINT8_TO_STREAM(
-      p, number_blocks - 1); /* Number of blocks, 0x00 to read one block */
 
   /* Data */
   ARRAY_TO_STREAM(p, p_data, number_blocks * rw_cb.tcb.i93.block_size);
@@ -2759,12 +2763,21 @@ void rw_i93_sm_format(NFC_HDR* p_resp) {
         LOG(ERROR) << StringPrintf("Cannot allocate buffer");
         rw_i93_handle_error(NFC_STATUS_FAILED);
         break;
-      } else if (p_i93->block_size > RW_I93_FORMAT_DATA_LEN) {
-        /* Possible leaking information from previous NFC transactions */
-        /* Clear previous values */
-        memset(p_i93->p_update_data, I93_ICODE_TLV_TYPE_NULL,
-               I93_MAX_BLOCK_LENGH);
-        android_errorWriteLog(0x534e4554, "139738828");
+      } else {
+        switch (p_i93->block_size) {
+          case 4:
+          case 8:
+            break;
+          case 16:
+          case 32: /* initialize unpopulated buffer b/139738828 */
+            memset(p_i93->p_update_data, I93_ICODE_TLV_TYPE_NULL,
+                   I93_MAX_BLOCK_LENGH);
+            break;
+          default:
+            android_errorWriteLog(0x534e4554, "157650336");
+            rw_i93_handle_error(NFC_STATUS_FAILED);
+            return;
+        }
       }
 
       p = p_i93->p_update_data;
