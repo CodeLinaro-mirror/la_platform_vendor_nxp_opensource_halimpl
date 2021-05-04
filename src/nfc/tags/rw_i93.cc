@@ -22,6 +22,7 @@
  *  mode.
  *
  ******************************************************************************/
+#include <log/log.h>
 #include <string.h>
 
 #include <android-base/stringprintf.h>
@@ -50,6 +51,8 @@ extern bool nfc_debug_enabled;
 #define RW_I93_FORMAT_DATA_LEN 8
 /* max getting lock status if get multi block sec is supported */
 #define RW_I93_GET_MULTI_BLOCK_SEC_SIZE 253
+/*Capability Container CC Size */
+#define RW_I93_CC_SIZE 4
 
 /* main state */
 enum {
@@ -207,36 +210,64 @@ void rw_i93_get_product_version(uint8_t* p_uid) {
 ** Returns          FALSE if retrying with protocol extension flag
 **
 *******************************************************************************/
-bool rw_i93_process_ext_sys_info(uint8_t* p_data) {
+bool rw_i93_process_ext_sys_info(uint8_t* p_data, uint16_t length) {
   uint8_t* p = p_data;
   tRW_I93_CB* p_i93 = &rw_cb.tcb.i93;
   uint8_t uid[I93_UID_BYTE_LEN], *p_uid;
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
+  if (length < (I93_UID_BYTE_LEN + 1)) {
+    android_errorWriteLog(0x534e4554, "122316913");
+    return false;
+  }
+
   STREAM_TO_UINT8(p_i93->info_flags, p);
+  length--;
 
   p_uid = uid;
   STREAM_TO_ARRAY8(p_uid, p);
+  length -= I93_UID_BYTE_LEN;
 
   if (p_i93->info_flags & I93_INFO_FLAG_DSFID) {
+    if (length < 1) {
+      android_errorWriteLog(0x534e4554, "122316913");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->dsfid, p);
+    length--;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_AFI) {
+    if (length < 1) {
+      android_errorWriteLog(0x534e4554, "122316913");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->afi, p);
+    length--;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_MEM_SIZE) {
+    if (length < 3) {
+      android_errorWriteLog(0x534e4554, "122316913");
+      return false;
+    }
     STREAM_TO_UINT16(p_i93->num_block, p);
+    length -= I93_INFO_16BIT_NUM_BLOCK_LEN;
 
     /* it is one less than actual number of bytes */
     p_i93->num_block += 1;
 
     STREAM_TO_UINT8(p_i93->block_size, p);
+    length--;
     /* it is one less than actual number of blocks */
     p_i93->block_size = (p_i93->block_size & 0x1F) + 1;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_IC_REF) {
+    if (length < 1) {
+      android_errorWriteLog(0x534e4554, "122316913");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->ic_reference, p);
+    length--;
 
     /* clear existing UID to set product version */
     p_i93->uid[0] = 0x00;
@@ -263,38 +294,65 @@ bool rw_i93_process_ext_sys_info(uint8_t* p_data) {
 ** Returns          FALSE if retrying with protocol extension flag
 **
 *******************************************************************************/
-bool rw_i93_process_sys_info(uint8_t* p_data) {
+bool rw_i93_process_sys_info(uint8_t* p_data, uint16_t length) {
   uint8_t* p = p_data;
   tRW_I93_CB* p_i93 = &rw_cb.tcb.i93;
   uint8_t uid[I93_UID_BYTE_LEN], *p_uid;
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
+  if (length < (I93_UID_BYTE_LEN + 1)) {
+    android_errorWriteLog(0x534e4554, "121259048");
+    return false;
+  }
   STREAM_TO_UINT8(p_i93->info_flags, p);
+  length--;
 
   p_uid = uid;
   STREAM_TO_ARRAY8(p_uid, p);
+  length -= I93_UID_BYTE_LEN;
 
   if (p_i93->info_flags & I93_INFO_FLAG_DSFID) {
+    if (length == 0) {
+      android_errorWriteLog(0x534e4554, "121259048");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->dsfid, p);
+    length--;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_AFI) {
+    if (length == 0) {
+      android_errorWriteLog(0x534e4554, "121259048");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->afi, p);
+    length--;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_MEM_SIZE) {
-    if (p_i93->intl_flags & RW_I93_FLAG_16BIT_NUM_BLOCK) {
+    bool block_16_bit = p_i93->intl_flags & RW_I93_FLAG_16BIT_NUM_BLOCK;
+    if (block_16_bit && length > 2) {
       STREAM_TO_UINT16(p_i93->num_block, p);
-    } else {
+      length -= 2;
+    } else if (!block_16_bit && length > 1) {
       STREAM_TO_UINT8(p_i93->num_block, p);
+      length--;
+    } else {
+      android_errorWriteLog(0x534e4554, "121259048");
+      return false;
     }
     /* it is one less than actual number of bytes */
     p_i93->num_block += 1;
 
     STREAM_TO_UINT8(p_i93->block_size, p);
+    length--;
     /* it is one less than actual number of blocks */
     p_i93->block_size = (p_i93->block_size & 0x1F) + 1;
   }
   if (p_i93->info_flags & I93_INFO_FLAG_IC_REF) {
+    if (length == 0) {
+      android_errorWriteLog(0x534e4554, "121259048");
+      return false;
+    }
     STREAM_TO_UINT8(p_i93->ic_reference, p);
 
     /* clear existing UID to set product version */
@@ -495,7 +553,7 @@ void rw_i93_send_to_upper(NFC_HDR* p_resp) {
 
     case I93_CMD_GET_SYS_INFO:
 
-      if (rw_i93_process_sys_info(p)) {
+      if (rw_i93_process_sys_info(p, length)) {
         rw_data.i93_sys_info.status = NFC_STATUS_OK;
         rw_data.i93_sys_info.info_flags = p_i93->info_flags;
         rw_data.i93_sys_info.dsfid = p_i93->dsfid;
@@ -516,7 +574,7 @@ void rw_i93_send_to_upper(NFC_HDR* p_resp) {
 
     case I93_CMD_EXT_GET_SYS_INFO:
 
-      if (rw_i93_process_ext_sys_info(p)) {
+      if (rw_i93_process_ext_sys_info(p, length)) {
         rw_data.i93_sys_info.status = NFC_STATUS_OK;
         rw_data.i93_sys_info.info_flags = p_i93->info_flags;
         rw_data.i93_sys_info.dsfid = p_i93->dsfid;
@@ -1603,6 +1661,11 @@ void rw_i93_sm_detect_ndef(NFC_HDR* p_resp) {
       "sub_state:%s (0x%x)",
       rw_i93_get_sub_state_name(p_i93->sub_state).c_str(), p_i93->sub_state);
 
+  if (length == 0) {
+    android_errorWriteLog(0x534e4554, "121260197");
+    rw_i93_handle_error(NFC_STATUS_FAILED);
+    return;
+  }
   STREAM_TO_UINT8(flags, p);
   length--;
 
@@ -1622,6 +1685,11 @@ void rw_i93_sm_detect_ndef(NFC_HDR* p_resp) {
   switch (p_i93->sub_state) {
     case RW_I93_SUBSTATE_WAIT_UID:
 
+      if (length < (I93_UID_BYTE_LEN + 1)) {
+        android_errorWriteLog(0x534e4554, "121260197");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+        return;
+      }
       STREAM_TO_UINT8(u8, p); /* DSFID */
       p_uid = p_i93->uid;
       STREAM_TO_ARRAY8(p_uid, p);
@@ -1647,7 +1715,7 @@ void rw_i93_sm_detect_ndef(NFC_HDR* p_resp) {
       p_i93->block_size = 0;
       p_i93->num_block = 0;
 
-      if (!rw_i93_process_sys_info(p)) {
+      if (!rw_i93_process_sys_info(p, length)) {
         /* retrying with protocol extension flag */
         break;
       }
@@ -1668,8 +1736,14 @@ void rw_i93_sm_detect_ndef(NFC_HDR* p_resp) {
 
     case RW_I93_SUBSTATE_WAIT_CC:
 
-      /* assume block size is more than 4 */
-      STREAM_TO_ARRAY(cc, p, 4);
+      if (length < RW_I93_CC_SIZE) {
+        android_errorWriteLog(0x534e4554, "139188579");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+        return;
+      }
+
+      /* assume block size is more than RW_I93_CC_SIZE 4 */
+      STREAM_TO_ARRAY(cc, p, RW_I93_CC_SIZE);
 
       status = NFC_STATUS_FAILED;
 
@@ -1981,6 +2055,12 @@ void rw_i93_sm_read_ndef(NFC_HDR* p_resp) {
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
+  if (length == 0) {
+    android_errorWriteLog(0x534e4554, "122035770");
+    rw_i93_handle_error(NFC_STATUS_FAILED);
+    return;
+  }
+
   STREAM_TO_UINT8(flags, p);
   length--;
 
@@ -2079,6 +2159,12 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
       "sub_state:%s (0x%x)",
       rw_i93_get_sub_state_name(p_i93->sub_state).c_str(), p_i93->sub_state);
 
+  if (length == 0 || p_i93->block_size > I93_MAX_BLOCK_LENGH) {
+    android_errorWriteLog(0x534e4554, "122320256");
+    rw_i93_handle_error(NFC_STATUS_FAILED);
+    return;
+  }
+
   STREAM_TO_UINT8(flags, p);
   length--;
 
@@ -2103,6 +2189,12 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
       /* get offset of length field */
       length_offset = (p_i93->ndef_tlv_start_offset + 1) % p_i93->block_size;
 
+      if (length < length_offset) {
+        android_errorWriteLog(0x534e4554, "122320256");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+        return;
+      }
+
       /* set length to zero */
       *(p + length_offset) = 0x00;
 
@@ -2116,6 +2208,11 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
 
         /* write the first part of NDEF in the same block */
         for (; xx < p_i93->block_size; xx++) {
+          if (xx > length || p_i93->rw_length > p_i93->ndef_length) {
+            android_errorWriteLog(0x534e4554, "122320256");
+            rw_i93_handle_error(NFC_STATUS_FAILED);
+            return;
+          }
           if (p_i93->rw_length < p_i93->ndef_length) {
             *(p + xx) = *(p_i93->p_update_data + p_i93->rw_length++);
           } else {
@@ -2126,8 +2223,11 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
 
       block_number = (p_i93->ndef_tlv_start_offset + 1) / p_i93->block_size;
 
-      if (rw_i93_send_cmd_write_single_block(block_number, p) ==
-          NFC_STATUS_OK) {
+      if (length < p_i93->block_size) {
+        android_errorWriteLog(0x534e4554, "143109193");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+      } else if (rw_i93_send_cmd_write_single_block(block_number, p) ==
+                 NFC_STATUS_OK) {
         /* update next writing offset */
         p_i93->rw_offset = (block_number + 1) * p_i93->block_size;
         p_i93->sub_state = RW_I93_SUBSTATE_WRITE_NDEF;
@@ -2262,6 +2362,12 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
 
           /* update length field within the read block */
           for (xx = length_offset; xx < p_i93->block_size; xx++) {
+            if (xx > length) {
+              android_errorWriteLog(0x534e4554, "122320256");
+              rw_i93_handle_error(NFC_STATUS_FAILED);
+              return;
+            }
+
             if (p_i93->rw_length == 3)
               *(p + xx) = 0xFF;
             else if (p_i93->rw_length == 2)
@@ -2275,8 +2381,11 @@ void rw_i93_sm_update_ndef(NFC_HDR* p_resp) {
 
           block_number = (p_i93->rw_offset / p_i93->block_size);
 
-          if (rw_i93_send_cmd_write_single_block(block_number, p) ==
-              NFC_STATUS_OK) {
+          if (length < p_i93->block_size) {
+            android_errorWriteLog(0x534e4554, "143155861");
+            rw_i93_handle_error(NFC_STATUS_FAILED);
+          } else if (rw_i93_send_cmd_write_single_block(block_number, p) ==
+                     NFC_STATUS_OK) {
             /* set offset to the beginning of next block */
             p_i93->rw_offset +=
                 p_i93->block_size - (p_i93->rw_offset % p_i93->block_size);
@@ -2373,7 +2482,7 @@ void rw_i93_sm_format(NFC_HDR* p_resp) {
       p_i93->block_size = 0;
       p_i93->num_block = 0;
 
-      if (!rw_i93_process_sys_info(p)) {
+      if (!rw_i93_process_sys_info(p, length)) {
         /* retrying with protocol extension flag */
         break;
       }
@@ -2536,12 +2645,29 @@ void rw_i93_sm_format(NFC_HDR* p_resp) {
       }
 
       /* get buffer to store CC, zero length NDEF TLV and Terminator TLV */
-      p_i93->p_update_data = (uint8_t*)GKI_getbuf(RW_I93_FORMAT_DATA_LEN);
+      /* Block size could be either 4 or 8 or 16 or 32 bytes */
+      /* Get buffer for the largest block size I93_MAX_BLOCK_LENGH */
+      p_i93->p_update_data = (uint8_t*)GKI_getbuf(I93_MAX_BLOCK_LENGH);
 
       if (!p_i93->p_update_data) {
         LOG(ERROR) << StringPrintf("Cannot allocate buffer");
         rw_i93_handle_error(NFC_STATUS_FAILED);
         break;
+      } else {
+        switch (p_i93->block_size) {
+          case 4:
+          case 8:
+            break;
+          case 16:
+          case 32: /* initialize unpopulated buffer b/139738828 */
+            memset(p_i93->p_update_data, I93_ICODE_TLV_TYPE_NULL,
+                   I93_MAX_BLOCK_LENGH);
+            break;
+          default:
+            android_errorWriteLog(0x534e4554, "157650336");
+            rw_i93_handle_error(NFC_STATUS_FAILED);
+            return;
+        }
       }
 
       p = p_i93->p_update_data;
@@ -2680,10 +2806,19 @@ void rw_i93_sm_set_read_only(NFC_HDR* p_resp) {
   switch (p_i93->sub_state) {
     case RW_I93_SUBSTATE_WAIT_CC:
 
+      if (length < RW_I93_CC_SIZE) {
+        android_errorWriteLog(0x534e4554, "139188579");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+        return;
+      }
+
       /* mark CC as read-only */
       *(p + 1) |= I93_ICODE_CC_READ_ONLY;
 
-      if (rw_i93_send_cmd_write_single_block(0, p) == NFC_STATUS_OK) {
+      if (length < p_i93->block_size) {
+        android_errorWriteLog(0x534e4554, "143106535");
+        rw_i93_handle_error(NFC_STATUS_FAILED);
+      } else if (rw_i93_send_cmd_write_single_block(0, p) == NFC_STATUS_OK) {
         p_i93->sub_state = RW_I93_SUBSTATE_WAIT_UPDATE_CC;
       } else {
         rw_i93_handle_error(NFC_STATUS_FAILED);
