@@ -36,7 +36,8 @@
 #define NCI_VERSION_1_0 0x10
 #define NCI_VERSION_UNKNOWN 0x00
 
-#define SN100_CHIPID "0xa4"
+#define SN100_CHIPID_A "0xa3"
+#define SN100_CHIPID_B "0xa4"
 
 /* Uncomment define ENABLE_ESE_CLIENT to
 enable eSE client */
