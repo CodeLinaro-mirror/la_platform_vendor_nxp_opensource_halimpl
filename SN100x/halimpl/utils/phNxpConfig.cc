@@ -173,7 +173,9 @@ typedef enum
   TARGET_SM_FRASER                     = 476, /**< SM_FRASER target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_SMP_KODIAK                    = 499, /**< SMP_KODIAK target */
+  TARGET_STRAIT                        = 507, /**< STRAIT target */
   TARGET_FAROE                         = 515, /**< FAROE target */
+  TARGET_SM_DIVAR                      = 518, /**< SM_DIVAR target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -458,6 +460,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_FRASER:
         case TARGET_SM_KODIAK:
         case TARGET_SMP_KODIAK:
+        case TARGET_STRAIT:
         case TARGET_FAROE:
             config_id = QRD_TYPE_SN100;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -470,6 +473,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SCUBA:
         case TARGET_SCUBA_QCM:
         case TARGET_SCUBA_QCS:
+        case TARGET_SM_DIVAR:
             config_id = QRD_TYPE_SN100;
             strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -543,6 +547,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_FRASER:
         case TARGET_SM_KODIAK:
         case TARGET_SMP_KODIAK:
+        case TARGET_STRAIT:
         case TARGET_FAROE:
             config_id = MTP_TYPE_SN100;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -555,6 +560,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SCUBA:
         case TARGET_SCUBA_QCM:
         case TARGET_SCUBA_QCS:
+        case TARGET_SM_DIVAR:
             config_id = MTP_TYPE_SN100;
             strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
