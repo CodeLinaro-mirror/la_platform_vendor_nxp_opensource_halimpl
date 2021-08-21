@@ -3688,6 +3688,7 @@ std::string phNxpNciHal_getNfcChipId() {
   }
   else {
       NXPLOG_NCIHAL_D("%s: Got vendor.qti.nfc.chipid: %s ", __func__, nq_chipid);
+      __system_property_set("persist.nfc_cfg.config_file_name", "libnfc-nci.conf");
       return nq_chipid;
   }
 }
