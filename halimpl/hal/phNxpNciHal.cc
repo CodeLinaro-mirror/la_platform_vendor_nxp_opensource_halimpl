@@ -3681,6 +3681,7 @@ std::string phNxpNciHal_getNfcChipId() {
   char nq_chipid[PROPERTY_VALUE_MAX] = {0};
   int ret = 0;
 
+  __system_property_set("persist.nfc_cfg.config_file_name", "libnfc-nci.conf");
   ret = __system_property_get("vendor.qti.nfc.chipid", nq_chipid);
   if(ret <= 0) {
       NXPLOG_NCIHAL_E("%s: Failure in getting chip-id.", __func__);
