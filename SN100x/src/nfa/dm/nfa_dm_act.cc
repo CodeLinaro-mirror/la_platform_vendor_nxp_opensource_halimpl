@@ -31,7 +31,15 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2022 NXP
+ *
+ ******************************************************************************/
+/******************************************************************************
+ *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
  *
  ******************************************************************************/
 /******************************************************************************
@@ -425,7 +433,14 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
 
     case NFC_GEN_ERROR_REVT: /* generic error command or notification */
 #if(NXP_EXTNS == TRUE)
-      if(p_data) NFA_SCR_PROCESS_EVT(NFA_SCR_MULTIPLE_TARGET_DETECTED_EVT, p_data->status);
+      if (p_data) {
+        dm_cback_data.status = p_data->status;
+        NFA_SCR_PROCESS_EVT(NFA_SCR_MULTIPLE_TARGET_DETECTED_EVT,
+                            p_data->status);
+        if (dm_cback_data.status == NXP_NFC_TXLDO_OVER_CURRENT) {
+          (*nfa_dm_cb.p_dm_cback)(NFA_DM_GEN_ERROR_REVT, &dm_cback_data);
+        }
+      }
 #endif
       break;
 
@@ -480,6 +495,10 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
         (*nfa_dm_cb.wlc_data->p_wlc_cback)(event, p_data->status);
       break;
 #endif
+
+    case NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT:
+      (*nfa_dm_cb.p_dm_cback)(NFA_DM_TZ_SECURE_ZONE_DISABLE_NFC_EVT, nullptr);
+      break;
 
     default:
       break;
@@ -2083,6 +2102,8 @@ std::string nfa_dm_nfc_revt_2_str(tNFC_RESPONSE_EVT event) {
     case NFC_RF_INTF_EXT_STOP_REVT:
       return "NFC_RF_INTF_EXT_STOP_EVT";
 #endif
+    case NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT:
+      return "NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT";
     default:
       return "unknown revt";
   }

@@ -34,6 +34,14 @@
  *  Copyright 2018-2021 NXP
  *
  ******************************************************************************/
+ /******************************************************************************
+ *
+ *  Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ *  Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ ******************************************************************************/
 
 /******************************************************************************
  *
@@ -66,6 +74,10 @@
 #if (NFC_RW_ONLY == FALSE)
 
 #include "llcp_int.h"
+
+
+/*secure zone entry event from HAL*/
+#define HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT 0xC1
 
 /* NFC mandates support for at least one logical connection;
  * Update max_conn to the NFCC capability on InitRsp */
@@ -205,6 +217,8 @@ static std::string nfc_hal_event_name(uint8_t event) {
       return "HAL_NFC_ERROR_EVT";
     case (uint32_t)NfcEvent::HCI_NETWORK_RESET:
       return "HCI_NETWORK_RESET";
+    case HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT:
+      return "HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT";
 #if (NXP_EXTNS == TRUE)
     case HAL_NFC_FW_UPDATE_STATUS_EVT:
       return "HAL_NFC_FW_UPDATE_STATUS_EVT";
@@ -751,6 +765,10 @@ static void nfc_main_hal_cback(uint8_t event, tHAL_NFC_STATUS status) {
       }
       break;
 #endif
+    case HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT:
+      /*received secure zone entry evt from TZ*/
+      (*nfc_cb.p_resp_cback)(NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT, nullptr);
+      break;
     default:
       DLOG_IF(INFO, nfc_debug_enabled)
           << StringPrintf("nfc_main_hal_cback unhandled event %x", event);
