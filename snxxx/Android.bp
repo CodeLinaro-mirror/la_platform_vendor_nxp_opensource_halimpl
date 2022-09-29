@@ -92,10 +92,6 @@ cc_library_shared {
         "halimpl/recovery",
     ],
 
-    include_dirs: [
-        "vendor/nxp/opensource/halimpl/snxxx/extns/impl/nxpnfc/2.0",
-    ],
-
     export_include_dirs: [
         "extns/impl/nxpnfc/2.0",
         "halimpl/inc",
@@ -127,6 +123,7 @@ cc_library_shared {
     header_libs: [
         "libese_client_headers",
         "qti_nfc_kernel_headers",
+        "nxpnfc_2_includes",
     ],
 
     sanitize: {
