@@ -184,6 +184,7 @@ typedef struct phNxpNciHal_Control {
   /* to store and restore gpio values */
   phNxpNciGpioInfo_t phNxpNciGpioInfo;
   tNFC_chipType chipType;
+  bool_t power_reset_triggered;
 } phNxpNciHal_Control_t;
 
 typedef struct {
@@ -262,7 +263,9 @@ typedef enum {
   EEPROM_UICC2_SESSION_ID,
   EEPROM_CE_ACT_NTF,
   EEPROM_UICC_HCI_CE_STATE,
-  EEPROM_EXT_FIELD_DETECT_MODE
+  EEPROM_EXT_FIELD_DETECT_MODE,
+  EEPROM_CONF_GPIO_CTRL,
+  EEPROM_SET_GPIO_VALUE
 } phNxpNci_EEPROM_request_type_t;
 
 typedef struct phNxpNci_EEPROM_info {

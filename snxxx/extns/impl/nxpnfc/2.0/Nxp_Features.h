@@ -57,25 +57,26 @@
 #endif
 using namespace std;
 typedef enum {
-    NFCC_DWNLD_WITH_VEN_RESET,
-    NFCC_DWNLD_WITH_NCI_CMD
+  NFCC_DWNLD_WITH_VEN_RESET,
+  NFCC_DWNLD_WITH_NCI_CMD
 } tNFCC_DnldType;
 
 typedef enum {
-    DEFAULT_CHIP_TYPE = 0x00,
-    pn547C2 = 0x01,
-    pn65T,
-    pn548C2,
-    pn66T,
-    pn551,
-    pn67T,
-    pn553,
-    pn80T,
-    pn557,
-    pn81T,
-    sn100u,
-    sn220u
-}tNFC_chipType;
+  DEFAULT_CHIP_TYPE = 0x00,
+  pn547C2 = 0x01,
+  pn65T,
+  pn548C2,
+  pn66T,
+  pn551,
+  pn67T,
+  pn553,
+  pn80T,
+  pn557,
+  pn81T,
+  sn100u,
+  sn220u,
+  pn560
+} tNFC_chipType;
 
 typedef struct {
   /*Flags common to all chip types*/
@@ -174,47 +175,56 @@ extern tNfc_featureList nfcFL;
     }                                                                          \
   }
 
-#define CONFIGURE_FEATURELIST_NFCC(chipType)                                   \
-  {                                                                            \
-    nfcFL._PHDNLDNFC_USERDATA_EEPROM_OFFSET = 0x023CU;                         \
-    nfcFL._PHDNLDNFC_USERDATA_EEPROM_LEN = 0x0C80U;                            \
-    nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_PN48AD;             \
-    nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_VEN_RESET;                 \
-    switch (chipType) {                                                        \
-    case pn557:                                                                \
-      nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;                    \
-      STRCPY_FW("libpn557_fw")                                                 \
-      STRCPY_FW_BIN("pn557")                                                   \
-      break;                                                                   \
-    case sn100u:                                                               \
-      nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;                 \
-      nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;                    \
-      nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                               \
-      nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                             \
-      nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN100U;           \
-      STRCPY_FW("libsn100u_fw")                                                \
-      STRCPY_FW_BIN("sn100u")                                                  \
-      break;                                                                   \
-    case sn220u:                                                               \
-      nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;                 \
-      nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;                    \
-      nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                               \
-      nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                             \
-      nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN220U;           \
-      STRCPY_FW("libsn220u_fw")                                                \
-      STRCPY_FW_BIN("sn220u")                                                  \
-      break;                                                                   \
-    default:                                                                   \
-      nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                             \
-      break;                                                                   \
-    }                                                                          \
+#define CONFIGURE_FEATURELIST_NFCC(chipType)                           \
+  {                                                                    \
+    nfcFL._PHDNLDNFC_USERDATA_EEPROM_OFFSET = 0x023CU;                 \
+    nfcFL._PHDNLDNFC_USERDATA_EEPROM_LEN = 0x0C80U;                    \
+    nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_PN48AD;     \
+    nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_VEN_RESET;         \
+    switch (chipType) {                                                \
+      case pn557:                                                      \
+        nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
+        STRCPY_FW("libpn557_fw")                                       \
+        STRCPY_FW_BIN("pn557")                                         \
+        break;                                                         \
+      case sn100u:                                                     \
+        nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;       \
+        nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
+        nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                     \
+        nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \
+        nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN100U; \
+        STRCPY_FW("libsn100u_fw")                                      \
+        STRCPY_FW_BIN("sn100u")                                        \
+        break;                                                         \
+      case sn220u:                                                     \
+        nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;       \
+        nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
+        nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                     \
+        nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \
+        nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN220U; \
+        STRCPY_FW("libsn220u_fw")                                      \
+        STRCPY_FW_BIN("sn220u")                                        \
+        break;                                                         \
+      case pn560:                                                      \
+        nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;       \
+        nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
+        nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                     \
+        nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \
+        nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN220U; \
+        STRCPY_FW("libpn560_fw")                                       \
+        STRCPY_FW_BIN("pn560")                                         \
+        break;                                                         \
+      default:                                                         \
+        nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \
+        break;                                                         \
+    }                                                                  \
   }
 
-#define STRCPY_FW_BIN(str) {                                                \
-  nfcFL._FW_BIN_PATH.clear();                                               \
-  nfcFL._FW_BIN_PATH.append(FW_BIN_ROOT_DIR);                               \
-  nfcFL._FW_BIN_PATH.append(str);                                           \
-  nfcFL._FW_BIN_PATH.append(FW_BIN_EXTENSION);                              \
+#define STRCPY_FW_BIN(str) {                                                   \
+  nfcFL._FW_BIN_PATH.clear();                                                  \
+  nfcFL._FW_BIN_PATH.append(FW_BIN_ROOT_DIR);                                  \
+  nfcFL._FW_BIN_PATH.append(str);                                              \
+  nfcFL._FW_BIN_PATH.append(FW_BIN_EXTENSION);                                 \
 }
 #define STRCPY_FW(str1) {                                                      \
   nfcFL._FW_LIB_PATH.clear();                                                  \

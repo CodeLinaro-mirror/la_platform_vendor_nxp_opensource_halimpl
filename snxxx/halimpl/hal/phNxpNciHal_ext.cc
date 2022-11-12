@@ -1307,6 +1307,22 @@ NFCSTATUS request_EEPROM(phNxpNci_EEPROM_info_t* mEEPROM_info) {
       addr[0] = 0xA1;
       addr[1] = 0x36;
       break;
+    case EEPROM_CONF_GPIO_CTRL:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA1;
+      addr[1] = 0x0F;
+      break;
+    case EEPROM_SET_GPIO_VALUE:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA1;
+      addr[1] = 0x65;
+      break;
     default:
       ALOGE("No valid request information found");
       break;
@@ -1601,7 +1617,7 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   uint8_t rfInterfacesLength =
       *coreInitRespLen - (indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE);
   uint8_t* supportedRfInterfaces = NULL;
-
+  bool removeNfcDepRequired = false;
   if (noOfSupportedInterface) {
     supportedRfInterfaces =
         coreInitResp + indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE;
@@ -1610,7 +1626,9 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   /* Get the index of Supported RF Interface for NFC-DEP interface in CORE_INIT
    * Response*/
   for (int i = 0; i < noOfSupportedInterface; i++) {
+
     if (*supportedRfInterfaces == NCI_NFC_DEP_RF_INTF) {
+      removeNfcDepRequired = true;
       break;
     }
     uint8_t noOfExtensions = *(supportedRfInterfaces + 1);
@@ -1619,7 +1637,10 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   }
   /* If NFC-DEP is found in response then remove NFC-DEP from init response and
    * frame new CORE_INIT_RESP and send to upper layer*/
-  if (supportedRfInterfaces && *supportedRfInterfaces == NCI_NFC_DEP_RF_INTF) {
+  if (!removeNfcDepRequired) {
+    NXPLOG_NCIHAL_E("%s: NFC-DEP Removal is not requored !!", __func__);
+    return;
+  } else {
     coreInitResp[16] = noOfSupportedInterface - 1;
     uint8_t noBytesToSkipForNfcDep = 2 + *(supportedRfInterfaces + 1);
     memcpy(supportedRfInterfaces,

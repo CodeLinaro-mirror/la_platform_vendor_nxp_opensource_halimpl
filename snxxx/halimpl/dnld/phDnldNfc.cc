@@ -256,7 +256,7 @@ NFCSTATUS phDnldNfc_CheckIntegrity(uint8_t bChipVer, pphDnldNfc_Buff_t pCRCData,
             ((PHDNLDNFC_HWVER_PN557_MRA1_0 == bChipVer)))) ||
           (IS_CHIP_TYPE_EQ(sn100u) &&
            (PHDNLDNFC_HWVER_VENUS_MRA1_0 & bChipVer)) ||
-          (IS_CHIP_TYPE_EQ(sn220u) &&
+          ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) &&
            (PHDNLDNFC_HWVER_VULCAN_MRA1_0 & bChipVer))) {
         (gpphDnldContext->FrameInp.Type) = phDnldNfc_ChkIntg;
       } else {
@@ -570,6 +570,10 @@ NFCSTATUS phDnldNfc_Force(pphDnldNfc_Buff_t pInputs, pphDnldNfc_RspCb_t pNotify,
             bClkFreq = phDnldNfc_ClkFreq_38_4Mhz;
           } else if (CLK_FREQ_52MHZ == (pInputs->pBuff[1])) {
             bClkFreq = phDnldNfc_ClkFreq_52Mhz;
+          } else if (CLK_FREQ_32MHZ == (pInputs->pBuff[1])) {
+            bClkFreq = phDnldNfc_ClkFreq_32Mhz;
+          } else if (CLK_FREQ_48MHZ == (pInputs->pBuff[1])) {
+            bClkFreq = phDnldNfc_ClkFreq_48Mhz;
           } else {
             NXPLOG_FWDNLD_E(
                 "Invalid Clk Frequency !! Using default value of 19.2Mhz..");
@@ -814,7 +818,7 @@ NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw) {
     if ((NULL != gpphDnldContext->nxp_nfc_fw) &&
         (0 != gpphDnldContext->nxp_nfc_fw_len)) {
       uint16_t offsetFwMajorNum, offsetFwMinorNum;
-      if (IS_CHIP_TYPE_EQ(sn220u)) {
+      if (IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) {
         offsetFwMajorNum = ((uint16_t)(gpphDnldContext->nxp_nfc_fw[795]) << 8U);
         offsetFwMinorNum = ((uint16_t)(gpphDnldContext->nxp_nfc_fw[794]));
       } else {

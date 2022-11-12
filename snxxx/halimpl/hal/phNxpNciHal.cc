@@ -804,6 +804,15 @@ int phNxpNciHal_MinOpen() {
 
   phTmlNfc_IoCtl(phTmlNfc_e_EnableVen);
 
+  if (phNxpNciHal_isULPDetSupported()) {
+    status = phTmlNfc_IoCtl(phTmlNfc_e_PullVenHigh);
+    if (NFCSTATUS_SUCCESS == status) {
+      NXPLOG_NCIHAL_D("ULPDET phTmlNfc_e_PullVenHigh - SUCCESS\n");
+    } else {
+      NXPLOG_NCIHAL_D("ULPDET phTmlNfc_e_PullVenHigh - FAILED\n");
+    }
+  }
+
   if (wFwVerRsp == 0) {
     bVenResetRequired = true;
   }
@@ -982,7 +991,8 @@ int phNxpNciHal_fw_mw_ver_check() {
   } else if (IS_CHIP_TYPE_EQ(sn100u) && (rom_version == SN1XX_ROM_VERSION) &&
              (fw_maj_ver == SN1XX_FW_MAJOR_VERSION)) {
     status = NFCSTATUS_SUCCESS;
-  } else if (IS_CHIP_TYPE_EQ(sn220u) && (rom_version == SN2XX_ROM_VERSION) &&
+  } else if ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) &&
+             (rom_version == SN2XX_ROM_VERSION) &&
              (fw_maj_ver == SN2XX_FW_MAJOR_VERSION)) {
     status = NFCSTATUS_SUCCESS;
   }
@@ -1075,13 +1085,14 @@ int phNxpNciHal_write_internal(uint16_t data_len, const uint8_t* p_data) {
   if (nxpncihal_ctrl.halStatus != HAL_STATUS_OPEN) {
     return NFCSTATUS_FAILED;
   }
+  if ((data_len + MAX_NXP_HAL_EXTN_BYTES) > NCI_MAX_DATA_LEN) {
+    NXPLOG_NCIHAL_D("cmd_len exceeds limit NCI_MAX_DATA_LEN");
+    android_errorWriteLog(0x534e4554, "121267042");
+    goto clean_and_return;
+  }
   /* Create local copy of cmd_data */
   memcpy(nxpncihal_ctrl.p_cmd_data, p_data, data_len);
   nxpncihal_ctrl.cmd_len = data_len;
-  if ((nxpncihal_ctrl.cmd_len + MAX_NXP_HAL_EXTN_BYTES) > NCI_MAX_DATA_LEN) {
-    NXPLOG_NCIHAL_D("cmd_len exceeds limit NCI_MAX_DATA_LEN");
-    goto clean_and_return;
-  }
 #ifdef P2P_PRIO_LOGIC_HAL_IMP
   /* Specific logic to block RF disable when P2P priority logic is busy */
   if (p_data[0] == 0x21 && p_data[1] == 0x06 && p_data[2] == 0x01 &&
@@ -1314,6 +1325,9 @@ static void phNxpNciHal_read_complete(void* pContext,
       }
     }
     phNxpNciHal_print_res_status(pInfo->pBuff, &pInfo->wLength);
+    if (nxpncihal_ctrl.power_reset_triggered == true) {
+      nxpncihal_ctrl.power_reset_triggered = false;
+    }
 
     /* Check if response should go to hal module only */
     if (nxpncihal_ctrl.hal_ext_enabled == TRUE &&
@@ -1623,6 +1637,8 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
     mEEPROM_info.request_mode = SET_EEPROM_DATA;
     request_EEPROM(&mEEPROM_info);
   }
+
+  phNxpNciHal_propConfULPDetMode(false);
 
   config_access = false;
   status = phNxpNciHal_read_fw_dw_status(fw_dwnld_flag);
@@ -1977,6 +1993,14 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
   }
 
 #if (NXP_EXTNS == TRUE)
+  uint8_t gpioCtrl[3] = {0x00, 0x00, 0x00};
+  long gpioCtrlLen = 0;
+  isfound = GetNxpByteArrayValue(NAME_CONF_GPIO_CONTROL, (char*)gpioCtrl,
+                                 sizeof(gpioCtrl), &gpioCtrlLen);
+  if (isfound > 0 && gpioCtrlLen != 0) {
+    phNxpNciHal_configGPIOControl(gpioCtrl, gpioCtrlLen);
+  }
+
   isfound = GetNxpNumValue(NAME_NXP_NCI_PARSER_LIBRARY, &num, sizeof(num));
   if (isfound > 0 && num == 0x01) {
     phNxpNciHal_configNciParser(true);
@@ -2312,35 +2336,41 @@ int phNxpNciHal_close(bool bShutdown) {
           "command sent");
     }
 #if (NXP_EXTNS == TRUE)
+  } else if ((!bShutdown) && IS_CHIP_TYPE_GE(sn220u)) {
+    if (phNxpNciHal_getULPDetFlag() == true) {
+      phNxpNciHal_propConfULPDetMode(true);
+    }
   }
 #endif
 close_and_return:
   if (IS_CHIP_TYPE_L(sn220u) || bShutdown) {
     nxpncihal_ctrl.halStatus = HAL_STATUS_CLOSE;
   }
-  do { /*This is NXP_EXTNS code for retry*/
-    status = phNxpNciHal_send_ext_cmd(sizeof(cmd_reset_nci), cmd_reset_nci);
+  if (phNxpNciHal_getULPDetFlag() == false) {
+    do { /*This is NXP_EXTNS code for retry*/
+      status = phNxpNciHal_send_ext_cmd(sizeof(cmd_reset_nci), cmd_reset_nci);
 
-    if (status == NFCSTATUS_SUCCESS) {
-      break;
-    } else {
-      NXPLOG_NCIHAL_E("NCI_CORE_RESET: Failed, perform retry after delay");
-      usleep(1000 * 1000);
-      retry++;
-      if (retry > 3) {
-        NXPLOG_NCIHAL_E(
-            "Maximum retries performed, shall restart HAL to recover");
-        abort();
+      if (status == NFCSTATUS_SUCCESS) {
+        break;
+      } else {
+        NXPLOG_NCIHAL_E("NCI_CORE_RESET: Failed, perform retry after delay");
+        usleep(1000 * 1000);
+        retry++;
+        if (retry > 3) {
+          NXPLOG_NCIHAL_E(
+              "Maximum retries performed, shall restart HAL to recover");
+          abort();
+        }
       }
-    }
-  } while (retry < 3);
+    } while (retry < 3);
 
-  if (IS_CHIP_TYPE_GE(sn220u) && !bShutdown) {
-    nxpncihal_ctrl.halStatus = HAL_STATUS_CLOSE;
-    status = phNxpNciHal_send_ext_cmd(sizeof(cmd_system_set_service_status),
-                                      cmd_system_set_service_status);
-    if (status != NFCSTATUS_SUCCESS) {
-      NXPLOG_NCIHAL_E("NCI SYSTEM SET SERVICE STATUS to OFF Failed");
+    if (IS_CHIP_TYPE_GE(sn220u) && !bShutdown) {
+      nxpncihal_ctrl.halStatus = HAL_STATUS_CLOSE;
+      status = phNxpNciHal_send_ext_cmd(sizeof(cmd_system_set_service_status),
+                                        cmd_system_set_service_status);
+      if (status != NFCSTATUS_SUCCESS) {
+        NXPLOG_NCIHAL_E("NCI SYSTEM SET SERVICE STATUS to OFF Failed");
+      }
     }
   }
 
@@ -2525,7 +2555,7 @@ void phNxpNciHal_getVendorConfig(
   if (GetNxpNumValue(NAME_DEFAULT_ROUTE, &num, sizeof(num))) {
     config.defaultRoute = (uint8_t)num;
   }
-  if (GetNxpByteArrayValue(NAME_DEVICE_HOST_WHITE_LIST, (char*)buffer.data(),
+  if (GetNxpByteArrayValue(NAME_DEVICE_HOST_ALLOW_LIST, (char*)buffer.data(),
                            buffer.size(), &retlen)) {
     config.hostWhitelist.resize(retlen);
     for (long i = 0; i < retlen; i++) config.hostWhitelist[i] = buffer[i];
@@ -2691,6 +2721,7 @@ int phNxpNciHal_power_cycle(void) {
     NXPLOG_NCIHAL_D("Power Cycle failed due to hal status not open");
     return NFCSTATUS_FAILED;
   }
+  nxpncihal_ctrl.power_reset_triggered = true;
   status = phTmlNfc_IoCtl(phTmlNfc_e_PowerReset);
 
   if (NFCSTATUS_SUCCESS == status) {
@@ -2893,7 +2924,7 @@ static void phNxpNciHal_nfccClockCfgRead(void) {
     nxpprofile_ctrl.bClkSrcVal = NXP_SYS_CLK_SRC_SEL;
   }
   if ((nxpprofile_ctrl.bClkFreqVal < CLK_FREQ_13MHZ) ||
-      (nxpprofile_ctrl.bClkFreqVal > CLK_FREQ_52MHZ)) {
+      (nxpprofile_ctrl.bClkFreqVal > CLK_FREQ_48MHZ)) {
     NXPLOG_FWDNLD_E(
         "Clock frequency value is wrong in config file, setting it as default");
     nxpprofile_ctrl.bClkFreqVal = NXP_SYS_CLK_FREQ_SEL;
@@ -2936,6 +2967,10 @@ int phNxpNciHal_determineConfiguredClockSrc() {
       param_clock_src |= 0x04;
     } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_52MHZ) {
       param_clock_src |= 0x05;
+    } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_32MHZ) {
+      param_clock_src |= 0x06;
+    } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_48MHZ) {
+      param_clock_src |= 0x0A;
     } else {
       NXPLOG_NCIHAL_E("Wrong clock freq, send default PLL@19.2MHz");
       if (IS_CHIP_TYPE_L(sn100u))
@@ -3661,6 +3696,10 @@ int phNxpNciHal_check_config_parameter() {
       param_clock_src |= 0x04;
     } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_52MHZ) {
       param_clock_src |= 0x05;
+    } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_32MHZ) {
+      param_clock_src |= 0x06;
+    } else if (nxpprofile_ctrl.bClkFreqVal == CLK_FREQ_48MHZ) {
+      param_clock_src |= 0x0A;
     } else {
       NXPLOG_NCIHAL_E("Wrong clock freq, send default PLL@19.2MHz");
       param_clock_src = 0x11;

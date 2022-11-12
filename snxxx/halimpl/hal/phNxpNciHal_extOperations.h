@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 NXP
+ * Copyright 2019-2022 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -136,3 +136,66 @@ phNxpNciHal_get_uicc_hci_params(std::vector<uint8_t>& ptr, uint8_t bufflen,
  *
  ******************************************************************************/
 NFCSTATUS phNxpNciHal_setExtendedFieldMode();
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_configGPIOControl()
+**
+** Description      Helper function to configure GPIO control
+**
+** Parameters       gpioControl - Byte array with first two bytes are used to
+**                  configure gpio for specific functionality (ex:ULPDET,
+**                  GPIO LEVEL ...) and 3rd byte indicates the level of GPIO
+**                  to be set.
+**                  len        - Len of byte array
+**
+** Returns          NFCSTATUS_FAILED or NFCSTATUS_SUCCESS
+*******************************************************************************/
+NFCSTATUS phNxpNciHal_configGPIOControl(uint8_t gpioControl[], uint8_t len);
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_isULPDetSupported()
+**
+** Description      this function is to check ULPDet feature is supported or not
+**
+** Returns          true or false
+*******************************************************************************/
+bool phNxpNciHal_isULPDetSupported();
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_setULPDetFlag()
+**
+** Description      this function is called by Framework API to set ULPDet mode
+**                  enable/disable
+**
+** Parameters       flag - true to enable ULPDet, false to disable
+**
+** Returns          true or false
+*******************************************************************************/
+void phNxpNciHal_setULPDetFlag(bool flag);
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_getULPDetFlag()
+**
+** Description      this function get the ULPDet state, true if it is enabled
+**                  false if it is disabled
+**
+** Returns          true or false
+*******************************************************************************/
+bool phNxpNciHal_getULPDetFlag();
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_propConfULPDetMode()
+**
+** Description      this function applies the configurations to enable/disable
+**                  ULPDet Mode
+**
+** Parameters       bEnable - true to enable, false to disable
+**
+** Returns          NFCSTATUS_FAILED or NFCSTATUS_SUCCESS
+*******************************************************************************/
+NFCSTATUS phNxpNciHal_propConfULPDetMode(bool bEnable);

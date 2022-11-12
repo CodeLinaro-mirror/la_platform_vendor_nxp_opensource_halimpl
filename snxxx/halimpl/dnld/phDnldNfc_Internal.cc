@@ -19,6 +19,7 @@
  * Download Component
  */
 
+#include <log/log.h>
 #include <phDnldNfc_Internal.h>
 #include <phDnldNfc_Utils.h>
 #include <phNxpLog.h>
@@ -620,7 +621,7 @@ static NFCSTATUS phDnldNfc_BuildFramePkt(pphDnldNfc_DlContext_t pDlContext) {
           if (0 != (pDlContext->tRWInfo.wRWPldSize)) {
             if ((pDlContext->tRWInfo.bFramesSegmented) == true) {
               /* Turning ON the Fragmentation bit in FrameLen */
-              if (IS_CHIP_TYPE_EQ(sn220u)) {
+              if (IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) {
                 wFrameLen = PHDNLDNFC_SET_HDR_FRAGBIT_SN220(wFrameLen);
               } else {
                 wFrameLen = PHDNLDNFC_SET_HDR_FRAGBIT(wFrameLen);
@@ -635,7 +636,7 @@ static NFCSTATUS phDnldNfc_BuildFramePkt(pphDnldNfc_DlContext_t pDlContext) {
                 .aFrameBuff[PHDNLDNFC_FRAME_HDR_OFFSET + 1] = pFrameByte[0];
 
             /* To ensure we have no frag bit set for crc calculation */
-            if (IS_CHIP_TYPE_EQ(sn220u)) {
+            if (IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) {
               wFrameLen = PHDNLDNFC_CLR_HDR_FRAGBIT_SN220(wFrameLen);
             } else {
               wFrameLen = PHDNLDNFC_CLR_HDR_FRAGBIT(wFrameLen);
@@ -868,6 +869,7 @@ static NFCSTATUS phDnldNfc_ProcessFrame(void* pContext,
       } else {
         if (pInfo->wLength <= PHDNLDNFC_FRAME_CRC_LEN) {
           NXPLOG_FWDNLD_E("Invalid frame received");
+          android_errorWriteLog(0x534e4554, "184728427");
           wStatus = PHNFCSTVAL(CID_NFC_DNLD, NFCSTATUS_FAILED);
           return wStatus;
         }
