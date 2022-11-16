@@ -750,9 +750,6 @@ init_retry:
   }
   wFwUpdateReq = fw_update_req;
 
-  NXPLOG_NCIHAL_D("Skipping firmware download");
-  wFwUpdateReq = 0;
-
   if (!wFwUpdateReq) {
     NXPLOG_NCIHAL_D("FW update not required");
     property_set("nfc.fw.downloadmode_force", "0");
