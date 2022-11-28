@@ -138,6 +138,7 @@ typedef enum
   TARGET_GENERIC                       = 0x00,/**< new targets */
   TARGET_SM_KAILUA                     = 519, /**< SM_KAILUA target */
   TARGET_SMP_KAILUA                    = 536, /**< SMP_KAILUA target */
+  TARGET_MONACO                        = 486, /**< MONACO target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -384,6 +385,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
+        case TARGET_MONACO:
+            config_id = GENERIC_19_2_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
         default:
             config_id = QRD_TYPE_DEFAULT;
             strlcpy(config_file, config_name_qrd, MAX_DATA_CONFIG_PATH_LEN);
@@ -408,6 +413,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 config_id = GENERIC_38_4_TYPE_SN1xx;
                 strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
+            break;
+        case TARGET_MONACO:
+            config_id = GENERIC_19_2_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
         default:
             config_id = MTP_TYPE_DEFAULT;
