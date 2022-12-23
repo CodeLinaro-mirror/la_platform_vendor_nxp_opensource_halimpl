@@ -26,8 +26,21 @@
 #if (NXP_EXTNS == TRUE)
 #include "phNxpNciHal.h"
 #include "phNxpNciHal_IoctlOperations.h"
+#include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_nciParser.h"
 #endif
+
+#define NXP_EN_SN110U 1
+#define NXP_EN_SN100U 1
+#define NXP_EN_SN220U 1
+#define NXP_EN_PN557 1
+#define NXP_EN_PN560 1
+#define NFC_NXP_MW_ANDROID_VER (14U)  /* Android version used by NFC MW */
+#define NFC_NXP_MW_VERSION_MAJ (0x02) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
+#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
+#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
+
 /* Timeout value to wait for response from PN548AD */
 #define HAL_EXTNS_WRITE_RSP_TIMEOUT (1000)
 #define NCI_NFC_DEP_RF_INTF 0x03
@@ -40,6 +53,7 @@
 extern phNxpNciHal_Control_t nxpncihal_ctrl;
 extern phNxpNciProfile_Control_t nxpprofile_ctrl;
 extern phNxpNci_getCfg_info_t* mGetCfg_info;
+extern PowerTrackerHandle gPowerTrackerHandle;
 
 extern bool_t gsIsFwRecoveryRequired;
 
@@ -85,6 +99,18 @@ static NFCSTATUS phNxpNciHal_ext_process_nfc_init_rsp(uint8_t* p_ntf,
                                                       uint16_t* p_len);
 static void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
                                          uint16_t* coreInitRespLen);
+
+void printNfcMwVersion() {
+  uint32_t validation = (NXP_EN_SN100U << 13);
+  validation |= (NXP_EN_SN110U << 14);
+  validation |= (NXP_EN_SN220U << 15);
+  validation |= (NXP_EN_PN560 << 16);
+  validation |= (NXP_EN_PN557 << 11);
+
+  ALOGE("MW-HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x",
+        NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
+        NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
+}
 /*******************************************************************************
 **
 ** Function         phNxpNciHal_ext_init
@@ -902,7 +928,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
     status = NFCSTATUS_FAILED;
   }
   // 2002 0904 3000 3100 3200 5000
-  else if ((p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
+  else if (*cmd_len <= (NCI_MAX_DATA_LEN - 1) &&
+           (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
            ((p_cmd_data[2] == 0x09 && p_cmd_data[3] == 0x04) /*||
             (p_cmd_data[2] == 0x0D && p_cmd_data[3] == 0x04)*/
             )) {
@@ -1022,6 +1049,15 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
       //            memcpy(p_rsp_data, bCoreInitRsp, iCoreInitRspLen);
       //            status = NFCSTATUS_FAILED;
       //            NXPLOG_NCIHAL_D("> Going - core init optimization - END");
+    }
+  }
+  /* CORE_SET_POWER_SUB_STATE */
+  if (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x09 &&
+           p_cmd_data[2] == 0x01 &&
+           (p_cmd_data[3] == 0x00 || p_cmd_data[3] == 0x02)) {
+    // Sync power tracker data for screen on transition.
+    if (gPowerTrackerHandle.stateChange != NULL) {
+      gPowerTrackerHandle.stateChange(SCREEN_ON);
     }
   }
 
@@ -1322,6 +1358,14 @@ NFCSTATUS request_EEPROM(phNxpNci_EEPROM_info_t* mEEPROM_info) {
       len = fieldLen + 4;
       addr[0] = 0xA1;
       addr[1] = 0x65;
+      break;
+    case EEPROM_POWER_TRACKER_ENABLE:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA0;
+      addr[1] = 0x6D;
       break;
     default:
       ALOGE("No valid request information found");

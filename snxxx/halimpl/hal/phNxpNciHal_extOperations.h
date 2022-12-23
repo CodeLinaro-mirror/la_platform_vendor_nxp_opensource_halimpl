@@ -30,6 +30,36 @@ typedef struct {
 } nxp_nfc_config_ext_t;
 extern nxp_nfc_config_ext_t config_ext;
 
+/*
+* Add needed GPIO status to read into two bits each
+* INVALID(-2)
+* GPIO_SET(1)
+* GPIO_RESET(0)
+*/
+typedef struct {
+  int irq : 2;
+  int ven : 2;
+  int fw_dwl : 2;
+} platform_gpios_t;
+
+/*
+ * platform_gpios_status --> decoded gpio status flag bits
+ * gpios_status_data    -->  encoded gpio status flag bytes
+ */
+union {
+  uint32_t gpios_status_data;
+  platform_gpios_t platform_gpios_status;
+} gpios_data;
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_getExtVendorConfig()
+**
+** Description      this function gets and updates the extension params
+**
+*******************************************************************************/
+void phNxpNciHal_getExtVendorConfig();
+
 /******************************************************************************
  * Function         phNxpNciHal_updateAutonomousPwrState
  *
@@ -155,47 +185,9 @@ NFCSTATUS phNxpNciHal_configGPIOControl(uint8_t gpioControl[], uint8_t len);
 
 /*******************************************************************************
 **
-** Function         phNxpNciHal_isULPDetSupported()
+** Function         phNxpNciHal_decodeGpioStatus()
 **
-** Description      this function is to check ULPDet feature is supported or not
+** Description      this function decodes gpios status of the nfc pins
 **
-** Returns          true or false
 *******************************************************************************/
-bool phNxpNciHal_isULPDetSupported();
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_setULPDetFlag()
-**
-** Description      this function is called by Framework API to set ULPDet mode
-**                  enable/disable
-**
-** Parameters       flag - true to enable ULPDet, false to disable
-**
-** Returns          true or false
-*******************************************************************************/
-void phNxpNciHal_setULPDetFlag(bool flag);
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_getULPDetFlag()
-**
-** Description      this function get the ULPDet state, true if it is enabled
-**                  false if it is disabled
-**
-** Returns          true or false
-*******************************************************************************/
-bool phNxpNciHal_getULPDetFlag();
-
-/*******************************************************************************
-**
-** Function         phNxpNciHal_propConfULPDetMode()
-**
-** Description      this function applies the configurations to enable/disable
-**                  ULPDet Mode
-**
-** Parameters       bEnable - true to enable, false to disable
-**
-** Returns          NFCSTATUS_FAILED or NFCSTATUS_SUCCESS
-*******************************************************************************/
-NFCSTATUS phNxpNciHal_propConfULPDetMode(bool bEnable);
+void phNxpNciHal_decodeGpioStatus(void);

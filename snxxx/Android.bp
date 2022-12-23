@@ -68,12 +68,15 @@ cc_library_shared {
         "halimpl/utils/phNqChipInfo.cc",
         "halimpl/utils/phNxpNciHal_utils.cc",
         "halimpl/utils/sparse_crc32.cc",
+        "halimpl/utils/IntervalTimer.cpp",
         "halimpl/eseclients_extns/src/*.cc",
         "halimpl/hal/phNxpNciHal_IoctlOperations.cc",
         "halimpl/hal/phNxpNciHal_extOperations.cc",
+        "halimpl/hal/phNxpNciHal_ULPDet.cc",
         "halimpl/mifare/NxpMfcReader.cc",
         "halimpl/recovery/phNxpNciHal_Recovery.cc",
         "halimpl/dynamic_protection/phNfcDynamicProtection.cc",
+        "halimpl/hal/phNxpNciHal_PowerTrackerIface.cc",
     ],
 
     local_include_dirs: [
@@ -125,7 +128,9 @@ cc_library_shared {
         "libhidlbase",
         "liblog",
         "libutils",
+        "libbinder_ndk",
     ],
+}
 
     header_libs: [
         "libese_client_headers",
@@ -138,4 +143,25 @@ cc_library_shared {
         cfi: true,
         integer_overflow: true,
     },
+}
+
+cc_library_headers {
+    name: "nfc_nci_nxp_snxxx_headers",
+    vendor: true,
+    export_include_dirs: [
+        "halimpl/common",
+        "halimpl/dnld",
+        "halimpl/hal",
+        "halimpl/inc",
+        "halimpl/log",
+        "halimpl/self-test",
+        "halimpl/tml/transport",
+        "halimpl/tml",
+        "halimpl/utils",
+        "halimpl/eseclients_extns/inc",
+        "halimpl/src/include",
+        "halimpl/mifare",
+        "extns/impl/nxpnfc/2.0",
+        "halimpl/recovery",
+    ],
 }
