@@ -130,13 +130,13 @@ cc_library_shared {
         "libutils",
         "libbinder_ndk",
     ],
-}
 
     header_libs: [
         "libese_client_headers",
         "qti_nfc_kernel_headers",
         "peripheralstate_headers",
         "mink_headers",
+        "power_tracker_headers",
     ],
 
     sanitize: {
