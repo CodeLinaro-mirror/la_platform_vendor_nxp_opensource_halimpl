@@ -139,6 +139,7 @@ typedef enum
   TARGET_SM_KAILUA                     = 519, /**< SM_KAILUA target */
   TARGET_SMP_KAILUA                    = 536, /**< SMP_KAILUA target */
   TARGET_MONACO                        = 486, /**< MONACO target */
+  TARGET_MONACO_APQ                    = 517, /**< MONACO APQ target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -386,6 +387,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             }
             break;
         case TARGET_MONACO:
+        case TARGET_MONACO_APQ:
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -415,6 +417,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             }
             break;
         case TARGET_MONACO:
+        case TARGET_MONACO_APQ:
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
