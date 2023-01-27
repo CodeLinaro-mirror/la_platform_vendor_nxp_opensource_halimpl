@@ -284,8 +284,6 @@ extern char Fw_Lib_Path[256];
  *  @brief Defines whether debugging is enabled or disabled.
  */
 
-#define DEBUG 0
-
 /* default configuration */
 #define default_storage_location "/data/vendor/nfc"
 #define NAME_NXP_AUTH_TIMEOUT_CFG "NXP_AUTH_TIMEOUT_CFG"

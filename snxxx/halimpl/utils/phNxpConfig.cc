@@ -87,6 +87,8 @@ const int transport_config_path_size =
 #define extra_config_ext ".conf"
 #define IsStringValue 0x80000000
 
+#define DEBUG 0
+
 typedef enum {
   CONF_FILE_NXP = 0x00,
   CONF_FILE_NXP_RF,
