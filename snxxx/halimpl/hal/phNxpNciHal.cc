@@ -39,6 +39,8 @@
 #include "NfccTransportFactory.h"
 #include "NxpNfcThreadMutex.h"
 #include "phNxpNciHal_IoctlOperations.h"
+#include "phNxpNciHal_PowerTrackerIface.h"
+#include "phNxpNciHal_ULPDet.h"
 #include "phNxpNciHal_extOperations.h"
 
 #include "phNfcDynamicProtection.h"
@@ -116,6 +118,7 @@ uint32_t timeoutTimerId = 0;
 uint8_t fw_dwnld_flag = false;
 #endif
 bool nfc_debug_enabled = true;
+PowerTrackerHandle gPowerTrackerHandle;
 
 /*  Used to send Callback Transceive data during Mifare Write.
  *  If this flag is enabled, no need to send response to Upper layer */
@@ -177,6 +180,41 @@ static NFCSTATUS phNxpNciHal_getChipInfoInFwDnldMode(
 static uint8_t phNxpNciHal_getSessionInfoInFwDnldMode();
 static NFCSTATUS phNxpNciHal_dlResetInFwDnldMode();
 static NFCSTATUS phNxpNciHal_enableTmlRead();
+
+/******************************************************************************
+ * Function         onLoadLibrary
+ *
+ * Description      This function as marked with attribute constructor causes
+ *                  the function to be called automatically before execution
+ *                  enters main (). It is useful for initializing execution
+ *                  context  that will be used implicitly during the execution
+ *                  of the program like loading another dynamic library.
+ * PARAM            None
+ * Returns          void
+ *
+ ******************************************************************************/
+static __attribute__((constructor)) void onLoadLibrary(void) {
+  NXPLOG_NCIHAL_D("Initializing power tracker");
+  phNxpNciHal_PowerTrackerInit(&gPowerTrackerHandle);
+}
+
+/******************************************************************************
+ * Function         onUnloadLibrary
+ *
+ * Description      This function as marked with attribute desstructor causes
+ *                  the function to be called automatically after execution
+ *                  main () has completed. It is useful for deinitializing execution
+ *                  context  that were be used implicitly during the execution
+ *                  of the program like unloading another dynamic library.
+ * PARAM            None
+ * Returns          void
+ *
+ ******************************************************************************/
+static __attribute__((destructor)) void onUnloadLibrary(void) {
+  NXPLOG_NCIHAL_D("Deinitializing power tracker");
+  phNxpNciHal_PowerTrackerDeinit(&gPowerTrackerHandle);
+}
+
 /******************************************************************************
  * Function         phNxpNciHal_initialize_debug_enabled_flag
  *
@@ -931,7 +969,8 @@ int phNxpNciHal_open(nfc_stack_callback_t* p_cback,
 #endif
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_OPEN) {
     NXPLOG_NCIHAL_D("phNxpNciHal_open already open");
-    return NFCSTATUS_SUCCESS;
+    phNxpNciHal_open_complete(wConfigStatus);
+    return wConfigStatus;
   } else if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
     memset(&nxpncihal_ctrl, 0x00, sizeof(nxpncihal_ctrl));
     nxpncihal_ctrl.p_nfc_stack_cback = p_cback;
@@ -1090,6 +1129,8 @@ int phNxpNciHal_write_internal(uint16_t data_len, const uint8_t* p_data) {
     android_errorWriteLog(0x534e4554, "121267042");
     goto clean_and_return;
   }
+
+  CONCURRENCY_LOCK();
   /* Create local copy of cmd_data */
   memcpy(nxpncihal_ctrl.p_cmd_data, p_data, data_len);
   nxpncihal_ctrl.cmd_len = data_len;
@@ -1117,10 +1158,8 @@ int phNxpNciHal_write_internal(uint16_t data_len, const uint8_t* p_data) {
     goto clean_and_return;
   }
 
-  CONCURRENCY_LOCK();
   data_len = phNxpNciHal_write_unlocked(nxpncihal_ctrl.cmd_len,
                                         nxpncihal_ctrl.p_cmd_data, ORIG_LIBNFC);
-  CONCURRENCY_UNLOCK();
 
   if (IS_CHIP_TYPE_L(sn100u) && IS_CHIP_TYPE_NE(pn557) && icode_send_eof == 1) {
     usleep(10000);
@@ -1133,6 +1172,7 @@ int phNxpNciHal_write_internal(uint16_t data_len, const uint8_t* p_data) {
 
 clean_and_return:
   /* No data written */
+  CONCURRENCY_UNLOCK();
   return data_len;
 }
 
@@ -1640,6 +1680,9 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
 
   phNxpNciHal_propConfULPDetMode(false);
 
+  if (gPowerTrackerHandle.start != NULL) {
+    gPowerTrackerHandle.start(gPowerTrackerHandle.pollDuration);
+  }
   config_access = false;
   status = phNxpNciHal_read_fw_dw_status(fw_dwnld_flag);
   if (status != NFCSTATUS_SUCCESS) {
@@ -2189,7 +2232,9 @@ static void phNxpNciHal_core_initialized_complete(NFCSTATUS status) {
  ******************************************************************************/
 int phNxpNciHal_pre_discover(void) {
   /* Nothing to do here for initial version */
-  return NFCSTATUS_SUCCESS;
+  // This is set to return Failed as no vendor specific pre-discovery action is
+  // needed in case of HalPrediscover
+  return NFCSTATUS_FAILED;
 }
 
 /******************************************************************************
@@ -2241,6 +2286,9 @@ int phNxpNciHal_close(bool bShutdown) {
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
     NXPLOG_NCIHAL_D("phNxpNciHal_close is already closed, ignoring close");
     return NFCSTATUS_FAILED;
+  }
+  if (gPowerTrackerHandle.stop != NULL) {
+    gPowerTrackerHandle.stop();
   }
 #if (NXP_EXTNS == TRUE)
   if (IS_CHIP_TYPE_L(sn100u)) {
@@ -4205,6 +4253,32 @@ void phNxpNciHal_deinitializeRegRfFwDnld() {
     dlclose(RfFwRegionDnld_handle);
     RfFwRegionDnld_handle = NULL;
   }
+}
+
+/******************************************************************************
+ * Function         phNxpNciHal_setVerboseLogging
+ *
+ * Description      This function enables the nfc_debug_enabled
+ *
+ * Returns          void
+ *
+ *****************************************************************************/
+
+void phNxpNciHal_setVerboseLogging(bool enable) {
+    nfc_debug_enabled = enable;
+}
+
+/******************************************************************************
+ * Function         phNxpNciHal_getVerboseLogging
+ *
+ * Description      This function returns the value of nfc_debug_enabled
+ *
+ * Returns          void
+ *
+ *****************************************************************************/
+
+bool phNxpNciHal_getVerboseLogging() {
+    return nfc_debug_enabled;
 }
 
 #endif

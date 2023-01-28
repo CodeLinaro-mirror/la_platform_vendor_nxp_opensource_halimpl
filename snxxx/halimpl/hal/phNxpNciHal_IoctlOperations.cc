@@ -26,6 +26,7 @@
 #include "phDnldNfc_Internal.h"
 #include "phNfcCommon.h"
 #include "phNxpNciHal_Adaptation.h"
+#include "phNxpNciHal_ULPDet.h"
 #include "phNxpNciHal_ext.h"
 #include "phNxpNciHal_extOperations.h"
 #include "phNxpNciHal_utils.h"
@@ -638,6 +639,23 @@ NFCSTATUS phNxpNciHal_resetEse(uint64_t resetType) {
   return status;
 }
 
+/*******************************************************************************
+ **
+ ** Function:        phNxpNciHal_GetNfcGpiosStatus()
+ **
+ ** Description:     Sets the gpios status flag byte
+ **
+ ** Parameters       gpiostatus: flag byte
+ **
+ ** Returns:        returns 0 on success, < 0 on failure
+ **
+ ********************************************************************************/
+NFCSTATUS phNxpNciHal_GetNfcGpiosStatus(uint32_t* gpiosstatus) {
+  NFCSTATUS status = NFCSTATUS_FAILED;
+  status = gpTransportObj->NfcGetGpioStatus(gpphTmlNfc_Context->pDevHandle,
+                                            gpiosstatus);
+  return status;
+}
 /******************************************************************************
  * Function         phNxpNciHal_setNxpTransitConfig
  *
@@ -647,11 +665,10 @@ NFCSTATUS phNxpNciHal_resetEse(uint64_t resetType) {
  * Returns          bool.
  *
  ******************************************************************************/
-bool phNxpNciHal_setNxpTransitConfig(char *transitConfValue) {
+bool phNxpNciHal_setNxpTransitConfig(char *transitConfValue, uint64_t transitConfValueLen) {
   bool status = true;
   NXPLOG_NCIHAL_D("%s : Enter", __func__);
   std::string transitConfFileName = "/data/vendor/nfc/libnfc-nxpTransit.conf";
-  long transitConfValueLen = strlen(transitConfValue) + 1;
 
   if (transitConfValueLen > 1) {
     if (!WriteStringToFile(transitConfValue, transitConfFileName)) {

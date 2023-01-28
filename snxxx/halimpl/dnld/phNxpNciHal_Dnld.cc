@@ -27,11 +27,6 @@
 #define PHLIBNFC_IOCTL_DNLD_MAX_ATTEMPTS 3
 #define PHLIBNFC_IOCTL_DNLD_GETVERLEN (0x0BU)
 #define PHLIBNFC_IOCTL_DNLD_GETVERLEN_MRA2_1 (0x09U)
-#define PHLIBNFC_DNLD_MEM_READ (0xECU)
-#define PHLIBNFC_DNLD_MEM_WRITE (0xEDU)
-#define PHLIBNFC_DNLD_READ_LOG (0xEEU)
-#define NFC_MEM_READ (0xD0U)
-#define NFC_MEM_WRITE (0xD1U)
 #define NFC_FW_DOWNLOAD (0x09F7U)
 #define PHLIBNFC_IOCTL_DNLD_SN100U_GETVERLEN (0x07U)
 #define PHLIBNFC_IOCTL_DNLD_SN220U_GETVERLEN (0x0FU)
@@ -577,10 +572,12 @@ static void phNxpNciHal_fw_dnld_get_version_cb(void* pContext, NFCSTATUS status,
         if ((IS_CHIP_TYPE_EQ(pn553) &&
              (PHDNLDNFC_HWVER_PN553_MRA1_0_UPDATED & pRespBuff->pBuff[0]))) {
           (gphNxpNciHal_fw_IoctlCtx.bChipVer) = pRespBuff->pBuff[0];
-        } else if ((PHDNLDNFC_HWVER_VENUS_MRA1_0 & pRespBuff->pBuff[0])) {
+        } else if (IS_CHIP_TYPE_EQ(sn100u) &&
+          (PHDNLDNFC_HWVER_VENUS_MRA1_0 & pRespBuff->pBuff[0])) {
           (gphNxpNciHal_fw_IoctlCtx.bChipVer) = pRespBuff->pBuff[0];
           bExpectedLen = PHLIBNFC_IOCTL_DNLD_SN100U_GETVERLEN;
-        } else if (PHDNLDNFC_HWVER_VULCAN_MRA1_0 & pRespBuff->pBuff[0]) {
+        } else if ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) &&
+          (PHDNLDNFC_HWVER_VULCAN_MRA1_0 & pRespBuff->pBuff[0])) {
           (gphNxpNciHal_fw_IoctlCtx.bChipVer) = pRespBuff->pBuff[0];
           bExpectedLen = PHLIBNFC_IOCTL_DNLD_SN220U_GETVERLEN;
         }
@@ -840,7 +837,8 @@ static NFCSTATUS phNxpNciHal_fw_dnld_get_sessn_state(void* pContext,
   }
 
   if (phNxpNciHal_init_cb_data(&cb_data, NULL) != NFCSTATUS_SUCCESS) {
-    NXPLOG_FWDNLD_E("phNxpNciHal_fw_dnld_get_version cb_data creation failed");
+    NXPLOG_FWDNLD_E(
+        "phNxpNciHal_fw_dnld_get_sessn_state cb_data creation failed");
     return NFCSTATUS_FAILED;
   }
 
@@ -850,20 +848,20 @@ static NFCSTATUS phNxpNciHal_fw_dnld_get_sessn_state(void* pContext,
   wStatus = phDnldNfc_GetSessionState(
       &tDnldBuff, &phNxpNciHal_fw_dnld_get_sessn_state_cb, (void*)&cb_data);
   if (wStatus != NFCSTATUS_PENDING) {
-    NXPLOG_FWDNLD_E("phDnldNfc_GetSessionState failed");
+    NXPLOG_FWDNLD_E("phNxpNciHal_fw_dnld_get_sessn_state failed");
     wStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
 
   /* Wait for callback response */
   if (SEM_WAIT(cb_data)) {
-    NXPLOG_FWDNLD_E("phDnldNfc_GetSessionState semaphore error");
+    NXPLOG_FWDNLD_E("phNxpNciHal_fw_dnld_get_sessn_state semaphore error");
     wStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
 
   if (cb_data.status != NFCSTATUS_SUCCESS) {
-    NXPLOG_FWDNLD_E("phDnldNfc_GetSessionState cb failed");
+    NXPLOG_FWDNLD_E("phNxpNciHal_fw_dnld_get_sessn_state cb failed");
     wStatus = NFCSTATUS_FAILED;
     goto clean_and_return;
   }
@@ -1706,28 +1704,12 @@ static NFCSTATUS phNxpNciHal_fw_dnld_complete(void* pContext, NFCSTATUS status,
       if (NFCSTATUS_SUCCESS == status) {
         if (NFC_FW_DOWNLOAD == gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
           NXPLOG_FWDNLD_E("Fw Download success.. ");
-        } else if (PHLIBNFC_DNLD_MEM_READ ==
-                   gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("Read Request success.. ");
-        } else if (PHLIBNFC_DNLD_MEM_WRITE ==
-                   gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("Write Request success.. ");
-        } else if (PHLIBNFC_DNLD_READ_LOG ==
-                   gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("ReadLog Request success.. ");
         } else {
           NXPLOG_FWDNLD_E("Invalid Request!!");
         }
       } else {
         if (NFC_FW_DOWNLOAD == gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
           NXPLOG_FWDNLD_E("Fw Download Failed!!");
-        } else if (NFC_MEM_READ == gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("Read Request Failed!!");
-        } else if (NFC_MEM_WRITE == gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("Write Request Failed!!");
-        } else if (PHLIBNFC_DNLD_READ_LOG ==
-                   gphNxpNciHal_fw_IoctlCtx.IoctlCode) {
-          NXPLOG_FWDNLD_E("ReadLog Request Failed!!");
         } else {
           NXPLOG_FWDNLD_E("Invalid Request!!");
         }
