@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2022 NXP
+ * Copyright 2012-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,12 +23,11 @@
 #include <phNxpNciHal_NfcDepSWPrio.h>
 #include <phNxpNciHal_ext.h>
 #include <phTmlNfc.h>
-#if (NXP_EXTNS == TRUE)
+#include <vector>
 #include "phNxpNciHal.h"
 #include "phNxpNciHal_IoctlOperations.h"
 #include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_nciParser.h"
-#endif
 
 #define NXP_EN_SN110U 1
 #define NXP_EN_SN100U 1
@@ -36,7 +35,7 @@
 #define NXP_EN_PN557 1
 #define NXP_EN_PN560 1
 #define NFC_NXP_MW_ANDROID_VER (14U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x02) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x04) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
@@ -157,7 +156,6 @@ NFCSTATUS phNxpNciHal_ext_send_sram_config_to_flash() {
 NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
   NFCSTATUS status = NFCSTATUS_SUCCESS;
 
-#if (NXP_EXTNS == TRUE)
   /*parse and decode LxDebug Notifications*/
   if (p_ntf[0] == 0x6F && (p_ntf[1] == 0x35 || p_ntf[1] == 0x36)) {
     if (gParserCreated) phNxpNciHal_parsePacket(p_ntf, *p_len);
@@ -174,7 +172,6 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
              p_ntf[3] == 0xE2) {
     nxpprofile_ctrl.profile_type = NFC_FORUM_PROFILE;
   }
-#endif
 #endif
 
   if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05 && *p_len < 14) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2022 NXP
+ * Copyright 2010-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  *
  */
@@ -31,7 +31,7 @@
 #ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClientIntf.h"
 #endif
-#include <vendor/nxp/hardware/nfc/2.0/types.h>
+
 #include "eSEClientExtns.h"
 #include "phNxpNciHal_IoctlOperations.h"
 
@@ -91,12 +91,10 @@ typedef void(phNxpNciHal_control_granted_callback_t)();
 //#define NCI_MSG_CORE_INIT            0x01
 #define NCI_MT_MASK 0xE0
 #define NCI_OID_MASK 0x3F
-#if (NXP_EXTNS == TRUE)
 /* GID: Group Identifier (byte 0) */
 #define NCI_GID_MASK 0x0F
 #define ORIG_NXPHAL 0x01
 #define ORIG_LIBNFC 0x02
-#endif
 #define NXP_PROPCMD_GID 0x2F
 #define NXP_FLUSH_SRAM_AO_TO_FLASH 0x21
 #define NXP_CORE_GET_CONFIG_CMD 0x03

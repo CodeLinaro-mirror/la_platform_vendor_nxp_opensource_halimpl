@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018-2019 The Android Open Source Project
+// Copyright (C) 2018-2019, 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 //
 //  The original Work has been changed by NXP.
-//  Copyright (C) 2021-2022 NXP
+//  Copyright (C) 2021-2023 NXP
 
 package {
     // See: http://go/android-license-faq
@@ -35,7 +35,6 @@ cc_library_shared {
         "-Wall",
         "-Werror",
         "-Wextra",
-        "-DNXP_EXTNS=TRUE",
         "-DNXP_HW_SELF_TEST=TRUE",
         "-DNXP_SRD=TRUE",
         "-DNXP_NFC_RECOVERY=TRUE",
@@ -43,7 +42,6 @@ cc_library_shared {
         "-DNXP_FORCE_FW_DOWNLOAD=1",
         "-DNXP_BOOTTIME_UPDATE",
     ],
-
     srcs: [
         "halimpl/dnld/phDnldNfc.cc",
         "halimpl/dnld/phDnldNfc_Internal.cc",
@@ -92,14 +90,12 @@ cc_library_shared {
         "halimpl/eseclients_extns/inc",
         "halimpl/src/include",
         "halimpl/mifare",
-        "extns/impl/nxpnfc/2.0",
         "halimpl/recovery",
         "halimpl/dynamic_protection",
     ],
 
     include_dirs: [
-        "vendor/nxp/opensource/halimpl/snxxx/extns/impl/nxpnfc/2.0",
-        "vendor/nxp/opensource/halimpl/snxxx/extns/impl/nxpnfc/aidl",
+        "hardware/nxp/secure_element/snxxx/extns/impl",
     ],
 
     export_include_dirs: [
@@ -116,11 +112,6 @@ cc_library_shared {
     ],
 
     shared_libs: [
-        "android.hardware.nfc@1.0",
-        "android.hardware.nfc@1.1",
-        "android.hardware.nfc@1.2",
-        "vendor.nxp.hardware.nfc@2.0",
-        "android.hardware.secure_element@1.0",
         "libbase",
         "libcutils",
         "libdl",
@@ -130,8 +121,8 @@ cc_library_shared {
         "liblog",
         "libutils",
         "libbinder_ndk",
+        "vendor.nxp.nxpese@1.0",
     ],
-
     header_libs: [
         "libese_client_headers",
         "qti_nfc_kernel_headers",
