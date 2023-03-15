@@ -7,6 +7,10 @@ TARGET_USES_NQ_NFC := false
 endif
 endif
 
+ifeq ($(TARGET_BUILD_2W), true)
+TARGET_USES_NQ_NFC := false
+endif
+
 NQ_VENDOR_NFC += vendor.nxp.hardware.nfc@2.0-service
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 
