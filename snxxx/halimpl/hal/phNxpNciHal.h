@@ -51,6 +51,8 @@
 #define SN1XX_FW_MAJOR_VERSION 0x10
 #define SN2XX_ROM_VERSION 0x01
 #define SN2XX_FW_MAJOR_VERSION 0x01
+#define SN3XX_ROM_VERSION 0x02
+#define SN3XX_FW_MAJOR_VERSION 0x20
 #define SN100_CHIPID "0xa4"
 #define SN220_CHIPID "0xc1"
 
@@ -64,6 +66,7 @@ typedef void(phNxpNciHal_control_granted_callback_t)();
 #define FW_MOBILE_ROM_VERSION_PN551 0x10
 #define FW_MOBILE_ROM_VERSION_PN553 0x11
 #define FW_MOBILE_ROM_VERSION_PN557 0x12
+#define NCI_CMDRESP_MAX_BUFF_SIZE_SN300 (0x22AU)
 #define NCI_CMDRESP_MAX_BUFF_SIZE_SNXXX (0x22AU)
 #define NCI_CMDRESP_MAX_BUFF_SIZE_PN557 (0x102U)
 
@@ -215,7 +218,7 @@ typedef struct phNxpNciMwEepromArea {
   uint8_t p_rx_data[32];
 } phNxpNciMwEepromArea_t;
 
-enum { SE_TYPE_ESE, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
+enum { SE_TYPE_ESE, SE_TYPE_EUICC, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
 
 typedef void (*fpVerInfoStoreInEeprom_t)();
 typedef int (*fpVerifyCscEfsTest_t)(char* nfcc_csc, char* rffilepath,

@@ -20,6 +20,7 @@
 #include <phDal4Nfc_messageQueueLib.h>
 #include <phDnldNfc.h>
 #include <phNxpConfig.h>
+#include <phNxpEventLogger.h>
 #include <phNxpLog.h>
 #include <cutils/properties.h>
 #include <phNxpNciHal.h>
@@ -51,10 +52,10 @@ using android::base::WriteStringToFile;
 #define CORE_RES_STATUS_BYTE 3
 #define MAX_NXP_HAL_EXTN_BYTES 10
 #define DEFAULT_MINIMAL_FW_VERSION 0x0110DE
+#define EOS_FW_SESSION_STATE_LOCKED 0x02
 
 bool bEnableMfcExtns = false;
 bool bEnableMfcReader = false;
-bool bDisableLegacyMfcExtns = true;
 
 /* Processing of ISO 15693 EOF */
 extern uint8_t icode_send_eof;
@@ -167,6 +168,8 @@ static NFCSTATUS phNxpNciHal_resetDefaultSettings(uint8_t fw_update_req,
 static NFCSTATUS phNxpNciHal_force_fw_download(uint8_t seq_handler_offset = 0,
                                                bool bIsNfccDlState = false);
 static int phNxpNciHal_MinOpen_Clean(char* nfc_dev_node);
+static void phNxpNciHal_DownloadFw(bool isMinFwVer,
+                                   bool degradedFwDnld = false);
 static void phNxpNciHal_CheckAndHandleFwTearDown(void);
 static NFCSTATUS phNxpNciHal_getChipInfoInFwDnldMode(
     bool bIsVenResetReqd = false);
@@ -555,7 +558,9 @@ NFCSTATUS phNxpNciHal_fw_download(uint8_t seq_handler_offset,
 
     phDnldNfc_SetHwDevHandle();
 
-    if (IS_CHIP_TYPE_GE(sn100u)) {
+    if (IS_CHIP_TYPE_EQ(sn300u)) {
+      phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_SN300);
+    } else if (IS_CHIP_TYPE_GE(sn100u)) {
       phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_SNXXX);
     } else {
       phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_PN557);
@@ -961,6 +966,7 @@ int phNxpNciHal_open(nfc_stack_callback_t* p_cback,
     phNxpNciHal_open_complete(wConfigStatus);
     return wConfigStatus;
   } else if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
+    PhNxpEventLogger::GetInstance().Initialize();
     memset(&nxpncihal_ctrl, 0x00, sizeof(nxpncihal_ctrl));
     nxpncihal_ctrl.p_nfc_stack_cback = p_cback;
     nxpncihal_ctrl.p_nfc_stack_data_cback = p_data_cback;
@@ -1022,6 +1028,9 @@ int phNxpNciHal_fw_mw_ver_check() {
   } else if ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) &&
              (rom_version == SN2XX_ROM_VERSION) &&
              (fw_maj_ver == SN2XX_FW_MAJOR_VERSION)) {
+    status = NFCSTATUS_SUCCESS;
+  } else if (IS_CHIP_TYPE_EQ(sn300u) && (rom_version == SN3XX_ROM_VERSION) &&
+             (fw_maj_ver == SN3XX_FW_MAJOR_VERSION)) {
     status = NFCSTATUS_SUCCESS;
   }
   if (NFCSTATUS_SUCCESS != status) {
@@ -1089,7 +1098,7 @@ static void phNxpNciHal_open_complete(NFCSTATUS status) {
  *
  ******************************************************************************/
 int phNxpNciHal_write(uint16_t data_len, const uint8_t* p_data) {
-  if (bDisableLegacyMfcExtns && bEnableMfcExtns && p_data[0] == 0x00) {
+  if (bEnableMfcExtns && p_data[0] == 0x00) {
     return NxpMfcReaderInstance.Write(data_len, p_data);
   }
   return phNxpNciHal_write_internal(data_len, p_data);
@@ -1379,7 +1388,7 @@ static void phNxpNciHal_read_complete(void* pContext,
       /* Unlock semaphore waiting for only  ntf*/
       nxpncihal_ctrl.nci_info.wait_for_ntf = FALSE;
       SEM_POST(&(nxpncihal_ctrl.ext_cb_data));
-    } else if (bDisableLegacyMfcExtns && !sendRspToUpperLayer &&
+    } else if (!sendRspToUpperLayer &&
                (nxpncihal_ctrl.p_rx_data[0x00] == 0x00)) {
       sendRspToUpperLayer = true;
       NFCSTATUS mfcRspStatus = NxpMfcReaderInstance.CheckMfcResponse(
@@ -2407,7 +2416,7 @@ close_and_return:
     if (0 != pthread_join(nxpncihal_ctrl.client_thread, (void**)NULL)) {
       NXPLOG_TML_E("Fail to kill client thread!");
     }
-
+    PhNxpEventLogger::GetInstance().Finalize();
     phTmlNfc_CleanUp();
 
     phDal4Nfc_msgrelease(nxpncihal_ctrl.gDrvCfg.nClientId);
@@ -3170,19 +3179,61 @@ retry_send_ext:
 }
 
 /******************************************************************************
+ * Function         phNxpNciHal_DownloadFw
+ *
+ * Description      It is used to trigger the FW download as part of FW tearing
+ *                  scenario handling. It downloads either degraded or Normal
+ *                  FW, based on the session state of the NFCC.
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+static void phNxpNciHal_DownloadFw(bool isMinFwVer, bool degradedFwDnld) {
+  NFCSTATUS status = NFCSTATUS_FAILED;
+  phTmlNfc_IoCtl(phTmlNfc_e_EnableDownloadMode);
+  if (isMinFwVer) {
+    /* since minimal fw required dlreset to boot in Download mode */
+    status = phNxpNciHal_dlResetInFwDnldMode();
+    if (status != NFCSTATUS_SUCCESS) {
+      NXPLOG_NCIHAL_E("DL Reset failed for minimal fw");
+    }
+  }
+  phTmlNfc_EnableFwDnldMode(true);
+
+  /* Set the obtained device handle to download module */
+  phDnldNfc_SetHwDevHandle();
+  NXPLOG_NCIHAL_D("Calling Seq handler for FW Download \n");
+  status = phNxpNciHal_fw_download_seq(nxpprofile_ctrl.bClkSrcVal,
+                                       nxpprofile_ctrl.bClkFreqVal, 0, false,
+                                       degradedFwDnld);
+  if (status != NFCSTATUS_SUCCESS) {
+    NXPLOG_NCIHAL_E("FW Download Sequence Handler Failed.");
+  } else {
+    property_set("nfc.fw.force_download", "0");
+    fw_download_success = 1;
+  }
+
+  status = phNxpNciHal_dlResetInFwDnldMode();
+  if (status != NFCSTATUS_SUCCESS) {
+    NXPLOG_NCIHAL_E("DL Reset failed in FW DN mode");
+  }
+}
+
+/******************************************************************************
  * Function         phNxpNciHal_CheckAndHandleFwTearDown
  *
  * Description      Check Whether chip is in FW download mode, If chip is in
  *                  Download mode and previous session is not complete, then
  *                  Do force FW update.
  *
- * Returns          Status
+ * Returns          void
  *
  ******************************************************************************/
 void phNxpNciHal_CheckAndHandleFwTearDown() {
   NFCSTATUS status = NFCSTATUS_FAILED;
   uint8_t session_state = -1;
   unsigned long minimal_fw_version = DEFAULT_MINIMAL_FW_VERSION;
+  bool isMinFwVer = false;
   status = phNxpNciHal_getChipInfoInFwDnldMode();
   if (status != NFCSTATUS_SUCCESS) {
     NXPLOG_NCIHAL_E("Get Chip Info Failed");
@@ -3200,34 +3251,13 @@ void phNxpNciHal_CheckAndHandleFwTearDown() {
       NXPLOG_NCIHAL_E("NFC not in the teared state, boot NFCC in NCI mode");
       return;
     }
-  }
-  phTmlNfc_IoCtl(phTmlNfc_e_EnableDownloadMode);
-  if (wFwVerRsp == minimal_fw_version) {
-    /* since minimal fw required dlreset
-     * to boot in Download mode */
-    status = phNxpNciHal_dlResetInFwDnldMode();
-    if (status != NFCSTATUS_SUCCESS) {
-      NXPLOG_NCIHAL_E("DL Reset failed for minimal fw");
-    }
-  }
-  phTmlNfc_EnableFwDnldMode(true);
-
-  /* Set the obtained device handle to download module */
-  phDnldNfc_SetHwDevHandle();
-  NXPLOG_NCIHAL_D("Calling Seq handler for FW Download \n");
-  status = phNxpNciHal_fw_download_seq(nxpprofile_ctrl.bClkSrcVal,
-                                       nxpprofile_ctrl.bClkFreqVal);
-  if (status != NFCSTATUS_SUCCESS) {
-    NXPLOG_NCIHAL_E("FW Download Sequence Handler Failed.");
   } else {
-    property_set("nfc.fw.force_download", "0");
-    fw_download_success = 1;
+    isMinFwVer = true;
   }
-
-  status = phNxpNciHal_dlResetInFwDnldMode();
-  if (status != NFCSTATUS_SUCCESS) {
-    NXPLOG_NCIHAL_E("DL Reset failed in FW DN mode");
+  if (session_state == EOS_FW_SESSION_STATE_LOCKED) {
+    phNxpNciHal_DownloadFw(isMinFwVer, true);
   }
+  phNxpNciHal_DownloadFw(isMinFwVer);
 }
 
 /******************************************************************************
@@ -3262,14 +3292,16 @@ NFCSTATUS phNxpNciHal_getChipInfoInFwDnldMode(bool bIsVenResetReqd) {
       if (nxpncihal_ctrl.p_rx_data[0] == 0x00) {
         if (nxpncihal_ctrl.p_rx_data[2] != 0x00) {
           status = NFCSTATUS_FAILED;
+          /* Resend DL_GET_VERSION_CMD to recover from error
+           * such as DL_PROTOCOL_ERROR.
+           */
           if (retry_cnt < MAX_RETRY_COUNT) {
             retry_cnt++;
-            /*reset NFCC state to avoid any failures
-             *such as DL_PROTOCOL_ERROR
+            /* No default read pending in FW dowbload mode.
+             * Thus, keep read pending before every cmd retry
              */
-            status = phNxpNciHal_dlResetInFwDnldMode();
-            if (status != NFCSTATUS_SUCCESS) {
-              NXPLOG_NCIHAL_E("DL Reset failed in FW DN mode");
+            if (phNxpNciHal_enableTmlRead() != NFCSTATUS_PENDING) {
+              NXPLOG_NCIHAL_E("%s read error", __func__);
             }
           }
         }
@@ -3313,9 +3345,7 @@ uint8_t phNxpNciHal_getSessionInfoInFwDnldMode() {
     /* Check FW getResponse command response status byte */
     if (nxpncihal_ctrl.p_rx_data[2] == 0x00 &&
         nxpncihal_ctrl.p_rx_data[0] == 0x00) {
-      if (nxpncihal_ctrl.p_rx_data[3] == 0x00) {
-        session_status = 0;
-      }
+      session_status = nxpncihal_ctrl.p_rx_data[3];
     } else {
       NXPLOG_NCIHAL_D("get session info Failed !!!");
       usleep(150 * 1000);
@@ -3342,7 +3372,9 @@ NFCSTATUS phNxpNciHal_dlResetInFwDnldMode() {
   NXPLOG_NCIHAL_D("Sending DL Reset for NFCC soft reboot");
   phDnldNfc_SetHwDevHandle();
 
-  if (IS_CHIP_TYPE_GE(sn100u)) {
+  if (IS_CHIP_TYPE_EQ(sn300u)) {
+      phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_SN300);
+  } else if (IS_CHIP_TYPE_GE(sn100u)) {
     phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_SNXXX);
   } else {
     phDnldNfc_SetI2CFragmentLength(NCI_CMDRESP_MAX_BUFF_SIZE_PN557);
@@ -3782,16 +3814,10 @@ static void phNxpNciHal_print_res_status(uint8_t* p_rx_data, uint16_t* p_len) {
 static void phNxpNciHal_initialize_mifare_flag() {
   unsigned long num = 0;
   bEnableMfcReader = false;
-  bDisableLegacyMfcExtns = true;
   // 1: Enable Mifare Classic protocol in RF Discovery.
   // 0: Remove Mifare Classic protocol in RF Discovery.
   if (GetNxpNumValue(NAME_MIFARE_READER_ENABLE, &num, sizeof(num))) {
     bEnableMfcReader = (num == 0) ? false : true;
-  }
-  // 1: Use legacy JNI MFC extns.
-  // 0: Disable legacy JNI MFC extns, use hal MFC Extns instead.
-  if (GetNxpNumValue(NAME_LEGACY_MIFARE_READER, &num, sizeof(num))) {
-    bDisableLegacyMfcExtns = (num == 0) ? true : false;
   }
 }
 
@@ -3857,7 +3883,7 @@ NFCSTATUS phNxpNciHal_send_get_cfgs() {
 void phNxpNciHal_configFeatureList(uint8_t* init_rsp, uint16_t rsp_len) {
   nxpncihal_ctrl.chipType = pConfigFL->processChipType(init_rsp, rsp_len);
   tNFC_chipType chipType = nxpncihal_ctrl.chipType;
-  NXPLOG_NCIHAL_D("phNxpNciHal_configFeatureList ()chipType = %d", chipType);
+  NXPLOG_NCIHAL_D("%s chipType = %s", __func__, pConfigFL->product[chipType]);
   CONFIGURE_FEATURELIST(chipType);
   /* update fragment len based on the chip type.*/
   phTmlNfc_IoCtl(phTmlNfc_e_setFragmentSize);

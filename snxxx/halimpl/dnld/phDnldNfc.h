@@ -1,5 +1,5 @@
 /*
- *  Copyright 2010-2022 NXP
+ *  Copyright 2010-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,9 @@ typedef void (*pphDnldNfc_RspCb_t)(void* pContext, NFCSTATUS wStatus,
 #define PHDNLDNFC_HWVER_PN557_MRA1_0 (0x01U)
 #define PHDNLDNFC_HWVER_VENUS_MRA1_0 (0xA0U)
 #define PHDNLDNFC_HWVER_VULCAN_MRA1_0 (0xC0U)
+#define PHDNLDNFC_HWVER_EOS_MRA2_0 (0xD0U)
+#define PHDNLDNFC_UPPER_NIBBLE_MASK (0xF0)
+
 /*
  * Enum definition contains Download Life Cycle States
  */
@@ -142,12 +145,14 @@ extern NFCSTATUS phDnldNfc_ReadMem(void* pHwRef, pphDnldNfc_RspCb_t pNotify,
 extern NFCSTATUS phDnldNfc_RawReq(pphDnldNfc_Buff_t pFrameData,
                                   pphDnldNfc_Buff_t pRspData,
                                   pphDnldNfc_RspCb_t pNotify, void* pContext);
-extern NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw = false);
+extern NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw = false,
+                                       bool degradedFwDnld = false);
 extern NFCSTATUS phDnldNfc_LoadRecInfo(void);
 extern NFCSTATUS phDnldNfc_LoadPKInfo(void);
 extern void phDnldNfc_CloseFwLibHandle(void);
 extern NFCSTATUS phDnldNfc_LoadFW(const char* pathName, uint8_t** pImgInfo,
-                                  uint32_t* pImgInfoLen);
+                                  uint32_t* pImgInfoLen,
+                                  bool degradedFwDnld = false);
 extern NFCSTATUS phDnldNfc_LoadRecoveryFW(const char* pathName,
                                           uint8_t** pImgInfo,
                                           uint32_t* pImgInfoLen);

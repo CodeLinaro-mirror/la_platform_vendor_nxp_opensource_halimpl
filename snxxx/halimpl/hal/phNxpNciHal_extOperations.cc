@@ -75,8 +75,8 @@ uint8_t phNxpNciHal_updateAutonomousPwrState(uint8_t num) {
  ******************************************************************************/
 NFCSTATUS phNxpNciHal_setAutonomousMode() {
   if (IS_CHIP_TYPE_L(sn100u)) {
-    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %d", __func__,
-                    nfcFL.chipType);
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
     return NFCSTATUS_SUCCESS;
   }
   phNxpNci_EEPROM_info_t mEEPROM_info = {.request_mode = 0};
@@ -133,6 +133,9 @@ static int8_t get_system_property_se_type(uint8_t se_type) {
     case SE_TYPE_ESE:
       len = property_get("nfc.product.support.ese", valueStr, "");
       break;
+    case SE_TYPE_EUICC:
+      len = property_get("nfc.product.support.euicc", valueStr, "");
+      break;
     case SE_TYPE_UICC:
       len = property_get("nfc.product.support.uicc", valueStr, "");
       break;
@@ -174,6 +177,15 @@ void phNxpNciHal_read_and_update_se_state() {
           num_se++;
         }
         break;
+      case SE_TYPE_EUICC:
+        NXPLOG_NCIHAL_D("Get property : SUPPORT_EUICC %d", val);
+        values[SE_TYPE_EUICC] = val;
+        // Since eSE and eUICC share the same config address
+        // They account for one SE
+        if (val > -1 && values[SE_TYPE_ESE] == -1) {
+          num_se++;
+        }
+        break;
       case SE_TYPE_UICC:
         NXPLOG_NCIHAL_D("Get property : SUPPORT_UICC %d", val);
         values[SE_TYPE_UICC] = val;
@@ -203,12 +215,26 @@ void phNxpNciHal_read_and_update_se_state() {
   for (i = 0; i < NUM_SE_TYPES; i++) {
     switch (i) {
       case SE_TYPE_ESE:
-        if (values[SE_TYPE_ESE] > -1) {
-          *index++ = 0xA0;
-          *index++ = 0xED;
-          *index++ = 0x01;
-          *index++ = values[SE_TYPE_ESE];
+      case SE_TYPE_EUICC:
+        if (values[SE_TYPE_ESE] == -1 && values[SE_TYPE_EUICC] == -1) {
+          // No value defined
+          break;
         }
+        *index++ = 0xA0;
+        *index++ = 0xED;
+        *index++ = 0x01;
+
+        *index = 0x00;
+        if (values[SE_TYPE_ESE] > -1) {
+          *index = *index | values[SE_TYPE_ESE];
+        }
+        if (values[SE_TYPE_EUICC] > -1) {
+          *index = *index | values[SE_TYPE_EUICC] << 1;
+        }
+        NXPLOG_NCIHAL_D("Combined value for eSE/eUICC is 0x%.2x", *index);
+        index++;
+        i++;  // both cases taken care
+
         break;
       case SE_TYPE_UICC:
         if (values[SE_TYPE_UICC] > -1) {
@@ -232,7 +258,7 @@ void phNxpNciHal_read_and_update_se_state() {
   while (status != NFCSTATUS_SUCCESS && retry_cnt < 3) {
     status = phNxpNciHal_send_ext_cmd(sizeof(set_cfg_cmd), set_cfg_cmd);
     retry_cnt++;
-    NXPLOG_NCIHAL_E("Get Cfg Retry cnt=%x", retry_cnt);
+    NXPLOG_NCIHAL_E("set Cfg Retry cnt=%x", retry_cnt);
   }
 }
 
@@ -465,8 +491,8 @@ NFCSTATUS phNxpNciHal_send_get_cfg(const uint8_t* cmd_get_cfg, long cmd_len) {
  *****************************************************************************/
 NFCSTATUS phNxpNciHal_configure_merge_sak() {
   if (IS_CHIP_TYPE_L(sn100u)) {
-    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %d", __func__,
-                    nfcFL.chipType);
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
     return NFCSTATUS_SUCCESS;
   }
   long retlen = 0;
@@ -599,8 +625,8 @@ NFCSTATUS phNxpNciHal_configGPIOControl(uint8_t gpioCtrl[], uint8_t len) {
     return NFCSTATUS_INVALID_PARAMETER;
   }
   if (nfcFL.chipType <= sn100u) {
-    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %d", __func__,
-                    nfcFL.chipType);
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
     return status;
   }
   phNxpNci_EEPROM_info_t mEEPROM_info = {.request_mode = 0};

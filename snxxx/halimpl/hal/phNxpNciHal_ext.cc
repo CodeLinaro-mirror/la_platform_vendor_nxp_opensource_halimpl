@@ -24,6 +24,7 @@
 #include <phNxpNciHal_ext.h>
 #include <phTmlNfc.h>
 #include <vector>
+#include "phNxpEventLogger.h"
 #include "phNxpNciHal.h"
 #include "phNxpNciHal_IoctlOperations.h"
 #include "phNxpNciHal_PowerTrackerIface.h"
@@ -35,7 +36,7 @@
 #define NXP_EN_PN557 1
 #define NXP_EN_PN560 1
 #define NFC_NXP_MW_ANDROID_VER (14U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x04) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x05) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
@@ -64,7 +65,6 @@ static uint8_t ee_disc_done = 0x00;
 uint8_t EnableP2P_PrioLogic = false;
 extern bool bEnableMfcExtns;
 extern bool bEnableMfcReader;
-extern bool bDisableLegacyMfcExtns;
 static uint32_t RfDiscID = 1;
 static uint32_t RfProtocolType = 4;
 /* NFCEE Set mode */
@@ -220,7 +220,7 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
 
   status = NFCSTATUS_SUCCESS;
 
-  if (bDisableLegacyMfcExtns && bEnableMfcExtns && p_ntf[0] == 0) {
+  if (bEnableMfcExtns && p_ntf[0] == 0) {
     if (*p_len < NCI_HEADER_SIZE) {
       android_errorWriteLog(0x534e4554, "169258743");
       return NFCSTATUS_FAILED;
@@ -234,7 +234,7 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
 
   if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05) {
     bEnableMfcExtns = false;
-    if (bDisableLegacyMfcExtns && p_ntf[4] == 0x80 && p_ntf[5] == 0x80) {
+    if (p_ntf[4] == 0x80 && p_ntf[5] == 0x80) {
       bEnableMfcExtns = true;
       NXPLOG_NCIHAL_D("NxpNci: RF Interface = Mifare Enable MifareExtns");
     }
@@ -486,8 +486,16 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
       p_ntf[4] = 0x00;
       *p_len = 5;
     }
+  } else if (*p_len >= 2 && p_ntf[0] == 0x6F && p_ntf[1] == 0x04) {
+    NXPLOG_NCIHAL_D(">  SMB Debug notification received");
+    PhNxpEventLogger::GetInstance().Log(p_ntf, *p_len,
+                                        LogEventType::kLogSMBEvent);
+  } else if (*p_len >= 5 && p_ntf[0] == 0x01 &&
+             p_ntf[3] == ESE_CONNECTIVITY_PACKET && p_ntf[4] == ESE_DPD_EVENT) {
+    NXPLOG_NCIHAL_D(">  DPD monitor event received");
+    PhNxpEventLogger::GetInstance().Log(p_ntf, *p_len,
+                                        LogEventType::kLogDPDEvent);
   }
-
   return status;
 }
 
@@ -870,6 +878,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
   } else if ((*cmd_len >= 6) &&
              (p_cmd_data[3] == 0x81 && p_cmd_data[4] == 0x01 &&
               p_cmd_data[5] == 0x03)) {
+    if (IS_CHIP_TYPE_GE(sn300u)) return NFCSTATUS_SUCCESS;
+
     NXPLOG_NCIHAL_D("> Going through the set host list");
     if (IS_CHIP_TYPE_GE(sn100u)) {
       *cmd_len = 10;
