@@ -1679,7 +1679,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
     }
     NXPLOG_NCIHAL_D("Performing TVDD Settings");
     isfound = GetNxpNumValue(NAME_NXP_EXT_TVDD_CFG, &num, sizeof(num));
-    if (isfound > 0) {
+    if ((isfound > 0) && (!(IS_CHIP_TYPE_GE(sn220u)))) {
       if (num == 1) {
         isfound = GetNxpByteArrayValue(NAME_NXP_EXT_TVDD_CFG_1, (char*)buffer,
                                        bufflen, &retlen);
@@ -1716,6 +1716,9 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
       } else {
         NXPLOG_NCIHAL_E("Wrong Configuration Value %ld", num);
       }
+    }
+    else {
+        NXPLOG_NCIHAL_D("Skipping  TVDD Settings for SN220");
     }
   }
   if ((true == fw_dwnld_flag) || (true == setConfigAlways) ||
