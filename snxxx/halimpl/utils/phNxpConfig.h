@@ -20,7 +20,7 @@
  *
  *  The original Work has been changed by NXP.
  *
- *  Copyright 2013-2022 NXP
+ *  Copyright 2013-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -143,7 +143,6 @@ extern char Fw_Lib_Path[256];
 #define NAME_OFFHOST_ROUTE_UICC "OFFHOST_ROUTE_UICC"
 #define NAME_DEFAULT_ISODEP_ROUTE "DEFAULT_ISODEP_ROUTE"
 #define NAME_ENABLE_VEN_TOGGLE "ENABLE_VEN_TOGGLE"
-#if (NXP_EXTNS == TRUE)
 #define NAME_NXP_SE_COLD_TEMP_ERROR_DELAY "NXP_SE_COLD_TEMP_ERROR_DELAY"
 #define NAME_P2P_LISTEN_TECH_MASK "P2P_LISTEN_TECH_MASK"
 #define NAME_HOST_LISTEN_TECH_MASK "HOST_LISTEN_TECH_MASK"
@@ -201,7 +200,7 @@ extern char Fw_Lib_Path[256];
 #define NAME_NXP_DEFAULT_ULPDET_MODE "NXP_DEFAULT_ULPDET_MODE"
 #define NAME_NXP_SYSTEM_POWER_TRACE_POLL_DURATION \
   "NXP_SYSTEM_POWER_TRACE_POLL_DURATION_SEC"
-#endif
+#define NAME_NXP_SE_SMB_TERMINAL_TYPE "NXP_SE_SMB_TERMINAL_TYPE"
 
 /**
  *  @brief defines the different config files used.
@@ -283,8 +282,6 @@ extern char Fw_Lib_Path[256];
 /**
  *  @brief Defines whether debugging is enabled or disabled.
  */
-
-#define DEBUG 0
 
 /* default configuration */
 #define default_storage_location "/data/vendor/nfc"

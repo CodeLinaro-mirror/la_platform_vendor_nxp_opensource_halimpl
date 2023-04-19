@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2022,2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,11 +16,7 @@
  *
  ******************************************************************************/
 
-#if (NXP_EXTNS == TRUE)
 #include <stdint.h>
-#else
-#include <unistd.h>
-#endif
 #include <string>
 #ifndef NXP_FEATURES_H
 #define NXP_FEATURES_H
@@ -33,9 +29,7 @@
 #define FW_MOBILE_MAJOR_NUMBER_PN557 0x01
 #define FW_MOBILE_MAJOR_NUMBER_SN100U 0x010
 #define FW_MOBILE_MAJOR_NUMBER_SN220U 0x01
-
-/*Including T4T NFCEE by incrementing 1*/
-#define NFA_EE_MAX_EE_SUPPORTED 5
+#define FW_MOBILE_MAJOR_NUMBER_SN300U 0x20
 
 #define JCOP_VER_3_3 3
 #define JCOP_VER_4_0 4
@@ -75,7 +69,8 @@ typedef enum {
   pn81T,
   sn100u,
   sn220u,
-  pn560
+  pn560,
+  sn300u
 } tNFC_chipType;
 
 typedef struct {
@@ -146,6 +141,11 @@ extern tNfc_featureList nfcFL;
       nfcFL.nfcNxpEse = true;                                                  \
       CONFIGURE_FEATURELIST_NFCC_WITH_ESE(chipType)                            \
       break;                                                                   \
+    case sn300u:                                                               \
+      nfcFL.chipType = sn300u;                                                 \
+      nfcFL.nfcNxpEse = true;                                                  \
+      CONFIGURE_FEATURELIST_NFCC_WITH_ESE(chipType)                            \
+      break;                                                                   \
     default:                                                                   \
       nfcFL.nfcNxpEse = false;                                                 \
       CONFIGURE_FEATURELIST_NFCC(chipType)                                     \
@@ -169,6 +169,11 @@ extern tNfc_featureList nfcFL;
       CONFIGURE_FEATURELIST_NFCC(sn220u)                                       \
       nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                          \
       nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED = 4;                               \
+      break;                                                                   \
+    case sn300u:                                                               \
+      CONFIGURE_FEATURELIST_NFCC(sn300u)                                       \
+      nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                          \
+      nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED = 6;                               \
       break;                                                                   \
     default:                                                                   \
       break;                                                                   \
@@ -213,6 +218,15 @@ extern tNfc_featureList nfcFL;
         nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN220U; \
         STRCPY_FW("libpn560_fw")                                       \
         STRCPY_FW_BIN("pn560")                                         \
+        break;                                                         \
+      case sn300u:                                                     \
+        nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_NCI_CMD;       \
+        nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
+        nfcFL.nfccFL._NFCC_MIFARE_TIANJIN = false;                     \
+        nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \
+        nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_SN300U; \
+        STRCPY_FW("libsn300u_fw")                                      \
+        STRCPY_FW_BIN("sn300u")                                        \
         break;                                                         \
       default:                                                         \
         nfcFL.nfccFL._NFCC_FORCE_FW_DOWNLOAD = true;                   \

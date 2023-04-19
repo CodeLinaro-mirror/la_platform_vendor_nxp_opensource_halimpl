@@ -17,20 +17,13 @@
  *
  ******************************************************************************/
 #pragma once
-#include <pthread.h>
+#include <utils/RefBase.h>
+#include <vendor/nxp/nxpese/1.0/INxpEse.h>
+
 #include "NxpNfcThreadMutex.h"
 #include "ese_hal_api.h"
-#ifdef ENABLE_ESE_CLIENT
 #include "hal_nxpese.h"
-#endif
-#include <utils/RefBase.h>
-#include <android/hardware/secure_element/1.0/ISecureElement.h>
-#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
-#include <android/hardware/secure_element/1.0/types.h>
-#ifdef ENABLE_ESE_CLIENT
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
 using vendor::nxp::nxpese::V1_0::INxpEse;
-#endif
 
 class EseAdaptation {
  public:
@@ -40,9 +33,7 @@ class EseAdaptation {
   static EseAdaptation& GetInstance();
   static int HalIoctl(long arg, void* p_data);
   tHAL_ESE_ENTRY* GetHalEntryFuncs();
-#ifdef ENABLE_ESE_CLIENT
   ese_nxp_IoctlInOutData_t* mCurrentIoctlData;
-#endif
   tHAL_ESE_ENTRY mSpiHalEntryFuncs;  // function pointers for HAL entry points
 
  private:
@@ -57,16 +48,10 @@ class EseAdaptation {
   static NfcHalThreadCondVar mHalOpenCompletedEvent;
   static NfcHalThreadCondVar mHalCloseCompletedEvent;
   static NfcHalThreadCondVar mHalIoctlEvent;
-  static android::sp<android::hardware::secure_element::V1_0::ISecureElement>
-      mHal;
-#ifdef ENABLE_ESE_CLIENT
   static android::sp<vendor::nxp::nxpese::V1_0::INxpEse> mHalNxpEse;
-#endif
-#if (NXP_EXTNS == TRUE)
   static NfcHalThreadCondVar mHalCoreResetCompletedEvent;
   static NfcHalThreadCondVar mHalCoreInitCompletedEvent;
   static NfcHalThreadCondVar mHalInitCompletedEvent;
-#endif
   static uint32_t Thread();
   static void HalDeviceContextDataCallback(uint16_t data_len, uint8_t* p_data);
 

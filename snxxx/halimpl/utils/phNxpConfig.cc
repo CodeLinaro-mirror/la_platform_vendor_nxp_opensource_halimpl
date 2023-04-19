@@ -32,7 +32,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2013-2021 NXP
+ *  Copyright 2013-2021, 2023 NXP
  *
  ******************************************************************************/
 
@@ -86,6 +86,8 @@ const int transport_config_path_size =
 #define extra_config_base "libnfc-"
 #define extra_config_ext ".conf"
 #define IsStringValue 0x80000000
+
+#define DEBUG 0
 
 typedef enum {
   CONF_FILE_NXP = 0x00,
@@ -816,10 +818,8 @@ CNfcConfig& CNfcConfig::GetInstance() {
      */
     strlcpy(default_nxp_config_path, strPath.c_str(), MAX_DATA_CONFIG_PATH_LEN);
     theInstance.readConfig(strPath.c_str(), true);
-#if (NXP_EXTNS == TRUE)
     theInstance.readNxpRFConfig(nxp_rf_config_path);
     theInstance.readNxpTransitConfig(transit_config_path);
-#endif
   }
   return theInstance;
 }
