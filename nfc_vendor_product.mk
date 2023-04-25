@@ -3,7 +3,7 @@ ifeq ($(call is-board-platform-in-list, pineapple),true)
 TARGET_USES_NQ_NFC := true
 endif
 
-NQ_VENDOR_NFC := android.hardware.nfc-service.nxp
+NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 
 ifeq ($(strip $(TARGET_USES_NQ_NFC)),true)
