@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ *Changes from Qualcomm Innovation Center are provided under the following license:
+ *Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #include <android-base/file.h>
 #include <dlfcn.h>
 #include <log/log.h>
@@ -42,7 +48,9 @@
 #include "phNxpNciHal_ULPDet.h"
 #include "phNxpNciHal_extOperations.h"
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 #include "phNfcDynamicProtection.h"
+#endif
 
 using android::base::StringPrintf;
 using android::base::WriteStringToFile;
@@ -702,12 +710,14 @@ int phNxpNciHal_MinOpen() {
   NFCSTATUS status = NFCSTATUS_SUCCESS;
   int dnld_retry_cnt = 0;
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
   /*Check if NFC is in secure zone; If yes, return NFC Enable failed*/
   if (secure_zone_support()) {
     if(checkNfcSecureStatus()) {
       return NFCSTATUS_FAILED;
     }
   }
+#endif
   NXPLOG_NCIHAL_D("phNxpNci_MinOpen(): enter");
 
   NfcHalAutoThreadMutex a(sHalFnLock);

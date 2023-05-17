@@ -38,7 +38,7 @@
 
 /******************************************************************************
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
  /**
@@ -66,8 +66,9 @@
 #include <errno.h>
 #include "sparse_crc32.h"
 #include "phNqChipInfo.h"
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 #include "phNfcDynamicProtection.h"
-
+#endif
 #if GENERIC_TARGET
 const char alternative_config_path[] = "/data/vendor/nfc/";
 #else
@@ -320,6 +321,7 @@ int get_soc_info(char *buf, const char *soc_node_path1,
     return ret;
 }
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 bool secure_zone_support(void)
 {
     int rc = 0;
@@ -337,6 +339,7 @@ bool secure_zone_support(void)
     else
 	return false;
 }
+#endif
 
 /**
  * @brief finds the cofiguration id value for the particular target.
@@ -775,7 +778,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
   int gconfigpathid=0;
   static int reg_init = 0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
-
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
   if (secure_zone_support()) {
   /* Register NFC peripheral for with secure Libraries
    * If registration is successful and get peripheral status fails, retry the sequence
@@ -795,7 +798,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
     return theInstance;
   }
  }
-
+#endif
   if (theInstance.size() == 0 && theInstance.mValidFile) {
     string strPath;
     if (alternative_config_path[0] != '\0') {
