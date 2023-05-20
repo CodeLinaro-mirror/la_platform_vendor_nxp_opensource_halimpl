@@ -1,5 +1,5 @@
 sysprop_library {
-    name: "NfcProps",
+    name: "NQNfcProps",
     srcs: ["NfcProperties.sysprop"],
     property_owner: "Vendor",
     device_specific: true,
@@ -35,7 +35,7 @@ sysprop_library {
 //}
 
 cc_library_headers {
-  name: "power_tracker_headers",
+  name: "nqpower_tracker_headers",
   vendor: true,
   export_include_dirs: [
     "include",

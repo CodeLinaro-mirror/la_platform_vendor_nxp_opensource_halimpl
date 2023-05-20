@@ -129,7 +129,7 @@ cc_library_shared {
         "qti_nfc_kernel_headers",
         "peripheralstate_headers",
         "mink_headers",
-        "power_tracker_headers",
+        "nqpower_tracker_headers",
     ],
 
     sanitize: {
@@ -139,7 +139,7 @@ cc_library_shared {
 }
 
 cc_library_headers {
-    name: "nfc_nci_nxp_snxxx_headers",
+    name: "nqnfc_nci_nxp_snxxx_headers",
     vendor: true,
     export_include_dirs: [
         "halimpl/common",
