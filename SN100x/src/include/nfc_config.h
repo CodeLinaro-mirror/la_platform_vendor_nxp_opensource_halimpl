@@ -30,7 +30,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2021, 2023 NXP
  *
  ******************************************************************************/
 #pragma once
@@ -47,6 +47,7 @@
 #define NAME_POLLING_TECH_MASK "POLLING_TECH_MASK"
 #define NAME_P2P_LISTEN_TECH_MASK "P2P_LISTEN_TECH_MASK"
 #define NAME_UICC_LISTEN_TECH_MASK "UICC_LISTEN_TECH_MASK"
+#define NAME_OFFHOST_LISTEN_TECH_MASK "OFFHOST_LISTEN_TECH_MASK"
 #define NAME_HOST_LISTEN_TECH_MASK "HOST_LISTEN_TECH_MASK"
 #define NAME_NFA_DM_CFG "NFA_DM_CFG"
 #define NAME_SCREEN_OFF_POWER_STATE "SCREEN_OFF_POWER_STATE"
@@ -142,6 +143,8 @@
 #define NAME_NXP_AGC_DEBUG_ENABLE   "NXP_AGC_DEBUG_ENABLE"
 #define NAME_NXP_EXTENDED_FIELD_DETECT_MODE "NXP_EXTENDED_FIELD_DETECT_MODE"
 #define NAME_NXP_SPC_CONF_BLK "NXP_SPC_CONF_BLK"
+#define NAME_OFF_HOST_ESIM_PIPE_ID "OFF_HOST_ESIM_PIPE_ID"
+#define NAME_NXP_SE_SMB_TERMINAL_TYPE "NXP_SE_SMB_TERMINAL_TYPE"
 #endif
 
 class NfcConfig {
