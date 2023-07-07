@@ -26,9 +26,30 @@ package {
     default_applicable_licenses: ["vendor_nxp_nfc_license"],
 }
 
+soong_config_module_type_import {
+    from: "vendor/nxp/opensource/halimpl/snxxx/SoongConfig.bp",
+    module_types: ["nfc_cc_defaults"],
+}
+
+nfc_cc_defaults {
+    name: "nfc-defaults-instance",
+    soong_config_variables: {
+        board_secure_peripheral_framework: {
+            pineapple: {
+                cflags: ["-DNFC_SECURE_PERIPHERAL_ENABLED"],
+            },
+            blair: {},
+            conditions_default: {},
+        },
+    },
+}
+
+
 cc_library_shared {
     name: "nfc_nci.nqx.default.hw",
-    defaults: ["hidl_defaults"],
+    defaults: ["hidl_defaults",
+                "nfc-defaults-instance",
+            ],
     vendor: true,
 
     cflags: [

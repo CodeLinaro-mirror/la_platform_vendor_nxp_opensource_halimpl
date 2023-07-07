@@ -1,5 +1,5 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, pineapple),true)
+ifeq ($(call is-board-platform-in-list, pineapple blair),true)
 TARGET_USES_NQ_NFC := true
 endif
 
@@ -18,4 +18,18 @@ PRODUCT_COPY_FILES += \
     vendor/nxp/opensource/halimpl/snxxx/halimpl/conf/SN1xx/sn100/gen-config-files/libnfc-nci.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nci.conf
 
 PRODUCT_PACKAGES += $(NQ_VENDOR_NFC)
+endif
+
+ifeq ($(call is-board-platform-in-list, pineapple),true)
+TARGET_ENABLE_PERIPHERAL_CONTROL := true
+ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
+    $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
+endif
+endif
+
+ifeq ($(call is-board-platform-in-list, blair),true)
+TARGET_ENABLE_PERIPHERAL_CONTROL := false
+ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
+    $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
+endif
 endif

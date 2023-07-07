@@ -38,7 +38,7 @@
 
 /******************************************************************************
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
  /**
@@ -66,8 +66,9 @@
 #include <errno.h>
 #include "sparse_crc32.h"
 #include "phNqChipInfo.h"
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 #include "phNfcDynamicProtection.h"
-
+#endif
 #if GENERIC_TARGET
 const char alternative_config_path[] = "/data/vendor/nfc/";
 #else
@@ -147,6 +148,8 @@ typedef enum
   TARGET_GENERIC                       = 0x00,/**< new targets */
   TARGET_SM_LANAI                      = 557, /**< SM_LANAI target */
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
+  TARGET_STRAIT                        = 507, /**< STRAIT target */
+  TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -318,6 +321,7 @@ int get_soc_info(char *buf, const char *soc_node_path1,
     return ret;
 }
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 bool secure_zone_support(void)
 {
     int rc = 0;
@@ -335,6 +339,7 @@ bool secure_zone_support(void)
     else
 	return false;
 }
+#endif
 
 /**
  * @brief finds the cofiguration id value for the particular target.
@@ -399,6 +404,12 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
+	case TARGET_STRAIT:
+	case TARGET_SMP_STRAIT:
+	     // SN110 or SN100
+	    config_id = GENERIC_19_2_TYPE_SN1xx;
+	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+	    break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
             // SN220 V1 and V3
@@ -417,6 +428,12 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         {
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
+            break;
+	case TARGET_STRAIT:
+        case TARGET_SMP_STRAIT:
+             // SN110 or SN100
+            config_id = GENERIC_19_2_TYPE_SN1xx;
+            strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
@@ -761,7 +778,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
   int gconfigpathid=0;
   static int reg_init = 0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
-
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
   if (secure_zone_support()) {
   /* Register NFC peripheral for with secure Libraries
    * If registration is successful and get peripheral status fails, retry the sequence
@@ -781,7 +798,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
     return theInstance;
   }
  }
-
+#endif
   if (theInstance.size() == 0 && theInstance.mValidFile) {
     string strPath;
     if (alternative_config_path[0] != '\0') {
