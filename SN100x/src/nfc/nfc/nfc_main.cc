@@ -76,8 +76,6 @@
 #include "llcp_int.h"
 
 
-/*secure zone entry event from HAL*/
-#define HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT 0xC1
 
 /* NFC mandates support for at least one logical connection;
  * Update max_conn to the NFCC capability on InitRsp */
@@ -217,8 +215,6 @@ static std::string nfc_hal_event_name(uint8_t event) {
       return "HAL_NFC_ERROR_EVT";
     case HAL_HCI_NETWORK_RESET:
       return "HCI_NETWORK_RESET";
-    case HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT:
-      return "HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT";
 #if (NXP_EXTNS == TRUE)
     case HAL_NFC_FW_UPDATE_STATUS_EVT:
       return "HAL_NFC_FW_UPDATE_STATUS_EVT";
@@ -612,6 +608,10 @@ void nfc_main_handle_hal_evt(tNFC_HAL_EVT_MSG* p_msg) {
             return;
           }
           break;
+        case HAL_NFC_STATUS_FAILED:
+          DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s; TZ HAL event to switch OFF NFC", __func__);
+          nfc_ncif_event_status(NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT, HAL_NFC_STATUS_FAILED); /* must trig NFA_DM_TZ_SECURE_ZONE_DISABLE_NFC_EVT */
+          break;
 #if (NXP_EXTNS == FALSE)
         case HAL_HCI_NETWORK_RESET:
           delete_stack_non_volatile_store(true);
@@ -765,10 +765,6 @@ static void nfc_main_hal_cback(uint8_t event, tHAL_NFC_STATUS status) {
       }
       break;
 #endif
-    case HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT:
-      /*received secure zone entry evt from TZ*/
-      (*nfc_cb.p_resp_cback)(NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT, nullptr);
-      break;
     default:
       DLOG_IF(INFO, nfc_debug_enabled)
           << StringPrintf("nfc_main_hal_cback unhandled event %x", event);
