@@ -182,7 +182,7 @@ int32_t notifyNfcPeripheralEvent(const uint32_t Nfcperi, const uint8_t NfcSecure
         if (nxpncihal_ctrl.halStatus != HAL_STATUS_CLOSE) {
           /*Ideal conditions this should never be called, called only when TZ notifies before disabling the  NFC to avoid NFC crash */
           ALOGD("Received Secure Zone entry notifications from TZ during NFC active state; disable NFC\n");
-          (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT, HAL_NFC_STATUS_OK);
+          (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_NFC_ERROR_EVT, HAL_NFC_STATUS_FAILED);
           /*wait untill NFC is closed*/
           while(nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) break;
         }

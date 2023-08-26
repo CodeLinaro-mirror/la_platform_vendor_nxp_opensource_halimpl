@@ -778,6 +778,7 @@ CNfcConfig& CNfcConfig::GetInstance() {
   int gconfigpathid=0;
   static int reg_init = 0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
+
 #ifdef NFC_SECURE_PERIPHERAL_ENABLED
   if (secure_zone_support()) {
   /* Register NFC peripheral for with secure Libraries
