@@ -150,6 +150,8 @@ typedef enum
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
   TARGET_STRAIT                        = 507, /**< STRAIT target */
   TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
+  TARGET_SM_MANNAR                     = 454, /**< SM_MANNAR target */
+  TARGET_SM_MANNAR_H                   = 472, /**< SM_MANNAR_H target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -406,6 +408,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
 	case TARGET_STRAIT:
 	case TARGET_SMP_STRAIT:
+        case TARGET_SM_MANNAR:
+        case TARGET_SM_MANNAR_H:
 	     // SN110 or SN100
 	    config_id = GENERIC_19_2_TYPE_SN1xx;
 	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -431,6 +435,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
 	case TARGET_STRAIT:
         case TARGET_SMP_STRAIT:
+        case TARGET_SM_MANNAR:
+        case TARGET_SM_MANNAR_H:
              // SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
