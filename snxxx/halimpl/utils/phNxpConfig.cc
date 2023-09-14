@@ -776,10 +776,10 @@ int CNfcConfig::file_exist (const char* filename)
 CNfcConfig& CNfcConfig::GetInstance() {
   static CNfcConfig theInstance;
   int gconfigpathid=0;
-  static int reg_init = 0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
 
 #ifdef NFC_SECURE_PERIPHERAL_ENABLED
+  static int reg_init = 0;
   if (secure_zone_support()) {
   /* Register NFC peripheral for with secure Libraries
    * If registration is successful and get peripheral status fails, retry the sequence
