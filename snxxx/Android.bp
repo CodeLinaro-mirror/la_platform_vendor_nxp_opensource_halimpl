@@ -27,7 +27,7 @@ package {
 }
 
 soong_config_module_type_import {
-    from: "vendor/nxp/opensource/halimpl/snxxx/SoongConfig.bp",
+    from: "vendor/nxp/opensource/monaco/halimpl/snxxx/SoongConfig.bp",
     module_types: ["nfc_cc_defaults"],
 }
 
