@@ -6,6 +6,8 @@ endif
 NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 
+BOARD_NXP_DIR ?= vendor/nxp/opensource
+
 ifeq ($(strip $(TARGET_USES_NQ_NFC)),true)
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/com.nxp.mifare.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/com.nxp.mifare.xml \
@@ -15,7 +17,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.nfc.hcef.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.nfc.hcef.xml \
     frameworks/native/data/etc/android.hardware.nfc.ese.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.nfc.ese.xml \
     frameworks/native/data/etc/android.hardware.nfc.uicc.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.nfc.uicc.xml \
-    vendor/nxp/opensource/halimpl/snxxx/halimpl/conf/SN1xx/sn100/gen-config-files/libnfc-nci.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nci.conf
+    $(BOARD_NXP_DIR)/halimpl/snxxx/halimpl/conf/SN1xx/sn100/gen-config-files/libnfc-nci.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nci.conf
 
 PRODUCT_PACKAGES += $(NQ_VENDOR_NFC)
 endif
