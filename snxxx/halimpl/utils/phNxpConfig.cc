@@ -150,6 +150,8 @@ typedef enum
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
   TARGET_STRAIT                        = 507, /**< STRAIT target */
   TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
+  TARGET_MONACO                        = 486, /**< MONACO target */
+  TARGET_MONACO_APQ                    = 517, /**< MONACO APQ target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -404,8 +406,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-	case TARGET_STRAIT:
-	case TARGET_SMP_STRAIT:
+        case TARGET_STRAIT:
+        case TARGET_SMP_STRAIT:
 	     // SN110 or SN100
 	    config_id = GENERIC_19_2_TYPE_SN1xx;
 	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -415,6 +417,18 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_MONACO:
+        case TARGET_MONACO_APQ:
+            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                //SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                //SN110
+                config_id = GENERIC_19_2_TYPE_SN1xx;
+                strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            }
             break;
         default:
             config_id = QRD_TYPE_DEFAULT;
@@ -429,7 +443,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-	case TARGET_STRAIT:
+        case TARGET_STRAIT:
         case TARGET_SMP_STRAIT:
              // SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
@@ -440,6 +454,18 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_MONACO:
+        case TARGET_MONACO_APQ:
+            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                //SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                //SN110
+                config_id = GENERIC_19_2_TYPE_SN1xx;
+                strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            }
             break;
         default:
             config_id = MTP_TYPE_DEFAULT;
