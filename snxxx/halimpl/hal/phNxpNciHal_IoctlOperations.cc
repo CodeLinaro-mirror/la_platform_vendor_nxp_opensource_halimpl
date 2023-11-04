@@ -15,11 +15,14 @@
  */
 
 #include "phNxpNciHal_IoctlOperations.h"
+
 #include <android-base/file.h>
 #include <android-base/parseint.h>
 #include <android-base/strings.h>
+
 #include <map>
 #include <set>
+
 #include "EseAdaptation.h"
 #include "NfccTransport.h"
 #include "NfccTransportFactory.h"
@@ -77,14 +80,13 @@ extern phNxpNciClock_t phNxpNciClock;
  ** Returns:         actual length of the property value
  **
  ********************************************************************************/
-int property_get_intf(const char *propName, char *valueStr,
-                      const char *defaultStr) {
-  string paramPropName = propName;
+int property_get_intf(const char* propName, char* valueStr,
+                      const char* defaultStr) {
   string propValue;
   string propValueDefault = defaultStr;
   int len = 0;
 
-  propValue = phNxpNciHal_getSystemProperty(paramPropName);
+  propValue = phNxpNciHal_getSystemProperty(propName);
   if (propValue.length() > 0) {
     NXPLOG_NCIHAL_D("property_get_intf , key[%s], propValue[%s], length[%zu]",
                     propName, propValue.c_str(), propValue.length());
@@ -112,25 +114,23 @@ int property_get_intf(const char *propName, char *valueStr,
  ** Returns:        returns 0 on success, < 0 on failure
  **
  ********************************************************************************/
-int property_set_intf(const char *propName, const char *valueStr) {
-  string paramPropName = propName;
-  string propValue = valueStr;
+int property_set_intf(const char* propName, const char* valueStr) {
   NXPLOG_NCIHAL_D("property_set_intf, key[%s], value[%s]", propName, valueStr);
-  if (phNxpNciHal_setSystemProperty(paramPropName, propValue))
+  if (phNxpNciHal_setSystemProperty(propName, valueStr))
     return NFCSTATUS_SUCCESS;
   else
     return NFCSTATUS_FAILED;
 }
 
-extern size_t readConfigFile(const char *fileName, uint8_t **p_data);
+extern size_t readConfigFile(const char* fileName, uint8_t** p_data);
 
 static string phNxpNciHal_parseBytesString(string in);
-static bool phNxpNciHal_parseValueFromString(string &in);
+static bool phNxpNciHal_parseValueFromString(string& in);
 static bool phNxpNciHal_CheckKeyNeeded(string key);
-static string phNxpNciHal_UpdatePwrStateConfigs(string &config);
+static string phNxpNciHal_UpdatePwrStateConfigs(string& config);
 static bool phNxpNciHal_IsAutonmousModeSet(string config);
-static string phNxpNciHal_extractConfig(string &config);
-static void phNxpNciHal_getFilteredConfig(string &config);
+static string phNxpNciHal_extractConfig(string& config);
+static void phNxpNciHal_getFilteredConfig(string& config);
 
 typedef std::map<std::string, std::string> systemProperty;
 systemProperty gsystemProperty = {
@@ -190,6 +190,7 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NFA_CONFIG_FORMAT",
                                 "NXP_T4T_NFCEE_ENABLE",
                                 "NXP_DISCONNECT_TAG_IN_SCRN_OFF",
+                                "NXP_CE_PRIORITY_ENABLED",
                                 "NXP_RDR_REQ_GUARD_TIME",
                                 "OFF_HOST_SIM2_PIPE_ID",
                                 "NXP_ENABLE_DISABLE_LOGS",
@@ -207,8 +208,9 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NXP_NFCC_RECOVERY_SUPPORT",
                                 "NXP_AGC_DEBUG_ENABLE",
                                 "NXP_EXTENDED_FIELD_DETECT_MODE",
-                                "LEGACY_MIFARE_READER",
-                                "NXP_SE_SMB_TERMINAL_TYPE"};
+                                "NXP_SE_SMB_TERMINAL_TYPE",
+                                "OFF_HOST_ESIM_PIPE_ID",
+                                "OFF_HOST_ESIM2_PIPE_ID"};
 
 /****************************************************************
  * Local Functions
@@ -222,11 +224,12 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
  **
  ** Returns          return 0 on success and -1 on fail,
  ******************************************************************************/
-int phNxpNciHal_ioctlIf(long /* arg */, void* /* p_data */) {
+int phNxpNciHal_ioctlIf(long arg, void* p_data) {
   int ret = -1;
 #ifdef ENABLE_ESE_CLIENT
   NXPLOG_NCIHAL_D("%s : enter - arg = %ld", __func__, arg);
-  ese_nxp_IoctlInOutData_t *pInpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
+  ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
+  int ret = -1;
 
   switch (arg) {
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
@@ -349,7 +352,7 @@ bool phNxpNciHal_setSystemProperty(string key, string value) {
     }
     phNxpNciHal_setULPDetFlag(flag);
   }
-  gsystemProperty[key] = value;
+  gsystemProperty[key] = std::move(value);
   return stat;
 }
 
@@ -366,7 +369,7 @@ bool phNxpNciHal_setSystemProperty(string key, string value) {
 *******************************************************************************/
 string phNxpNciHal_getNxpConfigIf() {
   std::string config;
-  uint8_t *p_config = nullptr;
+  uint8_t* p_config = nullptr;
   size_t config_size = readConfigFile(default_nxp_config_path, &p_config);
   if (config_size) {
     config.assign((char*)p_config, config_size);
@@ -387,7 +390,7 @@ string phNxpNciHal_getNxpConfigIf() {
 **
 ** Returns          void
 *******************************************************************************/
-static void phNxpNciHal_getFilteredConfig(string &config) {
+static void phNxpNciHal_getFilteredConfig(string& config) {
   config = phNxpNciHal_extractConfig(config);
   if (phNxpNciHal_IsAutonmousModeSet(config)) {
     config = phNxpNciHal_UpdatePwrStateConfigs(config);
@@ -405,7 +408,7 @@ static void phNxpNciHal_getFilteredConfig(string &config) {
 **
 ** Returns          Resultant string
 *******************************************************************************/
-static string phNxpNciHal_extractConfig(string &config) {
+static string phNxpNciHal_extractConfig(string& config) {
   stringstream ss(config);
   string line;
   string result;
@@ -429,17 +432,18 @@ static string phNxpNciHal_extractConfig(string &config) {
     }
     string value_string(Trim(line.substr(search + 1, string::npos)));
 
-    if(value_string[0] == '{' && value_string[value_string.length() - 1] != '}') {
+    if (value_string[0] == '{' &&
+        value_string[value_string.length() - 1] != '}') {
       string line_append;
 
-      do{
+      do {
         getline(ss, line_append);
         if (line_append.empty()) break;
         if (line_append.at(0) == '#') break;
         if (line_append.at(0) == 0) break;
         line_append = Trim(line_append);
         value_string.append(line_append);
-      }while(line_append[line_append.length() - 1] != '}');
+      } while (line_append[line_append.length() - 1] != '}');
     }
 
     if (!phNxpNciHal_parseValueFromString(value_string)) continue;
@@ -508,7 +512,7 @@ static bool phNxpNciHal_IsAutonmousModeSet(string config) {
 **
 ** Returns          Resultant string
 *******************************************************************************/
-static string phNxpNciHal_UpdatePwrStateConfigs(string &config) {
+static string phNxpNciHal_UpdatePwrStateConfigs(string& config) {
   stringstream ss(config);
   string line;
   string result;
@@ -561,7 +565,7 @@ static bool phNxpNciHal_CheckKeyNeeded(string key) {
 **
 ** Returns          bool(true/false)
 *******************************************************************************/
-static bool phNxpNciHal_parseValueFromString(string &in) {
+static bool phNxpNciHal_parseValueFromString(string& in) {
   unsigned tmp = 0;
   bool stat = false;
   if (in.length() >= 1) {
@@ -670,6 +674,7 @@ bool phNxpNciHal_setNxpTransitConfig(char *transitConfValue, uint64_t transitCon
   bool status = true;
   NXPLOG_NCIHAL_D("%s : Enter", __func__);
   std::string transitConfFileName = "/data/vendor/nfc/libnfc-nxpTransit.conf";
+  transitConfValueLen = strlen(transitConfValue) + 1;
 
   if (transitConfValueLen > 1) {
     if (!WriteStringToFile(transitConfValue, transitConfFileName)) {
@@ -726,8 +731,8 @@ bool phNxpNciHal_Abort() {
  ** Returns:         status
  **
  ********************************************************************************/
-int phNxpNciHal_CheckFwRegFlashRequired(uint8_t *fw_update_req,
-                                        uint8_t *rf_update_req,
+int phNxpNciHal_CheckFwRegFlashRequired(uint8_t* fw_update_req,
+                                        uint8_t* rf_update_req,
                                         uint8_t skipEEPROMRead) {
   NXPLOG_NCIHAL_D("phNxpNciHal_CheckFwRegFlashRequired() : enter");
   int status = NFCSTATUS_OK;

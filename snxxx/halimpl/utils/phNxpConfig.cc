@@ -135,6 +135,9 @@ typedef enum
   GENERIC_38_4_TYPE_SN1xx                = 0x12, /**< 38.4 Mhz clk config : for SN1xx chip */
   GENERIC_19_2_TYPE_SN220                = 0x13, /**< 19.2 MHz clk config : for SN220 chip */
   GENERIC_38_4_TYPE_SN220                = 0x14, /**< 38.4 MHz clk config : for SN220 chip */
+  GENERIC_19_2_TYPE_SN300                = 0x15, /**< 19.2 MHz clk config : for SN300 chip */
+  GENERIC_38_4_TYPE_SN300                = 0x16, /**< 38.4 MHz clk config : for SN300 chip */
+
   DEFAULT_CONFIG                         = QRD_TYPE_DEFAULT, /**< default is qrd default config */
   CONFIG_INVALID                         = 0xFF
 } CONFIGIDVALUE;
@@ -150,8 +153,6 @@ typedef enum
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
   TARGET_STRAIT                        = 507, /**< STRAIT target */
   TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
-  TARGET_SM_MANNAR                     = 454, /**< SM_MANNAR target */
-  TARGET_SM_MANNAR_H                   = 472, /**< SM_MANNAR_H target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -408,17 +409,21 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
 	case TARGET_STRAIT:
 	case TARGET_SMP_STRAIT:
-        case TARGET_SM_MANNAR:
-        case TARGET_SM_MANNAR_H:
 	     // SN110 or SN100
 	    config_id = GENERIC_19_2_TYPE_SN1xx;
 	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
 	    break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
-            // SN220 V1 and V3
-            config_id = GENERIC_38_4_TYPE_SN220;
-            strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300
+                 config_id = GENERIC_38_4_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             } else {
+                 // SN220 V1 and V3
+                 config_id = GENERIC_38_4_TYPE_SN220;
+                 strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             }
             break;
         default:
             config_id = QRD_TYPE_DEFAULT;
@@ -435,17 +440,21 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
 	case TARGET_STRAIT:
         case TARGET_SMP_STRAIT:
-        case TARGET_SM_MANNAR:
-        case TARGET_SM_MANNAR_H:
              // SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
-            // SN220 V1 and V3
-            config_id = GENERIC_38_4_TYPE_SN220;
-            strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300
+                 config_id = GENERIC_38_4_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             } else {
+                 // SN220 V1 and V3
+                 config_id = GENERIC_38_4_TYPE_SN220;
+                 strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             }
             break;
         default:
             config_id = MTP_TYPE_DEFAULT;
@@ -784,7 +793,6 @@ CNfcConfig& CNfcConfig::GetInstance() {
   int gconfigpathid=0;
   static int reg_init = 0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
-
 #ifdef NFC_SECURE_PERIPHERAL_ENABLED
   if (secure_zone_support()) {
   /* Register NFC peripheral for with secure Libraries

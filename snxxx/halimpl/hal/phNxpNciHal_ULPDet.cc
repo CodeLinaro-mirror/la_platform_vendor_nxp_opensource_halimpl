@@ -15,8 +15,10 @@
  */
 
 #include "phNxpNciHal_ULPDet.h"
+
 #include <phNxpLog.h>
 #include <phTmlNfc.h>
+
 #include "phNfcCommon.h"
 #include "phNxpNciHal_IoctlOperations.h"
 #include "phNxpNciHal_PowerTrackerIface.h"
@@ -143,10 +145,8 @@ NFCSTATUS phNxpNciHal_propConfULPDetMode(bool bEnable) {
           NXPLOG_NCIHAL_E("Set Config: Failed");
         }
       }
-      if(nxpncihal_ctrl.isUlpdetModeEnabled) {
-        /* reset the flag upon exit ulpdet mode */
-        phNxpNciHal_setULPDetFlag(false);
-      }
+      /* reset the flag upon exit ulpdet mode */
+      phNxpNciHal_setULPDetFlag(false);
     }
   } while (false);
   NXPLOG_NCIHAL_E("%s: exit. status = %d", __func__, status);

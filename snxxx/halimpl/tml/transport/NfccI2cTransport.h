@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020-2022 NXP
+ *  Copyright 2020-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ class NfccI2cTransport : public NfccTransport {
   ** Returns          None
   **
   *****************************************************************************/
-  void Close(void *pDevHandle);
+  void Close(void* pDevHandle);
 
   /*****************************************************************************
    **
@@ -87,7 +87,7 @@ class NfccI2cTransport : public NfccTransport {
    **                  NFCSTATUS_INVALID_DEVICE - device open operation failure
    **
    ****************************************************************************/
-  NFCSTATUS OpenAndConfigure(pphTmlNfc_Config_t pConfig, void **pLinkHandle);
+  NFCSTATUS OpenAndConfigure(pphTmlNfc_Config_t pConfig, void** pLinkHandle);
 
   /*****************************************************************************
    **
@@ -105,7 +105,7 @@ class NfccI2cTransport : public NfccTransport {
    **                  -1        - read operation failure
    **
    ****************************************************************************/
-  int Read(void *pDevHandle, uint8_t *pBuffer, int nNbBytesToRead);
+  int Read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead);
 
   /*****************************************************************************
   **
@@ -122,7 +122,7 @@ class NfccI2cTransport : public NfccTransport {
   **                  -1         - write operation failure
   **
   *****************************************************************************/
-  int Write(void *pDevHandle, uint8_t *pBuffer, int nNbBytesToWrite);
+  int Write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
 
   /*****************************************************************************
    **
@@ -137,7 +137,7 @@ class NfccI2cTransport : public NfccTransport {
    **                  -1   - reset operation failure
    **
    ****************************************************************************/
-  int NfccReset(void *pDevHandle, NfccResetType eType);
+  int NfccReset(void* pDevHandle, NfccResetType eType);
 
   /*****************************************************************************
    **
@@ -182,22 +182,7 @@ class NfccI2cTransport : public NfccTransport {
    **                  else - reset operation failure
    **
    ****************************************************************************/
-  int EseReset(void *pDevHandle, EseResetType eType);
-
-  /*****************************************************************************
-   **
-   ** Function         EseGetPower
-   **
-   ** Description      Request NFCC to reset the eSE
-   **
-   ** Parameters       pDevHandle     - valid device handle
-   **                  level          - reset level
-   **
-   ** Returns           0   - reset operation success
-   **                  else - reset operation failure
-   **
-   ****************************************************************************/
-  int EseGetPower(void *pDevHandle, uint32_t level);
+  int EseReset(void* pDevHandle, EseResetType eType);
 
   /*****************************************************************************
    **
