@@ -149,10 +149,8 @@ typedef enum
 typedef enum
 {
   TARGET_GENERIC                       = 0x00,/**< new targets */
-  TARGET_SM_LANAI                      = 557, /**< SM_LANAI target */
-  TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
-  TARGET_STRAIT                        = 507, /**< STRAIT target */
-  TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
+  TARGET_SM8750                        = 618, /**< PAKALA target */
+  TARGET_SM8750P                       = 639, /**< SMP_PAKALA target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -337,7 +335,7 @@ bool secure_zone_support(void)
         return DEFAULT_CONFIG;
     }
     msm_id = atoi(soc_info);
-    if ((msm_id == TARGET_SM_LANAI) || (msm_id == TARGET_SMP_LANAI))
+    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P))
 	return true;
     else
 	return false;
@@ -407,23 +405,18 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-	case TARGET_STRAIT:
-	case TARGET_SMP_STRAIT:
-	     // SN110 or SN100
-	    config_id = GENERIC_19_2_TYPE_SN1xx;
-	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
-	    break;
-        case TARGET_SM_LANAI:
-        case TARGET_SMP_LANAI:
-             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+        case TARGET_SM8750:
+        case TARGET_SM8750P:
+            if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
                  strlcpy(config_file, config_name_SN300_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-             } else {
+	    } else {
                  // SN220 V1 and V3
                  config_id = GENERIC_38_4_TYPE_SN220;
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-             }
+            }
+
             break;
         default:
             config_id = QRD_TYPE_DEFAULT;
@@ -438,23 +431,17 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-	case TARGET_STRAIT:
-        case TARGET_SMP_STRAIT:
-             // SN110 or SN100
-            config_id = GENERIC_19_2_TYPE_SN1xx;
-            strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
-            break;
-        case TARGET_SM_LANAI:
-        case TARGET_SMP_LANAI:
-             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+        case TARGET_SM8750:
+        case TARGET_SM8750P:
+            if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
                  strlcpy(config_file, config_name_SN300_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-             } else {
+	    } else {
                  // SN220 V1 and V3
                  config_id = GENERIC_38_4_TYPE_SN220;
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-             }
+            }
             break;
         default:
             config_id = MTP_TYPE_DEFAULT;
