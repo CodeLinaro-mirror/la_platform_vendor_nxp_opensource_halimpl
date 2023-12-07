@@ -150,6 +150,7 @@ typedef enum
   TARGET_SM_CAMANO                     = 608, /**< SM_CAMANO target */
   TARGET_SM6125_QCM                    = 467, /**< QCM6125 target */
   TARGET_SM6125_QCS                    = 468, /**< QCS6125 target */
+  TARGET_SM6125_SM                     = 394, /**< SM6125 target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -432,6 +433,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM6125_QCM:
         case TARGET_SM6125_QCS:
+        case TARGET_SM6125_SM:
             //SN110
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -479,6 +481,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
 	    break;
         case TARGET_SM6125_QCM:
         case TARGET_SM6125_QCS:
+        case TARGET_SM6125_SM:
             //SN110
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
