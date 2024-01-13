@@ -283,9 +283,6 @@ typedef uint8_t tNFC_STATUS;
 #define NFC_TL_SIZE 2
 #define NFC_SAVED_CMD_SIZE 2
 
-/*NFC secure zone event*/
-#define NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT 0xC01
-
 typedef tNCI_DISCOVER_MAPS tNFC_DISCOVER_MAPS;
 typedef tNCI_DISCOVER_PARAMS tNFC_DISCOVER_PARAMS;
 
@@ -332,6 +329,8 @@ enum {
   NFC_RF_INTF_EXT_STOP_REVT,      /* RF Intf Ext stop response     */
   NFC_NFCEE_MODE_SET_INFO         /* NFCEE Mode Set Notification event*/
 #endif
+  ,
+  NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT  /* TZ secure zone event to switch OFF NFC */
 };
 typedef uint16_t tNFC_RESPONSE_EVT;
 

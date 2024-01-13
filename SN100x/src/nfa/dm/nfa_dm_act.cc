@@ -497,7 +497,9 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
 #endif
 
     case NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT:
-      (*nfa_dm_cb.p_dm_cback)(NFA_DM_TZ_SECURE_ZONE_DISABLE_NFC_EVT, nullptr);
+      dm_cback_data.rf_field.status = NFA_STATUS_OK;
+      dm_cback_data.rf_field.rf_field_status = p_data->rf_field.rf_field;
+      (*nfa_dm_cb.p_dm_cback)(NFA_DM_TZ_SECURE_ZONE_DISABLE_NFC_EVT, &dm_cback_data);
       break;
 
     default:
