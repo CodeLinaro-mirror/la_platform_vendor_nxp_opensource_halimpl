@@ -35,7 +35,7 @@ nfc_cc_defaults {
     name: "nfc-defaults-instance",
     soong_config_variables: {
         board_secure_peripheral_framework: {
-            pineapple: {
+            sun: {
                 cflags: ["-DNFC_SECURE_PERIPHERAL_ENABLED"],
             },
             blair: {},
