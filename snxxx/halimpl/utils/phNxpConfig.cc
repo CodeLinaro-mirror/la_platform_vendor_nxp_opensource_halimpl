@@ -155,6 +155,8 @@ typedef enum
   TARGET_SM_MANNAR_H                   = 472, /**< SM_MANNAR_H target */
   TARGET_SM_PALAWAN                    = 614, /**< SM_PALAWAN target */
   TARGET_SM_PALAWAN7                   = 632, /**< SM_PALAWAN7 target */
+  TARGET_SMP_PALAWAN                   = 642, /**< SMP_PALAWAN target */
+  TARGET_SMP_LAMMA                     = 643, /**< SMP_LAMMA target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -422,6 +424,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_LANAI:
         case TARGET_SM_PALAWAN:
         case TARGET_SM_PALAWAN7:
+        case TARGET_SMP_PALAWAN:
+        case TARGET_SMP_LAMMA:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -452,6 +456,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_LANAI:
         case TARGET_SM_PALAWAN:
         case TARGET_SM_PALAWAN7:
+        case TARGET_SMP_PALAWAN:
+        case TARGET_SMP_LAMMA:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
