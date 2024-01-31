@@ -146,6 +146,7 @@ typedef enum
 typedef enum
 {
   TARGET_GENERIC                       = 0x00,/**< new targets */
+  TARGET_SM_KALPENI                    = 623, /**< SM_KALPENI target */
   TARGET_SM_LANAI                      = 557, /**< SM_LANAI target */
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
   TARGET_STRAIT                        = 507, /**< STRAIT target */
@@ -412,6 +413,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
 	case TARGET_SMP_STRAIT:
         case TARGET_SM_MANNAR:
         case TARGET_SM_MANNAR_H:
+        case TARGET_SM_KALPENI:
 	     // SN110 or SN100
 	    config_id = GENERIC_19_2_TYPE_SN1xx;
 	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -441,6 +443,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_STRAIT:
         case TARGET_SM_MANNAR:
         case TARGET_SM_MANNAR_H:
+        case TARGET_SM_KALPENI:
              // SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
