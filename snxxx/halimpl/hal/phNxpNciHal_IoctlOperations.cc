@@ -65,6 +65,7 @@ extern phTmlNfc_Context_t* gpphTmlNfc_Context;
 extern bool nfc_debug_enabled;
 extern NFCSTATUS phNxpLog_EnableDisableLogLevel(uint8_t enable);
 extern phNxpNciClock_t phNxpNciClock;
+extern NfcHalThreadMutex sHalFnLock;
 
 /*******************************************************************************
  **
@@ -151,6 +152,7 @@ systemProperty gsystemProperty = {
     {"nfc.fw.dfl_areacode", ""},
     {"nfc.cover.cover_id", ""},
     {"nfc.cover.state", ""},
+    {"ro.factory.factory_binary", ""},
 };
 char default_nxp_config_path[MAX_DATA_CONFIG_PATH_LEN] = "/vendor/etc/libnfc-nxp.conf";
 std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
@@ -203,7 +205,6 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NXP_SRD_TIMEOUT",
                                 "NXP_UICC_ETSI_SUPPORT",
                                 "NXP_MINIMAL_FW_VERSION",
-                                "NXP_P2P_DISC_NTF_TIMEOUT",
                                 "NXP_RESTART_RF_FOR_NFCEE_RECOVERY",
                                 "NXP_NFCC_RECOVERY_SUPPORT",
                                 "NXP_AGC_DEBUG_ENABLE",
@@ -623,9 +624,12 @@ static string phNxpNciHal_parseBytesString(string in) {
 NFCSTATUS phNxpNciHal_resetEse(uint64_t resetType) {
   NFCSTATUS status = NFCSTATUS_FAILED;
 
-  if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
-    if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
-      return NFCSTATUS_FAILED;
+  {
+    NfcHalAutoThreadMutex a(sHalFnLock);
+    if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
+      if (NFCSTATUS_SUCCESS != phNxpNciHal_MinOpen()) {
+        return NFCSTATUS_FAILED;
+      }
     }
   }
 
