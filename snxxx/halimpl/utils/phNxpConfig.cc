@@ -152,6 +152,8 @@ typedef enum
   TARGET_SM6125_QCM                    = 467, /**< QCM6125 target */
   TARGET_SM6125_QCS                    = 468, /**< QCS6125 target */
   TARGET_SM6125_SM                     = 394, /**< SM6125 target */
+  TARGET_BENGAL                        = 417, /**< BENGAL target */
+  TARGET_SM_BENGAL_H                   = 444, /**< SM_BENGAL_H target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -406,6 +408,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM_DIVAR_IOT:
         case TARGET_SM_DIVAR:
+        case TARGET_BENGAL:
+        case TARGET_SM_BENGAL_H:
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -455,6 +459,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM_DIVAR_IOT:
         case TARGET_SM_DIVAR:
+        case TARGET_BENGAL:
+        case TARGET_SM_BENGAL_H:
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
