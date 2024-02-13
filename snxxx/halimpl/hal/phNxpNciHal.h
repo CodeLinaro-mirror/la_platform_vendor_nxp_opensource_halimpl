@@ -16,7 +16,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  *
  */
@@ -40,15 +40,12 @@
 #define NCI_MAX_DATA_LEN 300
 #define NCI_POLL_DURATION 500
 #define HAL_NFC_ENABLE_I2C_FRAGMENTATION_EVT 0x07
-#undef P2P_PRIO_LOGIC_HAL_IMP
 #define NCI_VERSION_2_0 0x20
 #define NCI_VERSION_1_1 0x11
 #define NCI_VERSION_1_0 0x10
 #define NCI_VERSION_UNKNOWN 0x00
 #define SNXXX_NXP_AUTH_TIMEOUT_BUF_LEN 0x05
 #define PN557_NXP_AUTH_TIMEOUT_BUF_LEN 0x0C
-#define SN100_CHIPID "0xa4"
-#define SN220_CHIPID "0xc1"
 
 /*Mem alloc with 8 byte alignment*/
 #define size_align(sz) ((((sz)-1) | 7) + 1)
@@ -101,6 +98,13 @@ typedef enum {
   HAL_STATUS_OPEN,
   HAL_STATUS_MIN_OPEN
 } phNxpNci_HalStatus;
+
+typedef enum {
+  HAL_CLOSED, /* Either hal_close() done or hal_open() is on going */
+  HAL_OPENED, /* hal_open() is done */
+  HAL_OPEN_CORE_INITIALIZING /* core_initialized() ongoing. will be set back to
+                                HAL_OPENED once done. */
+} phNxpNci_HalOpenStatus;
 
 typedef enum {
   HAL_NFC_FW_UPDATE_INVALID = 0x00,
@@ -156,7 +160,7 @@ typedef struct phNxpNciHal_Control {
   phNxpNciHal_control_granted_callback_t* p_control_granted_cback;
 
   /* HAL open status */
-  bool_t hal_open_status;
+  phNxpNci_HalOpenStatus hal_open_status;
 
   /* HAL extensions */
   uint8_t hal_ext_enabled;
@@ -206,12 +210,18 @@ typedef struct phNxpNciMwEepromArea {
 
 enum { SE_TYPE_ESE, SE_TYPE_EUICC, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
 
+typedef enum {
+  ANTENNA_CHECK_STATUS,
+  ANTENNA_SET_VDDPA
+} phNxpNci_Antenaa_Actions_type_t;
+
 typedef void (*fpVerInfoStoreInEeprom_t)();
 typedef int (*fpVerifyCscEfsTest_t)(char* nfcc_csc, char* rffilepath,
                                     char* fwfilepath);
 typedef int (*fpRegRfFwDndl_t)(uint8_t* fw_update_req, uint8_t* rf_update_req,
                                uint8_t skipEEPROMRead);
 typedef int (*fpPropConfCover_t)(bool attached, int type);
+typedef int (*fpDoAntennaActivity_t)(phNxpNci_Antenaa_Actions_type_t action);
 void phNxpNciHal_initializeRegRfFwDnld();
 void phNxpNciHal_deinitializeRegRfFwDnld();
 /*set config management*/
@@ -262,7 +272,8 @@ typedef enum {
   EEPROM_EXT_FIELD_DETECT_MODE,
   EEPROM_CONF_GPIO_CTRL,
   EEPROM_SET_GPIO_VALUE,
-  EEPROM_POWER_TRACKER_ENABLE
+  EEPROM_POWER_TRACKER_ENABLE,
+  EEPROM_VDDPA,
 } phNxpNci_EEPROM_request_type_t;
 
 typedef struct phNxpNci_EEPROM_info {
@@ -325,7 +336,6 @@ NFCSTATUS phNxpNciHal_send_get_cfgs();
 int phNxpNciHal_write_unlocked(uint16_t data_len, const uint8_t* p_data,
                                int origin);
 NFCSTATUS request_EEPROM(phNxpNci_EEPROM_info_t* mEEPROM_info);
-int phNxpNciHal_check_config_parameter();
 NFCSTATUS phNxpNciHal_fw_download(uint8_t seq_handler_offset = 0,
                                   bool bIsNfccDlState = false);
 NFCSTATUS phNxpNciHal_nfcc_core_reset_init(bool keep_config = false);
@@ -335,6 +345,7 @@ NFCSTATUS phNxpNciHal_china_tianjin_rf_setting(void);
 NFCSTATUS phNxpNciHal_CheckValidFwVersion(void);
 
 NFCSTATUS phNxpNciHal_send_nfcee_pwr_cntl_cmd(uint8_t type);
+NFCSTATUS phNxpNciHal_nfccClockCfgApply(void);
 /*******************************************************************************
 **
 ** Function         phNxpNciHal_configFeatureList
