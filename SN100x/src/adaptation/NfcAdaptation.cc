@@ -1336,7 +1336,6 @@ bool NfcAdaptation::DownloadFirmware() {
   mHalOpenCompletedEvent.lock();
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: try open HAL", func);
 #if (NXP_EXTNS == TRUE)
-  NfcStatus status;
   if (0 != sem_init(&mSemHalDataCallBackEvent, 0, 0)) {
     return isDownloadFirmwareCompleted;
   }
