@@ -32,8 +32,14 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2013-2021 NXP
+ *  Copyright 2013-2021, 2023 NXP
  *
+ ******************************************************************************/
+
+/******************************************************************************
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  ******************************************************************************/
  /**
   * @file phNxpConfig.cpp
@@ -60,7 +66,9 @@
 #include <errno.h>
 #include "sparse_crc32.h"
 #include "phNqChipInfo.h"
-
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
+#include "phNfcDynamicProtection.h"
+#endif
 #if GENERIC_TARGET
 const char alternative_config_path[] = "/data/vendor/nfc/";
 #else
@@ -79,6 +87,8 @@ const int transport_config_path_size =
 #define extra_config_base "libnfc-"
 #define extra_config_ext ".conf"
 #define IsStringValue 0x80000000
+
+#define DEBUG 0
 
 typedef enum {
   CONF_FILE_NXP = 0x00,
@@ -136,8 +146,10 @@ typedef enum
 typedef enum
 {
   TARGET_GENERIC                       = 0x00,/**< new targets */
-  TARGET_SM_KAILUA                     = 519, /**< SM_KAILUA target */
-  TARGET_SMP_KAILUA                    = 536, /**< SMP_KAILUA target */
+  TARGET_SM_LANAI                      = 557, /**< SM_LANAI target */
+  TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
+  TARGET_STRAIT                        = 507, /**< STRAIT target */
+  TARGET_SMP_STRAIT                    = 578, /**< SMP_STRAIT target */
   TARGET_MONACO                        = 486, /**< MONACO target */
   TARGET_MONACO_APQ                    = 517, /**< MONACO APQ target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
@@ -290,7 +302,7 @@ static int read_line_from_file(const char *path, char *buf, size_t count)
  * @return Returns the length of buffer.
  */
 
-static int get_soc_info(char *buf, const char *soc_node_path1,
+int get_soc_info(char *buf, const char *soc_node_path1,
             const char *soc_node_path2)
 {
     int ret = 0;
@@ -310,6 +322,26 @@ static int get_soc_info(char *buf, const char *soc_node_path1,
 
     return ret;
 }
+
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
+bool secure_zone_support(void)
+{
+    int rc = 0;
+    int msm_id = 0;
+    char soc_info[MAX_SOC_INFO_NAME_LEN] = {'\0'};
+
+    rc = get_soc_info(soc_info, SYSFS_SOCID_PATH1, SYSFS_SOCID_PATH2);
+    if (rc < 0) {
+        ALOGE("get_soc_info(SOC_ID) fail!\n");
+        return DEFAULT_CONFIG;
+    }
+    msm_id = atoi(soc_info);
+    if ((msm_id == TARGET_SM_LANAI) || (msm_id == TARGET_SMP_LANAI))
+	return true;
+    else
+	return false;
+}
+#endif
 
 /**
  * @brief finds the cofiguration id value for the particular target.
@@ -374,17 +406,17 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-        case TARGET_SM_KAILUA:
-        case TARGET_SMP_KAILUA:
-            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
-                // SN220
-                config_id = GENERIC_38_4_TYPE_SN220;
-                strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            } else {
-                // SN110 or SN100
-                config_id = GENERIC_38_4_TYPE_SN1xx;
-                strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            }
+        case TARGET_STRAIT:
+        case TARGET_SMP_STRAIT:
+	     // SN110 or SN100
+	    config_id = GENERIC_19_2_TYPE_SN1xx;
+	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+	    break;
+        case TARGET_SM_LANAI:
+        case TARGET_SMP_LANAI:
+            // SN220 V1 and V3
+            config_id = GENERIC_38_4_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
         case TARGET_MONACO:
         case TARGET_MONACO_APQ:
@@ -411,17 +443,17 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_GENERIC:
             config_id = CONFIG_GENERIC;
             break;
-        case TARGET_SM_KAILUA:
-        case TARGET_SMP_KAILUA:
-            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
-                // SN220
-                config_id = GENERIC_38_4_TYPE_SN220;
-                strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            } else {
-                // SN110 or SN100
-                config_id = GENERIC_38_4_TYPE_SN1xx;
-                strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            }
+        case TARGET_STRAIT:
+        case TARGET_SMP_STRAIT:
+             // SN110 or SN100
+            config_id = GENERIC_19_2_TYPE_SN1xx;
+            strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_SM_LANAI:
+        case TARGET_SMP_LANAI:
+            // SN220 V1 and V3
+            config_id = GENERIC_38_4_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
         case TARGET_MONACO:
         case TARGET_MONACO_APQ:
@@ -772,6 +804,28 @@ CNfcConfig& CNfcConfig::GetInstance() {
   int gconfigpathid=0;
   char config_name_generic[MAX_DATA_CONFIG_PATH_LEN] = {'\0'};
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
+  static int reg_init = 0;
+  if (secure_zone_support()) {
+  /* Register NFC peripheral for with secure Libraries
+   * If registration is successful and get peripheral status fails, retry the sequence
+   */
+  while(reg_init == 0) {
+    if(registerNfcDynamicProtection() == 0) {
+      reg_init = 1;
+    } else {
+      ALOGD("NfcDynamicProtection register success and get peripheral status failed; Retry");
+      usleep(100000);
+    }
+  }
+
+  /*Check with TZ if NFC is in secure zone, If yes, do not enable to NFC*/
+  if(checkNfcSecureStatus()) {
+    theInstance.size() == 0;
+    return theInstance;
+  }
+ }
+#endif
   if (theInstance.size() == 0 && theInstance.mValidFile) {
     string strPath;
     if (alternative_config_path[0] != '\0') {
@@ -808,10 +862,8 @@ CNfcConfig& CNfcConfig::GetInstance() {
      */
     strlcpy(default_nxp_config_path, strPath.c_str(), MAX_DATA_CONFIG_PATH_LEN);
     theInstance.readConfig(strPath.c_str(), true);
-#if (NXP_EXTNS == TRUE)
     theInstance.readNxpRFConfig(nxp_rf_config_path);
     theInstance.readNxpTransitConfig(transit_config_path);
-#endif
   }
   return theInstance;
 }

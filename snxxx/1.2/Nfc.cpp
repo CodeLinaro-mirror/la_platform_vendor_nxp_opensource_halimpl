@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2019-2021 NXP
+ *  Copyright 2019-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,21 +19,14 @@
 #define LOG_TAG "android.hardware.nfc@1.2-impl"
 #include "Nfc.h"
 #include <log/log.h>
+#include <memunreachable/memunreachable.h>
+#include "NfcExtns.h"
 #include "halimpl/inc/phNxpNciHal_Adaptation.h"
 #include "phNfcStatus.h"
+#include "phNxpNciHal_ext.h"
 
 #define CHK_STATUS(x) \
   ((x) == NFCSTATUS_SUCCESS) ? (V1_0::NfcStatus::OK) : (V1_0::NfcStatus::FAILED)
-
-#define NXP_EN_SN110U 1
-#define NXP_EN_SN100U 1
-#define NXP_EN_SN220U 1
-#define NXP_EN_PN557 1
-#define NFC_NXP_MW_ANDROID_VER (13U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x03) /* MW Major Version */
-#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
-#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
-#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
 
 extern bool nfc_debug_enabled;
 
@@ -46,16 +39,6 @@ namespace implementation {
 sp<V1_1::INfcClientCallback> Nfc::mCallbackV1_1 = nullptr;
 sp<V1_0::INfcClientCallback> Nfc::mCallbackV1_0 = nullptr;
 
-static void printNfcMwVersion() {
-  uint32_t validation = (NXP_EN_SN100U << 13);
-  validation |= (NXP_EN_SN110U << 14);
-  validation |= (NXP_EN_SN220U << 15);
-  validation |= (NXP_EN_PN557 << 11);
-
-  ALOGE("MW-HAL Version: NFC_AR_%02X_%04X_%02d.%02x.%02x",
-        NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
-        NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
-}
 
 Return<V1_0::NfcStatus> Nfc::open_1_1(
     const sp<V1_1::INfcClientCallback>& clientCallback) {
@@ -154,14 +137,16 @@ Return<V1_0::NfcStatus> Nfc::closeForPowerOffCase() {
 
 Return<void> Nfc::getConfig(getConfig_cb hidl_cb) {
   android::hardware::nfc::V1_1::NfcConfig nfcVendorConfig;
-  phNxpNciHal_getVendorConfig(nfcVendorConfig);
+  NfcExtns nfcExtns;
+  nfcExtns.getConfig(nfcVendorConfig);
   hidl_cb(nfcVendorConfig);
   return Void();
 }
 
 Return<void> Nfc::getConfig_1_2(getConfig_1_2_cb hidl_cb) {
   NfcConfig nfcVendorConfig;
-  phNxpNciHal_getVendorConfig_1_2(nfcVendorConfig);
+  NfcExtns nfcExtns;
+  nfcExtns.getConfig(nfcVendorConfig);
   hidl_cb(nfcVendorConfig);
   return Void();
 }
@@ -180,6 +165,13 @@ void Nfc::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     mCallbackV1_0->unlinkToDeath(this);
     mCallbackV1_0 = nullptr;
   }
+}
+
+Return<void> Nfc::debug(const hidl_handle& /* fd */,
+                        const hidl_vec<hidl_string>& /* options */) {
+  ALOGD_IF(nfc_debug_enabled, "\n Nfc HAL MemoryLeak Info =  %s \n",
+           android::GetUnreachableMemoryString(true, 10000).c_str());
+  return Void();
 }
 
 }  // namespace implementation

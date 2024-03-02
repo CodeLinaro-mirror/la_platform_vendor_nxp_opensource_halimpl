@@ -1,9 +1,9 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, kalama),true)
+ifeq ($(call is-board-platform-in-list, pineapple blair),true)
 TARGET_USES_NQ_NFC := true
 endif
 
-NQ_VENDOR_NFC := vendor.nxp.hardware.nfc@2.0-service
+NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 
 BOARD_NXP_DIR ?= vendor/nxp/opensource
@@ -22,3 +22,16 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += $(NQ_VENDOR_NFC)
 endif
 
+ifeq ($(call is-board-platform-in-list, pineapple),true)
+TARGET_ENABLE_PERIPHERAL_CONTROL := true
+ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
+    $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
+endif
+endif
+
+ifeq ($(call is-board-platform-in-list, blair),true)
+TARGET_ENABLE_PERIPHERAL_CONTROL := false
+ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
+    $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
+endif
+endif

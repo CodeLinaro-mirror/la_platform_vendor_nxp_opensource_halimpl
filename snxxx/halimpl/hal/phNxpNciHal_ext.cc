@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2022 NXP
+ * Copyright 2012-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,24 @@
 #include <phNxpNciHal_NfcDepSWPrio.h>
 #include <phNxpNciHal_ext.h>
 #include <phTmlNfc.h>
-#if (NXP_EXTNS == TRUE)
+#include <vector>
+#include "phNxpEventLogger.h"
 #include "phNxpNciHal.h"
 #include "phNxpNciHal_IoctlOperations.h"
+#include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_nciParser.h"
-#endif
+
+#define NXP_EN_SN110U 1
+#define NXP_EN_SN100U 1
+#define NXP_EN_SN220U 1
+#define NXP_EN_PN557 1
+#define NXP_EN_PN560 1
+#define NFC_NXP_MW_ANDROID_VER (14U)  /* Android version used by NFC MW */
+#define NFC_NXP_MW_VERSION_MAJ (0x05) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
+#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
+#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
+
 /* Timeout value to wait for response from PN548AD */
 #define HAL_EXTNS_WRITE_RSP_TIMEOUT (1000)
 #define NCI_NFC_DEP_RF_INTF 0x03
@@ -40,6 +53,7 @@
 extern phNxpNciHal_Control_t nxpncihal_ctrl;
 extern phNxpNciProfile_Control_t nxpprofile_ctrl;
 extern phNxpNci_getCfg_info_t* mGetCfg_info;
+extern PowerTrackerHandle gPowerTrackerHandle;
 
 extern bool_t gsIsFwRecoveryRequired;
 
@@ -51,7 +65,6 @@ static uint8_t ee_disc_done = 0x00;
 uint8_t EnableP2P_PrioLogic = false;
 extern bool bEnableMfcExtns;
 extern bool bEnableMfcReader;
-extern bool bDisableLegacyMfcExtns;
 static uint32_t RfDiscID = 1;
 static uint32_t RfProtocolType = 4;
 /* NFCEE Set mode */
@@ -85,6 +98,18 @@ static NFCSTATUS phNxpNciHal_ext_process_nfc_init_rsp(uint8_t* p_ntf,
                                                       uint16_t* p_len);
 static void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
                                          uint16_t* coreInitRespLen);
+
+void printNfcMwVersion() {
+  uint32_t validation = (NXP_EN_SN100U << 13);
+  validation |= (NXP_EN_SN110U << 14);
+  validation |= (NXP_EN_SN220U << 15);
+  validation |= (NXP_EN_PN560 << 16);
+  validation |= (NXP_EN_PN557 << 11);
+
+  ALOGE("MW-HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x",
+        NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
+        NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
+}
 /*******************************************************************************
 **
 ** Function         phNxpNciHal_ext_init
@@ -131,7 +156,6 @@ NFCSTATUS phNxpNciHal_ext_send_sram_config_to_flash() {
 NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
   NFCSTATUS status = NFCSTATUS_SUCCESS;
 
-#if (NXP_EXTNS == TRUE)
   /*parse and decode LxDebug Notifications*/
   if (p_ntf[0] == 0x6F && (p_ntf[1] == 0x35 || p_ntf[1] == 0x36)) {
     if (gParserCreated) phNxpNciHal_parsePacket(p_ntf, *p_len);
@@ -148,7 +172,6 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
              p_ntf[3] == 0xE2) {
     nxpprofile_ctrl.profile_type = NFC_FORUM_PROFILE;
   }
-#endif
 #endif
 
   if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05 && *p_len < 14) {
@@ -197,7 +220,7 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
 
   status = NFCSTATUS_SUCCESS;
 
-  if (bDisableLegacyMfcExtns && bEnableMfcExtns && p_ntf[0] == 0) {
+  if (bEnableMfcExtns && p_ntf[0] == 0) {
     if (*p_len < NCI_HEADER_SIZE) {
       android_errorWriteLog(0x534e4554, "169258743");
       return NFCSTATUS_FAILED;
@@ -211,7 +234,7 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
 
   if (p_ntf[0] == 0x61 && p_ntf[1] == 0x05) {
     bEnableMfcExtns = false;
-    if (bDisableLegacyMfcExtns && p_ntf[4] == 0x80 && p_ntf[5] == 0x80) {
+    if (p_ntf[4] == 0x80 && p_ntf[5] == 0x80) {
       bEnableMfcExtns = true;
       NXPLOG_NCIHAL_D("NxpNci: RF Interface = Mifare Enable MifareExtns");
     }
@@ -463,8 +486,16 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
       p_ntf[4] = 0x00;
       *p_len = 5;
     }
+  } else if (*p_len >= 2 && p_ntf[0] == 0x6F && p_ntf[1] == 0x04) {
+    NXPLOG_NCIHAL_D(">  SMB Debug notification received");
+    PhNxpEventLogger::GetInstance().Log(p_ntf, *p_len,
+                                        LogEventType::kLogSMBEvent);
+  } else if (*p_len >= 5 && p_ntf[0] == 0x01 &&
+             p_ntf[3] == ESE_CONNECTIVITY_PACKET && p_ntf[4] == ESE_DPD_EVENT) {
+    NXPLOG_NCIHAL_D(">  DPD monitor event received");
+    PhNxpEventLogger::GetInstance().Log(p_ntf, *p_len,
+                                        LogEventType::kLogDPDEvent);
   }
-
   return status;
 }
 
@@ -847,6 +878,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
   } else if ((*cmd_len >= 6) &&
              (p_cmd_data[3] == 0x81 && p_cmd_data[4] == 0x01 &&
               p_cmd_data[5] == 0x03)) {
+    if (IS_CHIP_TYPE_GE(sn300u)) return NFCSTATUS_SUCCESS;
+
     NXPLOG_NCIHAL_D("> Going through the set host list");
     if (IS_CHIP_TYPE_GE(sn100u)) {
       *cmd_len = 10;
@@ -902,7 +935,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
     status = NFCSTATUS_FAILED;
   }
   // 2002 0904 3000 3100 3200 5000
-  else if ((p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
+  else if (*cmd_len <= (NCI_MAX_DATA_LEN - 1) &&
+           (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
            ((p_cmd_data[2] == 0x09 && p_cmd_data[3] == 0x04) /*||
             (p_cmd_data[2] == 0x0D && p_cmd_data[3] == 0x04)*/
             )) {
@@ -1022,6 +1056,15 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
       //            memcpy(p_rsp_data, bCoreInitRsp, iCoreInitRspLen);
       //            status = NFCSTATUS_FAILED;
       //            NXPLOG_NCIHAL_D("> Going - core init optimization - END");
+    }
+  }
+  /* CORE_SET_POWER_SUB_STATE */
+  if (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x09 &&
+           p_cmd_data[2] == 0x01 &&
+           (p_cmd_data[3] == 0x00 || p_cmd_data[3] == 0x02)) {
+    // Sync power tracker data for screen on transition.
+    if (gPowerTrackerHandle.stateChange != NULL) {
+      gPowerTrackerHandle.stateChange(SCREEN_ON);
     }
   }
 
@@ -1306,6 +1349,30 @@ NFCSTATUS request_EEPROM(phNxpNci_EEPROM_info_t* mEEPROM_info) {
       memIndex = 0x00;
       addr[0] = 0xA1;
       addr[1] = 0x36;
+      break;
+    case EEPROM_CONF_GPIO_CTRL:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA1;
+      addr[1] = 0x0F;
+      break;
+    case EEPROM_SET_GPIO_VALUE:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA1;
+      addr[1] = 0x65;
+      break;
+    case EEPROM_POWER_TRACKER_ENABLE:
+      mEEPROM_info->update_mode = BYTEWISE;
+      memIndex = 0x00;
+      fieldLen = mEEPROM_info->bufflen;
+      len = fieldLen + 4;
+      addr[0] = 0xA0;
+      addr[1] = 0x6D;
       break;
     default:
       ALOGE("No valid request information found");
@@ -1601,7 +1668,7 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   uint8_t rfInterfacesLength =
       *coreInitRespLen - (indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE);
   uint8_t* supportedRfInterfaces = NULL;
-
+  bool removeNfcDepRequired = false;
   if (noOfSupportedInterface) {
     supportedRfInterfaces =
         coreInitResp + indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE;
@@ -1610,7 +1677,9 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   /* Get the index of Supported RF Interface for NFC-DEP interface in CORE_INIT
    * Response*/
   for (int i = 0; i < noOfSupportedInterface; i++) {
+
     if (*supportedRfInterfaces == NCI_NFC_DEP_RF_INTF) {
+      removeNfcDepRequired = true;
       break;
     }
     uint8_t noOfExtensions = *(supportedRfInterfaces + 1);
@@ -1619,7 +1688,10 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   }
   /* If NFC-DEP is found in response then remove NFC-DEP from init response and
    * frame new CORE_INIT_RESP and send to upper layer*/
-  if (supportedRfInterfaces && *supportedRfInterfaces == NCI_NFC_DEP_RF_INTF) {
+  if (!removeNfcDepRequired) {
+    NXPLOG_NCIHAL_E("%s: NFC-DEP Removal is not requored !!", __func__);
+    return;
+  } else {
     coreInitResp[16] = noOfSupportedInterface - 1;
     uint8_t noBytesToSkipForNfcDep = 2 + *(supportedRfInterfaces + 1);
     memcpy(supportedRfInterfaces,

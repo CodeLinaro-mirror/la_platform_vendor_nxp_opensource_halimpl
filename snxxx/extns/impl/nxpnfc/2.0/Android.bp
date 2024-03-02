@@ -1,5 +1,0 @@
-cc_library_headers {
-    name: "nxpnfc_2_includes",
-    vendor_available: true,
-    export_include_dirs: ["."],
-}

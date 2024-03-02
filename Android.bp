@@ -33,7 +33,7 @@ license {
 }
 
 subdirs = [
-    "snxxx",
+    "snxxx", "power-tracker",
 ]
 
 cc_library_headers {

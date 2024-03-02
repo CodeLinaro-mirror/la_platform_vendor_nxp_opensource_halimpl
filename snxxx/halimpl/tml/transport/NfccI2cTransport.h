@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020-2021 NXP
+ *  Copyright 2020-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -41,6 +41,16 @@
  * power state of ESE
  */
 #define ESE_GET_PWR _IOR(NFC_MAGIC, 0x03, uint32_t)
+/*
+ *  NFC_SET_RESET_READ_PENDING(1): set read pending flag of NFC
+ *  NFC_SET_RESET_READ_PENDING(0): reset read pending flag of NFC
+ */
+#define NFC_SET_RESET_READ_PENDING _IOW(NFC_MAGIC, 0x04, uint32_t)
+
+/*
+ * read the gpios status flag encoded byte from kernel space
+ */
+#define NFC_GET_GPIO_STATUS _IOR(NFC_MAGIC, 0x05, uint32_t)
 
 extern phTmlNfc_i2cfragmentation_t fragmentation_enabled;
 
@@ -128,6 +138,36 @@ class NfccI2cTransport : public NfccTransport {
    **
    ****************************************************************************/
   int NfccReset(void *pDevHandle, NfccResetType eType);
+
+  /*****************************************************************************
+   **
+   ** Function         UpdateReadPending
+   **
+   ** Description      Set/Reset Read Pending of NFC
+   **
+   ** Parameters       pDevHandle     - valid device handle
+   **                  eType          - set or clear the flag
+   **
+   ** Returns           0   - operation success
+   **                  -1   - operation failure
+   **
+   ****************************************************************************/
+  int UpdateReadPending(void* pDevHandle, NfcReadPending eType);
+
+  /*****************************************************************************
+   **
+   ** Function         NfcGetGpioStatus
+   **
+   ** Description      Get the gpio status flag byte from kernel space
+   **
+   ** Parameters       pDevHandle     - valid device handle
+   **
+   **
+   ** Returns           0   - operation success
+   **                  -1   - operation failure
+   **
+   ****************************************************************************/
+  int NfcGetGpioStatus(void* pDevHandle, uint32_t* status);
 
   /*****************************************************************************
    **

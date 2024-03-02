@@ -1,5 +1,5 @@
 /*
- *  Copyright 2010-2022 NXP
+ *  Copyright 2010-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <phNxpLog.h>
 #include <phTmlNfc.h>
 #include <string>
+#include "NxpNfcCapability.h"
 
 #if (NXP_NFC_RECOVERY == TRUE)
 #include <phDnldNfc_UpdateSeq.h>
@@ -256,8 +257,10 @@ NFCSTATUS phDnldNfc_CheckIntegrity(uint8_t bChipVer, pphDnldNfc_Buff_t pCRCData,
             ((PHDNLDNFC_HWVER_PN557_MRA1_0 == bChipVer)))) ||
           (IS_CHIP_TYPE_EQ(sn100u) &&
            (PHDNLDNFC_HWVER_VENUS_MRA1_0 & bChipVer)) ||
-          (IS_CHIP_TYPE_EQ(sn220u) &&
-           (PHDNLDNFC_HWVER_VULCAN_MRA1_0 & bChipVer))) {
+          ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(pn560)) &&
+           (PHDNLDNFC_HWVER_VULCAN_MRA1_0 & bChipVer)) ||
+          (IS_CHIP_TYPE_EQ(sn300u) &&
+           (PHDNLDNFC_HWVER_EOS_MRA2_0 & bChipVer))) {
         (gpphDnldContext->FrameInp.Type) = phDnldNfc_ChkIntg;
       } else {
         (gpphDnldContext->FrameInp.Type) = phDnldNfc_FTNone;
@@ -570,6 +573,10 @@ NFCSTATUS phDnldNfc_Force(pphDnldNfc_Buff_t pInputs, pphDnldNfc_RspCb_t pNotify,
             bClkFreq = phDnldNfc_ClkFreq_38_4Mhz;
           } else if (CLK_FREQ_52MHZ == (pInputs->pBuff[1])) {
             bClkFreq = phDnldNfc_ClkFreq_52Mhz;
+          } else if (CLK_FREQ_32MHZ == (pInputs->pBuff[1])) {
+            bClkFreq = phDnldNfc_ClkFreq_32Mhz;
+          } else if (CLK_FREQ_48MHZ == (pInputs->pBuff[1])) {
+            bClkFreq = phDnldNfc_ClkFreq_48Mhz;
           } else {
             NXPLOG_FWDNLD_E(
                 "Invalid Clk Frequency !! Using default value of 19.2Mhz..");
@@ -734,11 +741,13 @@ NFCSTATUS phDnldNfc_RawReq(pphDnldNfc_Buff_t pFrameData,
 **                  variables, to be used internally for write operation
 **
 ** Parameters       bMinimalFw - flag indicates for minimal FW Image
+**                  degradedFwDnld - Indicates if degraded FW download is
+**                  requested
 **
 ** Returns          NFC status
 **
 *******************************************************************************/
-NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw) {
+NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw, bool degradedFwDnld) {
   NFCSTATUS wStatus = NFCSTATUS_SUCCESS;
   uint8_t* pImageInfo = NULL;
   uint32_t ImageInfoLen = 0;
@@ -781,7 +790,8 @@ NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw) {
       wStatus = phDnldNfc_LoadFW(Fw_Lib_Path, &pImageInfo, &ImageInfoLen);
     }
 #else
-    wStatus = phDnldNfc_LoadFW(Fw_Lib_Path, &pImageInfo, &ImageInfoLen);
+    wStatus = phDnldNfc_LoadFW(Fw_Lib_Path, &pImageInfo, &ImageInfoLen,
+                               degradedFwDnld);
 #endif
   } else {
     NXPLOG_FWDNLD_E("firmware file format mismatch!!!\n");
@@ -814,7 +824,7 @@ NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw) {
     if ((NULL != gpphDnldContext->nxp_nfc_fw) &&
         (0 != gpphDnldContext->nxp_nfc_fw_len)) {
       uint16_t offsetFwMajorNum, offsetFwMinorNum;
-      if (IS_CHIP_TYPE_EQ(sn220u)) {
+      if (IS_CHIP_TYPE_GE(sn220u) || IS_CHIP_TYPE_EQ(pn560)) {
         offsetFwMajorNum = ((uint16_t)(gpphDnldContext->nxp_nfc_fw[795]) << 8U);
         offsetFwMinorNum = ((uint16_t)(gpphDnldContext->nxp_nfc_fw[794]));
       } else {
@@ -838,7 +848,9 @@ NFCSTATUS phDnldNfc_InitImgInfo(bool bMinimalFw) {
   /* gpphDnldContext reset by phDnldNfc_SetHwDevHandle()
      so reassign the Fragment Length based on chip version */
   if (NFCSTATUS_SUCCESS == wStatus) {
-    if (IS_CHIP_TYPE_GE(sn100u)) {
+    if (IS_CHIP_TYPE_EQ(sn300u)) {
+      phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SN300);
+    } else if (IS_CHIP_TYPE_GE(sn100u)) {
       phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SNXXX);
     } else {
       phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_PN557);
@@ -894,7 +906,11 @@ NFCSTATUS phDnldNfc_LoadRecInfo(void) {
 
     /* gpphDnldContext reset by phDnldNfc_SetHwDevHandle()
     so reassign the Fragment Length 554 (0x22A) for chip sn1xx*/
-    phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SNXXX);
+    if (IS_CHIP_TYPE_EQ(sn300u)) {
+      phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SN300);
+    } else {
+      phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SNXXX);
+    }
 
     if ((NULL != gpphDnldContext->nxp_nfc_fwp) &&
         (0 != gpphDnldContext->nxp_nfc_fwp_len)) {
@@ -957,7 +973,11 @@ NFCSTATUS phDnldNfc_LoadPKInfo(void) {
 
     /* gpphDnldContext reset by phDnldNfc_SetHwDevHandle()
     so reassign the Fragment Length 554 (0x22A) for chip sn1xx*/
-    phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SNXXX);
+    if (IS_CHIP_TYPE_EQ(sn300u)) {
+      phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SN300);
+    } else {
+      phDnldNfc_SetI2CFragmentLength(PHDNLDNFC_CMDRESP_MAX_BUFF_SIZE_SNXXX);
+    }
 
     if ((NULL != gpphDnldContext->nxp_nfc_fwp) &&
         (0 != gpphDnldContext->nxp_nfc_fwp_len)) {
@@ -1012,15 +1032,18 @@ void phDnldNfc_CloseFwLibHandle(void) {
 ** Parameters       pathName    - Firmware image path
 **                  pImgInfo    - Firmware image handle
 **                  pImgInfoLen - Firmware image length
+**                  degradedFwDnld - Indicates if degraded FW download is
+**                  requested
 **
 ** Returns          NFC status
 **
 *******************************************************************************/
 NFCSTATUS phDnldNfc_LoadFW(const char* pathName, uint8_t** pImgInfo,
-                           uint32_t* pImgInfoLen) {
+                           uint32_t* pImgInfoLen, bool degradedFwDnld) {
   void* pImageInfo = NULL;
   void* pImageInfoLen = NULL;
-
+  const char* pFwSymbol = "gphDnldNfc_DlSeq";
+  const char* pFwSymbolSz = "gphDnldNfc_DlSeqSz";
   /* check for path name */
   if (pathName == NULL) pathName = nfcFL._FW_LIB_PATH.c_str();
 
@@ -1043,29 +1066,34 @@ NFCSTATUS phDnldNfc_LoadFW(const char* pathName, uint8_t** pImgInfo,
 
   dlerror(); /* Clear any existing error */
 
+  if (degradedFwDnld) {
+    NXPLOG_FWDNLD_D("%s: Loading Degraded FW info", __func__);
+    pFwSymbol = "gphDnldNfc_DlSeq_DegradedFw";
+    pFwSymbolSz = "gphDnldNfc_DlSeqSz_DegradedFw";
+  }
+
   /* load the address of download image pointer and image size */
-  pImageInfo = (void*)dlsym(pFwHandle, "gphDnldNfc_DlSeq");
+  pImageInfo = (void*)dlsym(pFwHandle, pFwSymbol);
 
   if (dlerror() || (NULL == pImageInfo)) {
-    NXPLOG_FWDNLD_E("Problem loading symbol : gphDnldNfc_DlSeq");
+    NXPLOG_FWDNLD_E("Problem loading symbol : %s", pFwSymbol);
     return NFCSTATUS_FAILED;
   }
   (*pImgInfo) = (*(uint8_t**)pImageInfo);
 
-  pImageInfoLen = (void*)dlsym(pFwHandle, "gphDnldNfc_DlSeqSz");
+  pImageInfoLen = (void*)dlsym(pFwHandle, pFwSymbolSz);
   if (dlerror() || (NULL == pImageInfoLen)) {
-    NXPLOG_FWDNLD_E("Problem loading symbol : gphDnldNfc_DlSeqSz");
+    NXPLOG_FWDNLD_E("Problem loading symbol : %s", pFwSymbolSz);
     return NFCSTATUS_FAILED;
   }
 
   if (IS_CHIP_TYPE_GE(sn100u)) {
     (*pImgInfoLen) = (uint32_t)(*((uint32_t*)pImageInfoLen));
-    NXPLOG_FWDNLD_D("FW image loded for chipType sn100u (%x)", nfcFL.chipType)
   } else {
     (*pImgInfoLen) = (uint16_t)(*((uint16_t*)pImageInfoLen));
-    NXPLOG_FWDNLD_D("FW image loded for chipType pn557 (%x)", nfcFL.chipType)
   }
-
+  NXPLOG_FWDNLD_D("FW image loaded for chipType %s",
+                  pConfigFL->product[nfcFL.chipType]);
   return NFCSTATUS_SUCCESS;
 }
 

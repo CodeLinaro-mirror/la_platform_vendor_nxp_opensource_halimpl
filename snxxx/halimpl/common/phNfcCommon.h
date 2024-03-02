@@ -1,20 +1,20 @@
 /******************************************************************************
  *
- *  Copyright 2010-2018, 2021 NXP
+ *  Copyright 2010-2018, 2021-2022 NXP
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ ******************************************************************************/
 /*
  *  OSAL header files related to memory, debug, random, semaphore and mutex
  * functions.
@@ -88,9 +88,10 @@
 #define CLK_FREQ_19_2MHZ 2
 #define CLK_FREQ_24MHZ 3
 #define CLK_FREQ_26MHZ 4
-#define CLK_FREQ_32MHZ 5
-#define CLK_FREQ_38_4MHZ 6
-#define CLK_FREQ_52MHZ 7
+#define CLK_FREQ_38_4MHZ 5
+#define CLK_FREQ_52MHZ 6
+#define CLK_FREQ_32MHZ 7
+#define CLK_FREQ_48MHZ 8
 
 static const uint8_t PN557_SET_CONFIG_CMD_PLL_13MHZ[] = {
     0x20, 0x02, 0x0C, 0x01, 0xA0, 0x20, 0x08, 0x08,
@@ -139,6 +140,14 @@ static const uint8_t PN557_SET_CONFIG_CMD_PLL_38_4MHZ[] = {
 static const uint8_t PN557_SET_CONFIG_CMD_DPLL_38_4MHZ[] = {
     0x20, 0x02, 0x0C, 0x01, 0xA0, 0x26, 0x08, 0x88,
     0x01, 0xE2, 0x82, 0xF0, 0x00, 0xA2, 0x01};
+
+static const uint8_t PN557_SET_CONFIG_CMD_PLL_48MHZ[] = {
+    0x20, 0x02, 0x0C, 0x01, 0xA0, 0x20, 0x08, 0x38,
+    0x51, 0xD3, 0x82, 0x58, 0xE1, 0xE0, 0x02};
+
+static const uint8_t PN557_SET_CONFIG_CMD_DPLL_48MHZ[] = {
+    0x20, 0x02, 0x0C, 0x01, 0xA0, 0x26, 0x08, 0x38,
+    0x41, 0xD3, 0x82, 0x88, 0x01, 0xE2, 0x02};
 /* Set to one of CLK_FREQ_<value> */
 #define NXP_SYS_CLK_FREQ_SEL CLK_FREQ_19_2MHZ
 

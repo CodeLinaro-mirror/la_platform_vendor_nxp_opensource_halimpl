@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -32,10 +32,11 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 #include "phNfcDynamicProtection.h"
 #include <phNxpNciHal_Adaptation.h>
 #include <phNxpNciHal.h>
-#include "IPeripheralState.h"
+#include <phNxpNciHal_utils.h>
 #include "CPeripheralAccessControl.h"
 #include "peripheralStateUtils.h"
 
@@ -49,6 +50,7 @@ registerNfcPhCBFnPtr mRegisterPhCb = NULL;
 deregisterNfcPhCBFnPtr mDeregisterPhCb = NULL;
 void* mSecureModeContext = NULL;
 
+uint32_t pType = CPeripheralAccessControl_NFC_UID;
 static int phSecureState = 1;
 static int sync_enable;
 
@@ -135,37 +137,111 @@ int32_t notifyNfcPeripheralEvent(const uint32_t Nfcperi, const uint8_t NfcSecure
   * based on the event received from TZ
   */
   int32_t  result = 0;
-  ALOGD("%s: Received Notification from TZ...\n", __func__);
-  ALOGD("%s: HAL peripheral %d Entered into NfcSecureState %d\n", __func__, Nfcperi, NfcSecureState);
+  uint8_t curState = NfcSecureState;
+  ALOGD("%s: Received Notification from TZ...\nHAL peripheral %d Entered into NfcSecureState %d\n", __func__, Nfcperi, NfcSecureState);
 
-  if(NfcSecureState ==  IPeripheralState_STATE_SECURE) {
-    // Set  driver flag as secure zone
-    if(phSecureState == 0) {
-      phSecureState = 1;
-      if (nxpncihal_ctrl.halStatus != HAL_STATUS_CLOSE) {
-        /*Ideal condtions this should never be called, called only when TZ notifies before disabling the  NFC avoiding device crash*/
-        phNxpNciHal_close(false);
+  if (NfcSecureState == STATE_RESET_CONNECTION) {
+    /**
+    * Handling the state where connection got broken to get
+    * state change notification
+    */
+    ALOGD("%s: Possible ssgtzd link got broken..\n", __func__);
+    do {
+      curState = register_routine(pType);
+      if((curState == STATE_RESET_CONNECTION) && (mDeregisterPhCb != NULL)) {
+        /*De-register NFC Context with TZ before retrying registration*/
+        mDeregisterPhCb(mSecureModeContext);
+        mSecureModeContext = NULL;
       }
-      result = notifyNfcDriver(phSecureState);
-      if(result == -1) {
-        ALOGE("driver notify call failed during secure entry\n");
-        return result;
+      else if(curState != STATE_RESET_CONNECTION && curState != STATE_NONSECURE && curState != STATE_SECURE) {
+        ALOGD("%s: Peripheral[0x%x] recieved wrong state [%d]\n", __func__, pType, curState);
+        return -1;
       }
-    }
-    ALOGD("Entry Secure zone successful\n");
-  } else if(NfcSecureState == IPeripheralState_STATE_NONSECURE) {
-    if(phSecureState == 1) {
-      phSecureState = 0;
-      if(-1 == (result = notifyNfcDriver(phSecureState))) {
-        ALOGE("driver notify call failed during secure exit\n");
-        return  result;
+      else if(mDeregisterPhCb == NULL) {
+        mDeregisterPhCb = (deregisterNfcPhCBFnPtr)dlsym(mSecureLibInstance, "deregisterPeripheralCB");
+        if(mDeregisterPhCb != NULL)
+          mDeregisterPhCb(mSecureModeContext);
+        mSecureModeContext = NULL;
       }
-    sem_post(&secure_call_flow_sync_sem);
-    }
-    ALOGD("Exit Secure zone successful\n");
+      else {
+        ALOGD("%s: Reached UNEXPECTED CONDITION", __func__);
+      }
+
+      ALOGD("mDeregisterPhCb Address 0x%x", mDeregisterPhCb);
+    } while(curState == STATE_RESET_CONNECTION);
+    ALOGD("%s: Peripheral[0x%x], Current State is [%d]\n", __func__, pType, curState);
+  }
+
+  switch(curState) {
+    case STATE_SECURE:
+      /**
+      * Peripheral Entering Secure mode
+      */
+      if(phSecureState == 0) {
+        phSecureState = 1;
+        if (nxpncihal_ctrl.halStatus != HAL_STATUS_CLOSE) {
+          /*Ideal conditions this should never be called, called only when TZ notifies before disabling the  NFC to avoid NFC crash */
+          ALOGD("Received Secure Zone entry notifications from TZ during NFC active state; disable NFC\n");
+          (*nxpncihal_ctrl.p_nfc_stack_cback)(HAL_NFC_ERROR_EVT, HAL_NFC_STATUS_FAILED);
+          /*wait untill NFC is closed*/
+          while(nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) break;
+        }
+        result = notifyNfcDriver(phSecureState);
+        if(result == -1) {
+          ALOGE("driver notify call failed during secure entry\n");
+          return result;
+        }
+      }
+      ALOGD("Entry Secure zone successful\n");
+      break;
+    case STATE_NONSECURE:
+      /**
+      * Peripheral Exiting Secure mode
+      */
+      if(phSecureState == 1) {
+        phSecureState = 0;
+        if(-1 == (result = notifyNfcDriver(phSecureState))) {
+          ALOGE("driver notify call failed during secure exit\n");
+          return  result;
+        }
+        sem_post(&secure_call_flow_sync_sem);
+      }
+      ALOGD("Exit Secure zone successful\n");
+      break;
+    default:
+      ALOGD("%s: Wrong State notified\n", __func__);
   }
 
   return result;
+}
+
+int register_routine(uint32_t pUID) {
+  int ret = PRPHRL_SUCCESS;
+  int dyn_reg_cnt = 0;
+  /** This is a blocking call until ssgtzd gets restored */
+  do {
+    mSecureModeContext = mRegisterPhCb(pType, notifyNfcPeripheralEvent);
+    if(mSecureModeContext != NULL) {
+      ALOGD("%s: Call back registered for Peripheral[0x%x] \n", __func__, pUID);
+      break;
+    }
+    /** Ideally registeration should happen; In any case if secure libraries/TZ fails, we need to retry until registration is ssuccessful */
+    dyn_reg_cnt++;
+    if((dyn_reg_cnt>0) && (dyn_reg_cnt%10==0))
+      ALOGD("Register NFC peripheral with secureLib trial %d\n", dyn_reg_cnt);
+    /** Wait for some time before retry */
+    sleep(1);
+  } while (true);
+
+  /* Getting current peripheral state after re-connection
+   * If get peripheral fails, derigister and retry the sequence
+   */
+  ret = mGetPhState(mSecureModeContext);
+  if (ret == PRPHRL_ERROR) {
+    ALOGD("%s: Failed to get Peripheral state from TZ\n", __func__);
+  }
+
+  return ret;
 }
 
 /*******************************************************************************
@@ -183,8 +259,7 @@ int8_t registerNfcDynamicProtection(void)
 
   /*Register the  peripheral with PCS  rountine and check for the peripheral  status*/
   int8_t status = 0;
-  uint8_t pState =  IPeripheralState_STATE_NONSECURE;
-  uint32_t pType = CPeripheralAccessControl_NFC_UID ;
+  uint8_t pState =  STATE_NONSECURE;
 
   /*Register Peripheral*/
   /*call flow sync during secure  boot*/
@@ -197,38 +272,31 @@ int8_t registerNfcDynamicProtection(void)
     return -1;
   }
 
+  /*Find the address of registerPeripheralCB, getPeripheralState, deregisterPeripheralCB*/
   mRegisterPhCb = (registerNfcPhCBFnPtr)dlsym(mSecureLibInstance, "registerPeripheralCB");
-
   if(mRegisterPhCb == NULL) {
     ALOGE("Error linking registerPeripheralCB\n");
-    goto on_error;
+    goto link_error;
+  }
+
+  mGetPhState = (getNfcPhStatusFnPtr)dlsym(mSecureLibInstance, "getPeripheralState");
+  if(mGetPhState == NULL) {
+    ALOGE("Error linking getPeripheralState\n");
+    goto link_error;
+  }
+
+  mDeregisterPhCb = (deregisterNfcPhCBFnPtr)dlsym(mSecureLibInstance, "deregisterPeripheralCB");
+  if(mDeregisterPhCb == NULL) {
+    ALOGE("Error linking mDeregisterPhCb\n");
+    goto link_error;
   }
 
   /*Register Peripheral*/
-  mSecureModeContext = mRegisterPhCb(pType, notifyNfcPeripheralEvent);
-  if(mSecureModeContext == NULL) {
-    ALOGE("%s: Failed to register Peripheral to TZ\n", __func__);
-    goto on_error;
-  }
-
-  ALOGD("%s: Call back registered for Peripheral[0x%x] \n", __func__, pType);
-  ALOGD("mSecureModeContext = [0x%x] \n", mSecureModeContext);
-
-  mGetPhState = (getNfcPhStatusFnPtr)dlsym(mSecureLibInstance, "getPeripheralState");
-
-  if(mGetPhState == NULL)  {
-    ALOGE("Error linking getPeripheralState\n");
-    goto on_error;
-  }
-
-  pState = mGetPhState(mSecureModeContext);
-  if(pState == PRPHRL_ERROR) {
-    ALOGE("%s: Failed to get Peripheral state from TZ\n", __func__);
-    goto on_error;
-  }
+  if((pState = register_routine(pType)) == PRPHRL_ERROR)
+    goto reg_error;
   ALOGD("%s: Callback registered to TZ and waiting for notification\n", __func__);
 
-  if(pState ==  IPeripheralState_STATE_NONSECURE) {
+  if(pState ==  STATE_NONSECURE) {
     sync_enable = 0;
     phSecureState = 0;
 
@@ -247,24 +315,23 @@ int8_t registerNfcDynamicProtection(void)
   ALOGD("%s success", __func__);
   return status;
 
-on_error:
+reg_error:
   /*
   * Calling this function is must to clean up the
   * resources properly in lib
   */
   mDeregisterPhCb = (deregisterNfcPhCBFnPtr)dlsym(mSecureLibInstance, "deregisterPeripheralCB");
-
-  if(mDeregisterPhCb == NULL) {
-    ALOGE("Error linking deregisterPeripheralCB\n");
+  if(mDeregisterPhCb != NULL) {
+    mDeregisterPhCb(mSecureModeContext);
   }
-
-  mDeregisterPhCb(mSecureModeContext);
-
-  mGetPhState = NULL;
-  mRegisterPhCb = NULL;
-  mDeregisterPhCb = NULL;
+link_error:
   dlclose(mSecureLibInstance);
   mSecureLibInstance = NULL;
+  mRegisterPhCb = NULL;
+  mGetPhState = NULL;
+  mDeregisterPhCb = NULL;
+  mSecureModeContext = NULL;
   status = -1;
   return status;
 }
+#endif

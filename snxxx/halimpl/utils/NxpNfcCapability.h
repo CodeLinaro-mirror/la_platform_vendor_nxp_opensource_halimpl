@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2015-2018,2020-2021 NXP
+ *  Copyright 2015-2018,2020-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,19 +23,25 @@
 class capability {
  private:
   static capability* instance;
+  static const uint8_t sn3XXHWVersion = 0xD3;
+  const uint8_t sn3XXFWRomVersion = 0x02;
+  const uint8_t sn3XXFWMajorVersion = 0x20;
   const uint16_t offsetHwVersion = 24;
+  const uint16_t offsetDlRspChipType = 3;
   const uint16_t offsetFwRomCodeVersion = 4;
   const uint16_t offsetFwMinorVersion = 6;
   const uint16_t offsetFwMajorVersion = 7;
   const uint16_t offsetFwMajorVersion_pn557 = 11;
-  /*product[] will be used to print product version and
-  should be kept in accordance with tNFC_chipType*/
-  const char* product[13] = {"UNKNOWN", "PN547C2", "PN65T", "PN548C2", "PN66T",
-                             "PN551",   "PN67T",   "PN553", "PN80T",   "PN557",
-                             "PN81T",   "sn100u",  "sn220u"};
+  const uint16_t chipTypePN560Variant1 = 0xCA;
+  const uint16_t chipTypePN560Variant2 = 0xCB;
   capability();
 
  public:
+  /*product[] will be used to print product version and
+  should be kept in accordance with tNFC_chipType*/
+  const char* product[15] = {"UNKNOWN", "PN547C2", "PN65T", "PN548C2", "PN66T",
+                             "PN551",   "PN67T",   "PN553", "PN80T",   "PN557",
+                             "PN81T",   "sn100",   "SN220", "pn560",   "SN300"};
   static tNFC_chipType chipType;
   static capability* getInstance();
   tNFC_chipType processChipType(uint8_t* msg, uint16_t msg_len);

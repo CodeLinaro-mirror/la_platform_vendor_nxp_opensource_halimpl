@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ *Changes from Qualcomm Innovation Center are provided under the following license:
+ *Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ *SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #if (NXP_NFC_RECOVERY == TRUE)
 
 #include "phNxpNciHal_Recovery.h"
@@ -27,6 +33,9 @@
 #include <phNxpNciHal_ext.h>
 #include <phOsalNfc_Timer.h>
 #include <phTmlNfc.h>
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
+#include "phNfcDynamicProtection.h"
+#endif
 #undef property_set
 #undef PROPERTY_VALUE_MAX
 #undef property_get
@@ -381,11 +390,18 @@ static bool phNxpNciHal_determineChipTypeDlMode(void) {
  *
  ******************************************************************************/
 void phNxpNciHal_RecoverFWTearDown(void) {
+
   uint8_t nfcc_recovery_support = 0x00;
   // status post boot completed
   const char* status = "Boot-completed";
   char halInitStatus[PROPERTY_VALUE_MAX] = {0};
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
+  if (secure_zone_support()) {
+     if(checkNfcSecureStatus())
+     return;
+  }
+#endif
   NXPLOG_NCIHAL_D("phNxpNciHal_RecoverFWTearDown(): enter \n");
   if (!GetNxpNumValue(NAME_NXP_NFCC_RECOVERY_SUPPORT, &nfcc_recovery_support,
                       sizeof(nfcc_recovery_support))) {

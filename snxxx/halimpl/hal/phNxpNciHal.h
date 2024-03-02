@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2022 NXP
+ * Copyright 2010-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ */
+
 #ifndef _PHNXPNCIHAL_H_
 #define _PHNXPNCIHAL_H_
 
@@ -23,7 +31,7 @@
 #ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClientIntf.h"
 #endif
-#include <vendor/nxp/hardware/nfc/2.0/types.h>
+
 #include "eSEClientExtns.h"
 #include "phNxpNciHal_IoctlOperations.h"
 
@@ -43,6 +51,8 @@
 #define SN1XX_FW_MAJOR_VERSION 0x10
 #define SN2XX_ROM_VERSION 0x01
 #define SN2XX_FW_MAJOR_VERSION 0x01
+#define SN3XX_ROM_VERSION 0x02
+#define SN3XX_FW_MAJOR_VERSION 0x20
 #define SN100_CHIPID "0xa4"
 #define SN220_CHIPID "0xc1"
 
@@ -56,6 +66,7 @@ typedef void(phNxpNciHal_control_granted_callback_t)();
 #define FW_MOBILE_ROM_VERSION_PN551 0x10
 #define FW_MOBILE_ROM_VERSION_PN553 0x11
 #define FW_MOBILE_ROM_VERSION_PN557 0x12
+#define NCI_CMDRESP_MAX_BUFF_SIZE_SN300 (0x22AU)
 #define NCI_CMDRESP_MAX_BUFF_SIZE_SNXXX (0x22AU)
 #define NCI_CMDRESP_MAX_BUFF_SIZE_PN557 (0x102U)
 
@@ -83,12 +94,10 @@ typedef void(phNxpNciHal_control_granted_callback_t)();
 //#define NCI_MSG_CORE_INIT            0x01
 #define NCI_MT_MASK 0xE0
 #define NCI_OID_MASK 0x3F
-#if (NXP_EXTNS == TRUE)
 /* GID: Group Identifier (byte 0) */
 #define NCI_GID_MASK 0x0F
 #define ORIG_NXPHAL 0x01
 #define ORIG_LIBNFC 0x02
-#endif
 #define NXP_PROPCMD_GID 0x2F
 #define NXP_FLUSH_SRAM_AO_TO_FLASH 0x21
 #define NXP_CORE_GET_CONFIG_CMD 0x03
@@ -184,6 +193,8 @@ typedef struct phNxpNciHal_Control {
   /* to store and restore gpio values */
   phNxpNciGpioInfo_t phNxpNciGpioInfo;
   tNFC_chipType chipType;
+  bool_t power_reset_triggered;
+  bool_t isUlpdetModeEnabled;
 } phNxpNciHal_Control_t;
 
 typedef struct {
@@ -207,7 +218,7 @@ typedef struct phNxpNciMwEepromArea {
   uint8_t p_rx_data[32];
 } phNxpNciMwEepromArea_t;
 
-enum { SE_TYPE_ESE, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
+enum { SE_TYPE_ESE, SE_TYPE_EUICC, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
 
 typedef void (*fpVerInfoStoreInEeprom_t)();
 typedef int (*fpVerifyCscEfsTest_t)(char* nfcc_csc, char* rffilepath,
@@ -262,7 +273,10 @@ typedef enum {
   EEPROM_UICC2_SESSION_ID,
   EEPROM_CE_ACT_NTF,
   EEPROM_UICC_HCI_CE_STATE,
-  EEPROM_EXT_FIELD_DETECT_MODE
+  EEPROM_EXT_FIELD_DETECT_MODE,
+  EEPROM_CONF_GPIO_CTRL,
+  EEPROM_SET_GPIO_VALUE,
+  EEPROM_POWER_TRACKER_ENABLE
 } phNxpNci_EEPROM_request_type_t;
 
 typedef struct phNxpNci_EEPROM_info {
@@ -315,6 +329,8 @@ typedef struct phNxpNciProfile_Control {
 #define NCIHAL_CMD_CODE_LEN_BYTE_OFFSET (2U)
 #define NCIHAL_CMD_CODE_BYTE_LEN (3U)
 
+/*NFC HAL secure zone event*/
+#define HAL_TZ_SECURE_ZONE_DISABLE_NFC_EVT 0xC1
 /******************** NCI HAL exposed functions *******************************/
 int phNxpNciHal_check_ncicmd_write_window(uint16_t cmd_len, uint8_t* p_cmd);
 void phNxpNciHal_request_control(void);

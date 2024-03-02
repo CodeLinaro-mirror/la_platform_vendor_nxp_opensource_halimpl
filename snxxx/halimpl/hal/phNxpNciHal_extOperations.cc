@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2022 NXP
+ * Copyright 2019-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,37 @@
 
 #include "phNxpNciHal_extOperations.h"
 #include <phNxpLog.h>
+#include <phTmlNfc.h>
 #include "phNfcCommon.h"
 #include "phNxpNciHal_IoctlOperations.h"
 
 #define NCI_HEADER_SIZE 3
 #define NCI_SE_CMD_LEN 4
 nxp_nfc_config_ext_t config_ext;
-static std::vector<uint8_t> uicc1HciParams(0);
-static std::vector<uint8_t> uicc2HciParams(0);
-static std::vector<uint8_t> uiccHciCeParams(0);
+static vector<uint8_t> uicc1HciParams(0);
+static vector<uint8_t> uicc2HciParams(0);
+static vector<uint8_t> uiccHciCeParams(0);
+extern phNxpNciHal_Control_t nxpncihal_ctrl;
+extern NFCSTATUS phNxpNciHal_ext_send_sram_config_to_flash();
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_getExtVendorConfig()
+**
+** Description      this function gets and updates the extension params
+**
+*******************************************************************************/
+void phNxpNciHal_getExtVendorConfig() {
+  unsigned long num = 0;
+  memset(&config_ext, 0x00, sizeof(nxp_nfc_config_ext_t));
+
+  if ((GetNxpNumValue(NAME_NXP_AUTONOMOUS_ENABLE, &num, sizeof(num)))) {
+    config_ext.autonomous_mode = (uint8_t)num;
+  }
+  if ((GetNxpNumValue(NAME_NXP_GUARD_TIMER_VALUE, &num, sizeof(num)))) {
+    config_ext.guard_timer_value = (uint8_t)num;
+  }
+}
 
 /******************************************************************************
  * Function         phNxpNciHal_updateAutonomousPwrState
@@ -53,8 +75,8 @@ uint8_t phNxpNciHal_updateAutonomousPwrState(uint8_t num) {
  ******************************************************************************/
 NFCSTATUS phNxpNciHal_setAutonomousMode() {
   if (IS_CHIP_TYPE_L(sn100u)) {
-    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %d", __func__,
-                    nfcFL.chipType);
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
     return NFCSTATUS_SUCCESS;
   }
   phNxpNci_EEPROM_info_t mEEPROM_info = {.request_mode = 0};
@@ -111,6 +133,9 @@ static int8_t get_system_property_se_type(uint8_t se_type) {
     case SE_TYPE_ESE:
       len = property_get("nfc.product.support.ese", valueStr, "");
       break;
+    case SE_TYPE_EUICC:
+      len = property_get("nfc.product.support.euicc", valueStr, "");
+      break;
     case SE_TYPE_UICC:
       len = property_get("nfc.product.support.uicc", valueStr, "");
       break;
@@ -152,6 +177,15 @@ void phNxpNciHal_read_and_update_se_state() {
           num_se++;
         }
         break;
+      case SE_TYPE_EUICC:
+        NXPLOG_NCIHAL_D("Get property : SUPPORT_EUICC %d", val);
+        values[SE_TYPE_EUICC] = val;
+        // Since eSE and eUICC share the same config address
+        // They account for one SE
+        if (val > -1 && values[SE_TYPE_ESE] == -1) {
+          num_se++;
+        }
+        break;
       case SE_TYPE_UICC:
         NXPLOG_NCIHAL_D("Get property : SUPPORT_UICC %d", val);
         values[SE_TYPE_UICC] = val;
@@ -181,12 +215,26 @@ void phNxpNciHal_read_and_update_se_state() {
   for (i = 0; i < NUM_SE_TYPES; i++) {
     switch (i) {
       case SE_TYPE_ESE:
-        if (values[SE_TYPE_ESE] > -1) {
-          *index++ = 0xA0;
-          *index++ = 0xED;
-          *index++ = 0x01;
-          *index++ = values[SE_TYPE_ESE];
+      case SE_TYPE_EUICC:
+        if (values[SE_TYPE_ESE] == -1 && values[SE_TYPE_EUICC] == -1) {
+          // No value defined
+          break;
         }
+        *index++ = 0xA0;
+        *index++ = 0xED;
+        *index++ = 0x01;
+
+        *index = 0x00;
+        if (values[SE_TYPE_ESE] > -1) {
+          *index = *index | values[SE_TYPE_ESE];
+        }
+        if (values[SE_TYPE_EUICC] > -1) {
+          *index = *index | values[SE_TYPE_EUICC] << 1;
+        }
+        NXPLOG_NCIHAL_D("Combined value for eSE/eUICC is 0x%.2x", *index);
+        index++;
+        i++;  // both cases taken care
+
         break;
       case SE_TYPE_UICC:
         if (values[SE_TYPE_UICC] > -1) {
@@ -210,7 +258,7 @@ void phNxpNciHal_read_and_update_se_state() {
   while (status != NFCSTATUS_SUCCESS && retry_cnt < 3) {
     status = phNxpNciHal_send_ext_cmd(sizeof(set_cfg_cmd), set_cfg_cmd);
     retry_cnt++;
-    NXPLOG_NCIHAL_E("Get Cfg Retry cnt=%x", retry_cnt);
+    NXPLOG_NCIHAL_E("set Cfg Retry cnt=%x", retry_cnt);
   }
 }
 
@@ -357,7 +405,7 @@ NFCSTATUS phNxpNciHal_restore_uicc_params() {
  *
  ******************************************************************************/
 NFCSTATUS
-phNxpNciHal_get_uicc_hci_params(std::vector<uint8_t>& ptr, uint8_t bufflen,
+phNxpNciHal_get_uicc_hci_params(vector<uint8_t>& ptr, uint8_t bufflen,
                                 phNxpNci_EEPROM_request_type_t uiccType) {
   if (IS_CHIP_TYPE_L(sn220u)) {
     NXPLOG_NCIHAL_E("%s Not supported", __func__);
@@ -385,7 +433,7 @@ phNxpNciHal_get_uicc_hci_params(std::vector<uint8_t>& ptr, uint8_t bufflen,
  *
  *****************************************************************************/
 NFCSTATUS
-phNxpNciHal_set_uicc_hci_params(std::vector<uint8_t>& ptr, uint8_t bufflen,
+phNxpNciHal_set_uicc_hci_params(vector<uint8_t>& ptr, uint8_t bufflen,
                                 phNxpNci_EEPROM_request_type_t uiccType) {
   if (IS_CHIP_TYPE_L(sn220u)) {
     NXPLOG_NCIHAL_E("%s Not supported", __func__);
@@ -443,8 +491,8 @@ NFCSTATUS phNxpNciHal_send_get_cfg(const uint8_t* cmd_get_cfg, long cmd_len) {
  *****************************************************************************/
 NFCSTATUS phNxpNciHal_configure_merge_sak() {
   if (IS_CHIP_TYPE_L(sn100u)) {
-    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %d", __func__,
-                    nfcFL.chipType);
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
     return NFCSTATUS_SUCCESS;
   }
   long retlen = 0;
@@ -466,7 +514,7 @@ NFCSTATUS phNxpNciHal_configure_merge_sak() {
   mEEPROM_info.request_mode = SET_EEPROM_DATA;
   return request_EEPROM(&mEEPROM_info);
 }
-#if (NXP_EXTNS == TRUE && NXP_SRD == TRUE)
+#if (NXP_SRD == TRUE)
 /******************************************************************************
  * Function         phNxpNciHal_setSrdtimeout
  *
@@ -554,4 +602,78 @@ NFCSTATUS phNxpNciHal_setExtendedFieldMode() {
     }
   }
   return status;
+}
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_configGPIOControl()
+**
+** Description      Helper function to configure GPIO control
+**
+** Parameters       gpioControl - Byte array with first two bytes are used to
+**                  configure gpio for specific functionality (ex:ULPDET,
+**                  GPIO LEVEL ...) and 3rd byte indicates the level of GPIO
+**                  to be set.
+**                  len        - Len of byte array
+**
+** Returns          NFCSTATUS_FAILED or NFCSTATUS_SUCCESS
+*******************************************************************************/
+NFCSTATUS phNxpNciHal_configGPIOControl(uint8_t gpioCtrl[], uint8_t len) {
+  NFCSTATUS status = NFCSTATUS_SUCCESS;
+
+  if (len == 0) {
+    return NFCSTATUS_INVALID_PARAMETER;
+  }
+  if (nfcFL.chipType <= sn100u) {
+    NXPLOG_NCIHAL_D("%s : Not applicable for chipType %s", __func__,
+                    pConfigFL->product[nfcFL.chipType]);
+    return status;
+  }
+  phNxpNci_EEPROM_info_t mEEPROM_info = {.request_mode = 0};
+
+  mEEPROM_info.request_mode = SET_EEPROM_DATA;
+  mEEPROM_info.buffer = (uint8_t*)gpioCtrl;
+  // First two bytes decides purpose of GPIO config
+  // LIKE ULPDET, GPIO CTRL
+  mEEPROM_info.bufflen = 2;
+  mEEPROM_info.request_type = EEPROM_CONF_GPIO_CTRL;
+
+  status = request_EEPROM(&mEEPROM_info);
+  if (status != NFCSTATUS_SUCCESS) {
+    NXPLOG_NCIHAL_D("%s : Failed to Enable GPIO ctrl", __func__);
+    return status;
+  }
+  if (len >= 3) {
+    mEEPROM_info.request_mode = SET_EEPROM_DATA;
+    mEEPROM_info.buffer = gpioCtrl + 2;
+    // Last byte contains bitmask of GPIO 2/3 values.
+    mEEPROM_info.bufflen = 1;
+    mEEPROM_info.request_type = EEPROM_SET_GPIO_VALUE;
+
+    status = request_EEPROM(&mEEPROM_info);
+    if (status != NFCSTATUS_SUCCESS) {
+      NXPLOG_NCIHAL_D("%s : Failed to set GPIO ctrl", __func__);
+    }
+  }
+  return status;
+}
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_decodeGpioStatus()
+**
+** Description      this function decodes gpios status of the nfc pins
+**
+*******************************************************************************/
+void phNxpNciHal_decodeGpioStatus(void) {
+  NFCSTATUS status = NFCSTATUS_SUCCESS;
+  status = phNxpNciHal_GetNfcGpiosStatus(&gpios_data.gpios_status_data);
+  if (status != NFCSTATUS_SUCCESS) {
+    NXPLOG_NCIHAL_E("Get Gpio Status: Failed");
+  } else {
+    NXPLOG_NCIR_D("%s: NFC_IRQ = %d NFC_VEN = %d NFC_FW_DWL =%d", __func__,
+                  gpios_data.platform_gpios_status.irq,
+                  gpios_data.platform_gpios_status.ven,
+                  gpios_data.platform_gpios_status.fw_dwl);
+  }
 }

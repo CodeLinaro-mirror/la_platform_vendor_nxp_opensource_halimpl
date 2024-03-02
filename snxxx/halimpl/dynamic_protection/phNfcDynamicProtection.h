@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -32,6 +32,7 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef NFC_SECURE_PERIPHERAL_ENABLED
 #include <linux/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -44,12 +45,13 @@
 #include <dlfcn.h>
 
 #define NFC_DEV_NODE_NAME "/dev/nq-nci"
-#define NFC_SECURE_ZONE _IOW(0xE9, 0x0A, unsigned int)
+#define NFC_SECURE_ZONE _IOW(0xE9, 0x0A, uint32_t)
 
 typedef int32_t (*PeripheralStateCB)(const uint32_t peripheral, const uint8_t state);
 
 int8_t registerNfcDynamicProtection();
 uint8_t checkNfcSecureStatus();
 int notifyNfcDriver(int opt);
+int register_routine(uint32_t pUID);
 
-
+#endif

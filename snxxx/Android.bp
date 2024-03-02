@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018-2019 The Android Open Source Project
+// Copyright (C) 2018-2019, 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 //
 //  The original Work has been changed by NXP.
-//  Copyright (C) 2021-2022 NXP
+//  Copyright (C) 2021-2023 NXP
 
 package {
     // See: http://go/android-license-faq
@@ -26,16 +26,36 @@ package {
     default_applicable_licenses: ["vendor_nxp_nfc_license"],
 }
 
+soong_config_module_type_import {
+    from: "vendor/nxp/opensource/halimpl/snxxx/SoongConfig.bp",
+    module_types: ["nfc_cc_defaults"],
+}
+
+nfc_cc_defaults {
+    name: "nfc-defaults-instance",
+    soong_config_variables: {
+        board_secure_peripheral_framework: {
+            pineapple: {
+                cflags: ["-DNFC_SECURE_PERIPHERAL_ENABLED"],
+            },
+            blair: {},
+            conditions_default: {},
+        },
+    },
+}
+
+
 cc_library_shared {
     name: "nfc_nci.nqx.default.hw",
-    defaults: ["hidl_defaults"],
+    defaults: ["hidl_defaults",
+                "nfc-defaults-instance",
+            ],
     vendor: true,
 
     cflags: [
         "-Wall",
         "-Werror",
         "-Wextra",
-        "-DNXP_EXTNS=TRUE",
         "-DNXP_HW_SELF_TEST=TRUE",
         "-DNXP_SRD=TRUE",
         "-DNXP_NFC_RECOVERY=TRUE",
@@ -43,7 +63,6 @@ cc_library_shared {
         "-DNXP_FORCE_FW_DOWNLOAD=1",
         "-DNXP_BOOTTIME_UPDATE",
     ],
-
     srcs: [
         "halimpl/dnld/phDnldNfc.cc",
         "halimpl/dnld/phDnldNfc_Internal.cc",
@@ -67,12 +86,17 @@ cc_library_shared {
         "halimpl/utils/phNxpConfig.cc",
         "halimpl/utils/phNqChipInfo.cc",
         "halimpl/utils/phNxpNciHal_utils.cc",
+        "halimpl/utils/phNxpEventLogger.cc",
         "halimpl/utils/sparse_crc32.cc",
+        "halimpl/utils/IntervalTimer.cpp",
         "halimpl/eseclients_extns/src/*.cc",
         "halimpl/hal/phNxpNciHal_IoctlOperations.cc",
         "halimpl/hal/phNxpNciHal_extOperations.cc",
+        "halimpl/hal/phNxpNciHal_ULPDet.cc",
         "halimpl/mifare/NxpMfcReader.cc",
         "halimpl/recovery/phNxpNciHal_Recovery.cc",
+        "halimpl/dynamic_protection/phNfcDynamicProtection.cc",
+        "halimpl/hal/phNxpNciHal_PowerTrackerIface.cc",
     ],
 
     local_include_dirs: [
@@ -88,8 +112,12 @@ cc_library_shared {
         "halimpl/eseclients_extns/inc",
         "halimpl/src/include",
         "halimpl/mifare",
-        "extns/impl/nxpnfc/2.0",
         "halimpl/recovery",
+        "halimpl/dynamic_protection",
+    ],
+
+    include_dirs: [
+        "hardware/nxp/secure_element/snxxx/extns/impl",
     ],
 
     export_include_dirs: [
@@ -102,14 +130,10 @@ cc_library_shared {
         "halimpl/mifare",
         "halimpl/eseclients_extns/inc",
         "halimpl/recovery",
+        "halimpl/dynamic_protection",
     ],
 
     shared_libs: [
-        "android.hardware.nfc@1.0",
-        "android.hardware.nfc@1.1",
-        "android.hardware.nfc@1.2",
-        "vendor.nxp.hardware.nfc@2.0",
-        "android.hardware.secure_element@1.0",
         "libbase",
         "libcutils",
         "libdl",
@@ -118,16 +142,40 @@ cc_library_shared {
         "libhidlbase",
         "liblog",
         "libutils",
+        "libbinder_ndk",
+        "vendor.nxp.nxpese@1.0",
     ],
-
     header_libs: [
         "libese_client_headers",
         "qti_nfc_kernel_headers",
-        "nxpnfc_2_includes",
+        "peripheralstate_headers",
+        "mink_headers",
+        "nqpower_tracker_headers",
     ],
 
     sanitize: {
         cfi: true,
         integer_overflow: true,
     },
+}
+
+cc_library_headers {
+    name: "nqnfc_nci_nxp_snxxx_headers",
+    vendor: true,
+    export_include_dirs: [
+        "halimpl/common",
+        "halimpl/dnld",
+        "halimpl/hal",
+        "halimpl/inc",
+        "halimpl/log",
+        "halimpl/self-test",
+        "halimpl/tml/transport",
+        "halimpl/tml",
+        "halimpl/utils",
+        "halimpl/eseclients_extns/inc",
+        "halimpl/src/include",
+        "halimpl/mifare",
+        "extns/impl/nxpnfc/2.0",
+        "halimpl/recovery",
+    ],
 }
