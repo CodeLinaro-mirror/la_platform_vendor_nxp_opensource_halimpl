@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 NXP
+ * Copyright 2021-2024 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -507,24 +507,27 @@ static NFCSTATUS phnxpNciHal_partialOpen(void) {
   phTmlNfc_Config_t tTmlConfig;
   char* nfc_dev_node = NULL;
 
+  CONCURRENCY_LOCK();
   NXPLOG_NCIHAL_D("phnxpNciHal_partialOpen(): enter");
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN) {
     NXPLOG_NCIHAL_D("phNxpNciHal: already open");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_SUCCESS;
   }
   /* initialize trace level */
   phNxpLog_InitializeLogLevel();
   if (phNxpNciHal_init_monitor() == NULL) {
     NXPLOG_NCIHAL_E("Init monitor failed");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_FAILED;
   }
   /* Create the local semaphore */
   if (phNxpNciHal_init_cb_data(&nxpncihal_ctrl.ext_cb_data, NULL) !=
       NFCSTATUS_SUCCESS) {
     NXPLOG_NCIHAL_D("Create ext_cb_data failed");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_FAILED;
   }
-  CONCURRENCY_LOCK();
   memset(&tOsalConfig, 0x00, sizeof(tOsalConfig));
   memset(&tTmlConfig, 0x00, sizeof(tTmlConfig));
   memset(&nxpprofile_ctrl, 0, sizeof(phNxpNciProfile_Control_t));
@@ -544,13 +547,13 @@ static NFCSTATUS phnxpNciHal_partialOpen(void) {
                              NXP_MAX_CONFIG_STRING_LEN)) {
     NXPLOG_NCIHAL_D(
         "Invalid nfc device node name keeping the default device node "
-        "/dev/pn54x");
-    strlcpy(nfc_dev_node, "/dev/pn54x",
+        "/dev/nxp-nci");
+    strlcpy(nfc_dev_node, "/dev/nxp-nci",
             (NXP_MAX_CONFIG_STRING_LEN * sizeof(char)));
   }
   /* Configure hardware link */
   nxpncihal_ctrl.gDrvCfg.nClientId = phDal4Nfc_msgget(0, 0600);
-  nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I2C; /* For PN54X */
+  nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I2C; /* For NFCC */
   tTmlConfig.pDevName = (int8_t*)nfc_dev_node;
   tOsalConfig.dwCallbackThreadId = (uintptr_t)nxpncihal_ctrl.gDrvCfg.nClientId;
   tOsalConfig.pLogFile = NULL;

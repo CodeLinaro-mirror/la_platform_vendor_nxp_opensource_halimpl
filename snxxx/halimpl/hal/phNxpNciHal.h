@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2023 NXP
+ * Copyright 2010-2024 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 
 #include <hardware/nfc.h>
 #include <phNxpNciHal_utils.h>
+#include <vector>
 #include "NxpMfcReader.h"
 #include "NxpNfcCapability.h"
 #ifdef NXP_BOOTTIME_UPDATE
@@ -200,13 +201,19 @@ typedef struct phNxpNciClock {
 
 typedef struct phNxpNciRfSetting {
   bool_t isGetRfSetting;
-  uint8_t p_rx_data[20];
+  vector<uint8_t> p_rx_data;
 } phNxpNciRfSetting_t;
 
 typedef struct phNxpNciMwEepromArea {
   bool_t isGetEepromArea;
   uint8_t p_rx_data[32];
 } phNxpNciMwEepromArea_t;
+
+struct phRfMiscSettings {
+  const char* configName;
+  int configPosition;
+  uint8_t configBitMask;
+};
 
 enum { SE_TYPE_ESE, SE_TYPE_EUICC, SE_TYPE_UICC, SE_TYPE_UICC2, NUM_SE_TYPES };
 
@@ -430,5 +437,28 @@ NFCSTATUS phNxpNciHal_save_uicc_params();
  *
  ******************************************************************************/
 NFCSTATUS phNxpNciHal_restore_uicc_params();
+
+/******************************************************************************
+ * Function         phNxpNciHal_client_data_callback
+ *
+ * Description      This will process the data and sends message to lib-nfc
+ *                  client via callback
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+void phNxpNciHal_client_data_callback();
+
+/******************************************************************************
+ * Function         phNxpNciHal_UpdateRfMiscSettings
+ *
+ * Description      This will look the configuration properties and
+ *                  update the RF misc settings
+ *
+ * Returns          bool - true if the RF Misc settings update required
+ *                      otherwise false
+ *
+ ******************************************************************************/
+bool phNxpNciHal_UpdateRfMiscSettings();
 
 #endif /* _PHNXPNCIHAL_H_ */
