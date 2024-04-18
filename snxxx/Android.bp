@@ -15,7 +15,7 @@
 
 //
 //  The original Work has been changed by NXP.
-//  Copyright (C) 2021-2023 NXP
+//  Copyright (C) 2021-2024 NXP
 
 package {
     // See: http://go/android-license-faq
@@ -90,6 +90,9 @@ cc_library_shared {
         "halimpl/hal/phNxpNciHal_IoctlOperations.cc",
         "halimpl/hal/phNxpNciHal_extOperations.cc",
         "halimpl/hal/phNxpNciHal_ULPDet.cc",
+        "halimpl/observe_mode/NciDiscoveryCommandBuilder.cc",
+        "halimpl/observe_mode/ReaderPollConfigParser.cc",
+        "halimpl/observe_mode/ObserveMode.cc",
         "halimpl/mifare/NxpMfcReader.cc",
         "halimpl/recovery/phNxpNciHal_Recovery.cc",
         "halimpl/dynamic_protection/phNfcDynamicProtection.cc",
@@ -109,6 +112,7 @@ cc_library_shared {
         "halimpl/src/include",
         "halimpl/mifare",
         "halimpl/recovery",
+        "halimpl/observe_mode",
         "halimpl/dynamic_protection",
     ],
 
