@@ -160,6 +160,8 @@ typedef enum
   TARGET_SMP_MILOS                     = 641, /**< SMP_MILOS target */
   TARGET_SM_MILOS                      = 640, /**< SMP_MILOS target */
   TARGET_SM_KIMOLOS                    = 636, /**< SMP_KIMOLOS target */
+  TARGET_IOT_QCM_MILOS                 = 657, /**< MILOS QCM IOT with Modem target*/
+  TARGET_IOT_QCS_MILOS                 = 658, /**< MILOS QCS  without Modem target*/
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -426,6 +428,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_MILOS:
         case TARGET_SM_MILOS:
         case TARGET_SM_KIMOLOS:
+        case TARGET_IOT_QCM_MILOS:
+        case TARGET_IOT_QCS_MILOS:
             //SN220 V1
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -465,6 +469,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_MILOS:
         case TARGET_SM_MILOS:
         case TARGET_SM_KIMOLOS:
+        case TARGET_IOT_QCM_MILOS:
+        case TARGET_IOT_QCS_MILOS:
             //SN220 V1
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
