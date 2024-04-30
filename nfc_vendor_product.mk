@@ -1,5 +1,5 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, pineapple blair pitti),true)
+ifeq ($(call is-board-platform-in-list, pineapple blair pitti volcano),true)
 TARGET_USES_NQ_NFC := true
 endif
 
