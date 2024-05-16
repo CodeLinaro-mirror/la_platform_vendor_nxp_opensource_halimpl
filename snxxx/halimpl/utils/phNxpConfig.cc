@@ -146,6 +146,7 @@ typedef enum
 typedef enum
 {
   TARGET_GENERIC                       = 0x00,/**< new targets */
+  TARGET_SM_KALPENI                    = 623, /**< SM_KALPENI target */
   TARGET_SM_LANAI                      = 557, /**< SM_LANAI target */
   TARGET_SMP_LANAI                     = 577, /**< SMP_LANAI target */
   TARGET_STRAIT                        = 507, /**< STRAIT target */
@@ -156,6 +157,9 @@ typedef enum
   TARGET_SM_PALAWAN7                   = 632, /**< SM_PALAWAN7 target */
   TARGET_SMP_PALAWAN                   = 642, /**< SMP_PALAWAN target */
   TARGET_SMP_LAMMA                     = 643, /**< SMP_LAMMA target */
+  TARGET_SMP_MILOS                     = 641, /**< SMP_MILOS target */
+  TARGET_SM_MILOS                      = 640, /**< SMP_MILOS target */
+  TARGET_SM_KIMOLOS                    = 636, /**< SMP_KIMOLOS target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -414,10 +418,18 @@ int CNfcConfig::getconfiguration_id (char * config_file)
 	case TARGET_SMP_STRAIT:
         case TARGET_SM_MANNAR:
         case TARGET_SM_MANNAR_H:
+        case TARGET_SM_KALPENI:
 	     // SN110 or SN100
 	    config_id = GENERIC_19_2_TYPE_SN1xx;
 	    strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
 	    break;
+        case TARGET_SMP_MILOS:
+        case TARGET_SM_MILOS:
+        case TARGET_SM_KIMOLOS:
+            //SN220 V1
+            config_id = GENERIC_19_2_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
         case TARGET_SM_PALAWAN:
@@ -445,9 +457,17 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_STRAIT:
         case TARGET_SM_MANNAR:
         case TARGET_SM_MANNAR_H:
+        case TARGET_SM_KALPENI:
              // SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_SMP_MILOS:
+        case TARGET_SM_MILOS:
+        case TARGET_SM_KIMOLOS:
+            //SN220 V1
+            config_id = GENERIC_19_2_TYPE_SN220;
+            strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
         case TARGET_SM_LANAI:
         case TARGET_SMP_LANAI:
