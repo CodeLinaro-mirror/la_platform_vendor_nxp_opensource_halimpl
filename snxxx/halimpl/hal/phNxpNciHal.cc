@@ -1909,7 +1909,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
   }
   config_access = false;
   if ((true == fw_dwnld_flag) || (true == setConfigAlways) ||
-      isNxpRFConfigModified()) {
+      isNxpConfigModified()) {
     unsigned long loopcnt = 0;
 
     do {

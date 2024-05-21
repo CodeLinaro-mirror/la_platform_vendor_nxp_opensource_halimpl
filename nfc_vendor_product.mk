@@ -1,5 +1,5 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, sun),true)
+ifeq ($(call is-board-platform-in-list, sun parrot_66),true)
 TARGET_USES_NQ_NFC := true
 endif
 
@@ -27,7 +27,7 @@ ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
 endif
 endif
 
-ifeq ($(call is-board-platform-in-list, blair),true)
+ifeq ($(call is-board-platform-in-list, blair parrot_66),true)
 TARGET_ENABLE_PERIPHERAL_CONTROL := false
 ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
     $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
