@@ -425,16 +425,16 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
-	case TARGET_SM_CAMANO:
+        case TARGET_SM_CAMANO:
         case TARGET_SM_SHAW:
-	    if (!strcmp(nq_chip_info.nq_chipid, SN220_CHIP_ID)) {
-                // SN220
-                config_id = GENERIC_19_2_TYPE_SN220;
-                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            } else {
+	    if (!strcmp(nq_chip_info.nq_chipid, SN100_CHIP_ID)) {
                 // SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
                 strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+	    } else {
+                // SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
         case TARGET_SM6125_QCM:
@@ -476,16 +476,16 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
-	case TARGET_SM_CAMANO:
+        case TARGET_SM_CAMANO:
         case TARGET_SM_SHAW:
-	    if (!strcmp(nq_chip_info.nq_chipid, SN220_CHIP_ID)) {
-                 // SN220
-                 config_id = GENERIC_19_2_TYPE_SN220;
-                 strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
-            } else {
+	    if (!strcmp(nq_chip_info.nq_chipid, SN100_CHIP_ID)) {
                 // SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
                 strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                // SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
 	    break;
         case TARGET_SM6125_QCM:
