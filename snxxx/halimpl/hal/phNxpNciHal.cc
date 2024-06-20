@@ -1761,7 +1761,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
       mEEPROM_info.bufflen = auth_timeout_buffer_length;
       mEEPROM_info.request_type = EEPROM_AUTH_CMD_TIMEOUT;
       status = request_EEPROM(&mEEPROM_info);
-      if (NFCSTATUS_SUCCESS == status) {
+      if ((mGetCfg_info != NULL) && (NFCSTATUS_SUCCESS == status)) {
         memcpy(&mGetCfg_info->auth_cmd_timeout, mEEPROM_info.buffer,
                mEEPROM_info.bufflen);
         mGetCfg_info->auth_cmd_timeoutlen = mEEPROM_info.bufflen;
@@ -3832,7 +3832,10 @@ NFCSTATUS phNxpNciHal_send_get_cfgs() {
     cfg_count++;
     retry_cnt = 0;
   }
-  mGetCfg_info->isGetcfg = false;
+
+  if(mGetCfg_info != NULL){
+    mGetCfg_info->isGetcfg = false;
+  }
   return status;
 }
 
