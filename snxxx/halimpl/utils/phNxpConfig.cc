@@ -151,6 +151,11 @@ typedef enum
   TARGET_GENERIC                       = 0x00,/**< new targets */
   TARGET_SM8750                        = 618, /**< PAKALA target */
   TARGET_SM8750P                       = 639, /**< SMP_PAKALA target */
+  TARGET_SM_NETRANI                    = 537, /**< SM_NETRANI target */
+  TARGET_SCP_NETRANI                   = 583, /**< SCP_NETRANI target */
+  TARGET_SCQ_NETRANI                   = 631, /**< SCQ_NETRANI target*/
+  TARGET_SM_NETRANI7                   = 613, /**< SM_NETRANI7 target */
+  TARGET_SCP_NETRANI7                  = 638, /**< SCP_NETRANI7 target */
   TARGET_SM_NETRANIPRO                 = 663, /**< SM_NETRANIPRO target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
@@ -418,6 +423,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
 	    break;
+        case TARGET_SM_NETRANI:
+        case TARGET_SCP_NETRANI:
+        case TARGET_SCQ_NETRANI:
+        case TARGET_SM_NETRANI7:
+        case TARGET_SCP_NETRANI7:
         case TARGET_SM_NETRANIPRO:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
@@ -448,6 +458,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
+        case TARGET_SM_NETRANI:
+        case TARGET_SCP_NETRANI:
+        case TARGET_SCQ_NETRANI:
+        case TARGET_SM_NETRANI7:
+        case TARGET_SCP_NETRANI7:
         case TARGET_SM_NETRANIPRO:
             // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
