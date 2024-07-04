@@ -159,6 +159,8 @@ typedef enum
   TARGET_SM_NETRANIPRO                 = 663, /**< SM_NETRANIPRO target */
   TARGET_SMP_CLARENCE                  = 602, /**< SMP_CLARENCE target */
   TARGET_SM_CLARENCE                   = 568, /**< SM_CLARENCE target */
+  TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
+  TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -431,6 +433,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_NETRANI7:
         case TARGET_SCP_NETRANI7:
         case TARGET_SM_NETRANIPRO:
+        case TARGET_SGP_NETRANI:
+        case TARGET_SG_NETRANI:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -472,6 +476,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_NETRANI7:
         case TARGET_SCP_NETRANI7:
         case TARGET_SM_NETRANIPRO:
+        case TARGET_SGP_NETRANI:
+        case TARGET_SG_NETRANI:
             // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
