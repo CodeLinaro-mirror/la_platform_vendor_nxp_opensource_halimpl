@@ -157,6 +157,8 @@ typedef enum
   TARGET_SM_NETRANI7                   = 613, /**< SM_NETRANI7 target */
   TARGET_SCP_NETRANI7                  = 638, /**< SCP_NETRANI7 target */
   TARGET_SM_NETRANIPRO                 = 663, /**< SM_NETRANIPRO target */
+  TARGET_SMP_CLARENCE                  = 602, /**< SMP_CLARENCE target */
+  TARGET_SM_CLARENCE                   = 568, /**< SM_CLARENCE target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -433,7 +435,13 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
-        default:
+       case TARGET_SMP_CLARENCE:
+       case TARGET_SM_CLARENCE:
+            //SN110
+            config_id =  GENERIC_19_2_TYPE_SN1xx;
+            strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+	default:
             config_id = QRD_TYPE_DEFAULT;
             strlcpy(config_file, config_name_qrd, MAX_DATA_CONFIG_PATH_LEN);
             break;
@@ -467,6 +475,12 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_SMP_CLARENCE:
+        case TARGET_SM_CLARENCE:
+            //SN110
+            config_id = GENERIC_19_2_TYPE_SN1xx;
+            strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
 	default:
             config_id = MTP_TYPE_DEFAULT;
