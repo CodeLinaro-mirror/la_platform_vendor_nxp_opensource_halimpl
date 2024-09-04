@@ -167,15 +167,11 @@ phNxpNciHal_get_uicc_hci_params(vector<uint8_t>& ptr, uint8_t bufflen,
  *
  * Description      This function can be used to set nfcc extended field mode
  *
- * Params           requestedBy CONFIG to set it from the CONFIGURATION
- *                              API  to set it from ObserverMode API
- *
  * Returns          NFCSTATUS_FAILED or NFCSTATUS_SUCCESS or
  *                  NFCSTATUS_FEATURE_NOT_SUPPORTED
  *
  ******************************************************************************/
-NFCSTATUS phNxpNciHal_setExtendedFieldMode(
-    tNFC_requestedBy requestedBy = CONFIG, bool flag = false);
+NFCSTATUS phNxpNciHal_setExtendedFieldMode();
 
 /*******************************************************************************
 **
@@ -237,8 +233,32 @@ int phNxpNciHal_handleVendorSpecificCommand(uint16_t data_len,
 **
 ** Function         phNxpNciHal_vendorSpecificCallback()
 **
-** Params           oid, opcode, status
+** Params           oid, opcode, data
 ** Description      This function sends response to Vendor Specific commands
 **
 *******************************************************************************/
-void phNxpNciHal_vendorSpecificCallback(int oid, int opcode, int status);
+void phNxpNciHal_vendorSpecificCallback(int oid, int opcode,
+                                        vector<uint8_t> data);
+
+/*******************************************************************************
+**
+** Function         phNxpNciHal_isObserveModeSupported()
+**
+** Description      check's the observe mode supported or not based on the
+**                  config value
+**
+** Returns          bool: true if supported, otherwise false
+*******************************************************************************/
+bool phNxpNciHal_isObserveModeSupported();
+
+/*******************************************************************************
+ *
+ * Function         handleGetCapability()
+ *
+ * Description      Get Capability command is not supported, hence returning
+ *                  failure
+ *
+ * Returns          It returns number of bytes received.
+ *
+ ******************************************************************************/
+int handleGetCapability(uint16_t data_len, const uint8_t* p_data);
