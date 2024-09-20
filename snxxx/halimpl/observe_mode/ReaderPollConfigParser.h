@@ -24,30 +24,32 @@ typedef void(reader_poll_info_callback_t)(uint16_t data_len, uint8_t* p_data);
  * @brief This class handles the parsing of Lx notifications and
  * send reader poll info notification's. It identifis A, B and F
  * Modulation event's and RF ON & OFF event's, all the other
- * notifications it considers it as Unknow event's
+ * notifications it considers it as Unknown event's
  *
  */
 class ReaderPollConfigParser {
  private:
   reader_poll_info_callback_t* callback = nullptr;
   uint8_t lastKnownGain = 0x00;
+  uint8_t lastKnownModEvent = 0x00;
 
   /*****************************************************************************
    *
-   * Function         getWellKnowModEventData
+   * Function         getWellKnownModEventData
    *
    * Description      Frames Well known type reader poll info notification
    *
    * Parameters       event - Event type A, B & F
    *                  timeStamp - time stamp of the event
    *                  gain - RSSI value
+   *                  data - data contains REQ, WUP and AFI
    *
    * Returns          Returns Well known type reader poll info notification
    *
    ****************************************************************************/
-  vector<uint8_t> getWellKnowModEventData(uint8_t event,
-                                          vector<uint8_t> timeStamp,
-                                          uint8_t gain);
+  vector<uint8_t> getWellKnownModEventData(uint8_t event,
+                                           vector<uint8_t> timeStamp,
+                                           uint8_t gain, vector<uint8_t> data);
 
   /*****************************************************************************
    *
@@ -67,19 +69,33 @@ class ReaderPollConfigParser {
 
   /*****************************************************************************
    *
-   * Function         getUnKnowEvent
+   * Function         getUnknownEvent
    *
-   * Description      Frames unknow event type reader poll info notification
+   * Description      Frames Unknown event type reader poll info notification
    *
-   * Parameters       data - Data bytes of unknow event
+   * Parameters       data - Data bytes of Unknown event
    *                  timeStamp - time stamp of the event
    *                  gain - RSSI value
    *
-   * Returns          Returns unknown type reader poll info notification
+   * Returns          Returns Unknown type reader poll info notification
    *
    ***************************************************************************/
-  vector<uint8_t> getUnKnowEvent(vector<uint8_t> data,
-                                 vector<uint8_t> timeStamp, uint8_t gain);
+  vector<uint8_t> getUnknownEvent(vector<uint8_t> data,
+                                  vector<uint8_t> timeStamp, uint8_t gain);
+
+  /*****************************************************************************
+   *
+   * Function         parseCmaEvent
+   *
+   * Description      This function parses the unknown frames
+   *
+   * Parameters       p_event - Data bytes of type Unknown event
+   *
+   * Returns          Filters Type-B/Type-F data frames
+   *                  and converts other frame to  unknown frame
+   *
+   ***************************************************************************/
+  vector<uint8_t> parseCmaEvent(vector<uint8_t> p_event);
 
   /*****************************************************************************
    *
@@ -90,14 +106,39 @@ class ReaderPollConfigParser {
    *                  notification
    *
    * Parameters       p_event - Vector Lx Notification
-   *                  isCmaEvent - true if it CMA event otherwise false
+   *                  cmaEventType - CMA event type
    *
    * Returns          This function return reader poll info notification
    *
    ****************************************************************************/
-  vector<uint8_t> getEvent(vector<uint8_t> p_event, bool isCmaEvent);
+  vector<uint8_t> getEvent(vector<uint8_t> p_event, uint8_t cmaEventType);
+
+  /*****************************************************************************
+   *
+   * Function         notifyPollingLoopInfoEvent
+   *
+   * Description      It sends polling info notification to upper layer
+   *
+   * Parameters       p_data - Polling loop info notification
+   *
+   * Returns          void
+   *
+   ****************************************************************************/
+  void notifyPollingLoopInfoEvent(vector<uint8_t> p_data);
+
+#if (NXP_UNIT_TEST == TRUE)
+  /*
+    Friend class is used to test private function's of ReaderPollConfigParser
+  */
+  friend class ReaderPollConfigParserTest;
+#endif
 
  public:
+  bool readExtraBytesForUnknownEvent = false;
+  uint8_t extraByteLength = 0;
+  uint8_t notificationType = 0;
+  vector<uint8_t> unknownEventTimeStamp;
+  vector<uint8_t> extraBytes = vector<uint8_t>();
   /*****************************************************************************
    *
    * Function         parseAndSendReaderPollInfo
@@ -141,4 +182,31 @@ class ReaderPollConfigParser {
    *
    ****************************************************************************/
   void setReaderPollCallBack(reader_poll_info_callback_t* callback);
+
+  /*****************************************************************************
+   *
+   * Function         resetExtraBytesInfo
+   *
+   * Description      Function to reset the extra bytes info of UnknownEvent
+   *
+   * Parameters       None
+   *
+   * Returns          void
+   *
+   ****************************************************************************/
+  void resetExtraBytesInfo();
+
+  /*****************************************************************************
+   *
+   * Function         setNotificationType
+   *
+   * Description      Function to select the Notification type for Observe mode
+   *                  By default all type of notification enabled if not set
+   *
+   * Parameters       None
+   *
+   * Returns          void
+   *
+   ****************************************************************************/
+  void setNotificationType(uint8_t notificationType);
 };
