@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2022,2023 NXP
+ *  Copyright 2022-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -124,8 +124,8 @@ typedef struct {
   uint8_t _NFCC_SPI_FW_DOWNLOAD_SYNC : 1;
   uint8_t _NFCEE_REMOVED_NTF_RECOVERY : 1;
   uint8_t _NFCC_FORCE_FW_DOWNLOAD : 1;
-  uint8_t _NFA_EE_MAX_EE_SUPPORTED : 3;
   uint8_t _NFCC_DWNLD_MODE : 1;
+  uint8_t _NFCC_4K_FW_SUPPORT : 1;
 } tNfc_nfccFeatureList;
 
 typedef struct {
@@ -148,6 +148,10 @@ extern tNfc_featureList nfcFL;
 #define IS_CHIP_TYPE_LE(cType) (nfcFL.chipType <= cType)
 #define IS_CHIP_TYPE_L(cType) (nfcFL.chipType < cType)
 #define IS_CHIP_TYPE_NE(cType) (nfcFL.chipType != cType)
+#define IS_4K_SUPPORT (nfcFL.nfccFL._NFCC_4K_FW_SUPPORT == true)
+
+#define CONFIGURE_4K_SUPPORT(value) \
+  { nfcFL.nfccFL._NFCC_4K_FW_SUPPORT = value; }
 
 #define CONFIGURE_FEATURELIST(chipType)               \
   {                                                   \
@@ -205,30 +209,18 @@ extern tNfc_featureList nfcFL;
       case pn81T:                                                         \
         CONFIGURE_FEATURELIST_NFCC(pn557)                                 \
         nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED =                           \
-            EE_T4T_SUPPORTED + EE_UICC1_SUPPORTED + EE_UICC2_SUPPORTED +  \
-            EE_ESE_SUPPORTED;                                             \
         break;                                                            \
       case sn100u:                                                        \
         CONFIGURE_FEATURELIST_NFCC(sn100u)                                \
         nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED =                           \
-            EE_T4T_SUPPORTED + EE_UICC1_SUPPORTED + EE_UICC2_SUPPORTED +  \
-            EE_UICC3_SUPPORTED + EE_ESE_SUPPORTED;                        \
         break;                                                            \
       case sn220u:                                                        \
         CONFIGURE_FEATURELIST_NFCC(sn220u)                                \
         nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED =                           \
-            EE_T4T_SUPPORTED + EE_UICC1_SUPPORTED + EE_UICC2_SUPPORTED +  \
-            EE_ESE_SUPPORTED;                                             \
         break;                                                            \
       case sn300u:                                                        \
         CONFIGURE_FEATURELIST_NFCC(sn300u)                                \
         nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED =                           \
-            EE_T4T_SUPPORTED + EE_UICC1_SUPPORTED + EE_UICC2_SUPPORTED +  \
-            EE_ESE_SUPPORTED + EE_EUICC1_SUPPORTED + EE_EUICC2_SUPPORTED; \
         break;                                                            \
       default:                                                            \
         break;                                                            \
@@ -241,6 +233,7 @@ extern tNfc_featureList nfcFL;
     nfcFL._PHDNLDNFC_USERDATA_EEPROM_LEN = 0x0C80U;                    \
     nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_PN48AD;     \
     nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_VEN_RESET;         \
+    nfcFL.nfccFL._NFCC_4K_FW_SUPPORT = false;                          \
     switch (chipType) {                                                \
       case pn557:                                                      \
         nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \

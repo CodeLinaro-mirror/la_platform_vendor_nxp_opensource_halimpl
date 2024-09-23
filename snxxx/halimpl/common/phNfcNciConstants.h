@@ -32,8 +32,10 @@
 #define RF_DISC_CMD_EACH_CONFIG_LENGTH 2
 
 /* Android Parameters */
+#define NCI_ANDROID_GET_CAPABILITY 0x00
 #define NCI_ANDROID_POWER_SAVING 0x01
 #define NCI_ANDROID_OBSERVER_MODE 0x02
+#define NCI_ANDROID_GET_OBSERVER_MODE_STATUS 0x04
 
 /* Android Power Saving Params */
 #define NCI_ANDROID_POWER_SAVING_PARAM_SIZE 2
@@ -60,15 +62,20 @@
 // Observe mode constants
 #define L2_EVT_TAG 0x01
 #define CMA_EVT_TAG 0x0A
+#define CMA_EVT_EXTRA_DATA_TAG 0x07
 #define MIN_LEN_NON_CMA_EVT 7
 #define MIN_LEN_CMA_EVT 6
 #define INDEX_OF_L2_EVT_TYPE 6
+#define INDEX_OF_L2_EVT_GAIN 5
 #define INDEX_OF_CMA_EVT_TYPE 4
 #define INDEX_OF_CMA_EVT_DATA 5
+#define INDEX_OF_CMA_DATA 7
 #define MIN_LEN_NON_CMA_EVT 7
 #define MIN_LEN_CMA_EVT 6
+#define MIN_LEN_CMA_EXTRA_DATA_EVT 1
 #define L2_EVENT_TRIGGER_TYPE 0x1
 #define CMA_EVENT_TRIGGER_TYPE 0x02
+#define CMA_DATA_TRIGGER_TYPE 0x0E
 // Event types to send upper layer
 #define TYPE_RF_FLAG 0x00
 #define TYPE_MOD_A 0x01
@@ -83,6 +90,9 @@
 #define EVENT_RF_OFF 0x09
 #define REQ_A 0x26
 #define WUP_A 0x52
+#define TYPE_B_APF 0x05
+#define TYPE_F_CMD_LENGH 0x06
+#define TYPE_F_ID 0xFF
 #define OBSERVE_MODE_OP_CODE 0x03
 #define GAIN_FIELD_LENGTH 1
 #define OP_CODE_FIELD_LENGTH 1
@@ -93,3 +103,7 @@
 #define LX_EVENT_MASK 0xF0
 #define LX_LENGTH_MASK 0x0F
 #define LX_TAG_MASK 0xF0
+#define SHORT_FLAG 0x00
+#define TYPE_ALL_EVENTS 0x00
+#define TYPE_ONLY_MOD_EVENTS 0x01
+#define TYPE_ONLY_CMA_EVENTS 0x02
