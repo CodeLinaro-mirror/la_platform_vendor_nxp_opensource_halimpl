@@ -22,24 +22,24 @@
  *
  ******************************************************************************/
 /******************************************************************************
-*
-*  The original Work has been changed by NXP.
-*
-*  Licensed under the Apache License, Version 2.0 (the "License");
-*  you may not use this file except in compliance with the License.
-*  You may obtain a copy of the License at
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*
-*  Copyright 2020 NXP
-*
-******************************************************************************/
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2020, 2024 NXP
+ *
+ ******************************************************************************/
 #ifndef NFC_NCI_HMSGS_H
 #define NFC_NCI_HMSGS_H
 
@@ -82,6 +82,7 @@ uint8_t nci_snd_rf_intf_ext_start(uint8_t intf_ext_type, uint8_t* p_start_param,
                                   uint8_t start_param_size);
 uint8_t nci_snd_rf_intf_ext_stop(uint8_t intf_ext_type, uint8_t* p_stop_param,
                                  uint8_t stop_param_size);
+uint8_t nci_snd_removal_detection_cmd(uint8_t wait_time);
 #endif
 #if (NFC_NFCEE_INCLUDED == TRUE && NFC_RW_ONLY == FALSE)
 uint8_t nci_snd_nfcee_discover(uint8_t discover_action);
@@ -91,5 +92,6 @@ uint8_t nci_snd_set_routing_cmd(bool more, uint8_t num_tlv, uint8_t tlv_size,
 uint8_t nci_snd_get_routing_cmd(void);
 uint8_t nci_snd_nfcee_power_link_control(uint8_t nfcee_id, uint8_t pl_config);
 #endif
+uint8_t nci_snd_android_get_caps_cmd(void);
 
 #endif /* NFC_NCI_MSGS_H */

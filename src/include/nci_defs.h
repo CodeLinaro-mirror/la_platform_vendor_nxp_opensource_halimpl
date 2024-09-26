@@ -31,7 +31,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2022, 2024 NXP
  *
  ******************************************************************************/
 /******************************************************************************
@@ -240,6 +240,7 @@
 #if (NXP_EXTNS == TRUE)
 #define NCI_MSG_RF_INTF_EXT_START 12
 #define NCI_MSG_RF_INTF_EXT_STOP 13
+#define NCI_MSG_RF_REMOVAL_DETECTION 18
 #endif
 #define NCI_MSG_RF_ISO_DEP_NAK_PRESENCE 16
 
@@ -260,8 +261,13 @@
 #define NCI_ANDROID_POLLING_FRAME_NTF 0x03
 
 /* Android Opcodes */
+#define NCI_ANDROID_GET_CAPS 0x0
 #define NCI_ANDROID_POWER_SAVING 0x1
-#define NCI_ANDROID_PASSIVE_OBSERVER 0x2
+#define NCI_ANDROID_PASSIVE_OBSERVE 0x2
+#define NCI_QUERY_ANDROID_PASSIVE_OBSERVE 0x4
+
+/* Android Get Proprietary Caps */
+#define NCI_ANDROID_GET_CAPS_PARAM_SIZE 0x1
 
 /* Android Power Saving Params */
 #define NCI_ANDROID_POWER_SAVING_PARAM_SIZE 0x2
@@ -269,9 +275,10 @@
 #define NCI_ANDROID_POWER_SAVING_PARAM_ENABLE 0x1
 
 /* Android Passive Observer Settings */
-#define NCI_ANDROID_PASSIVE_OBSERVER_PARAM_SIZE 0x2
-#define NCI_ANDROID_PASSIVE_OBSERVER_PARAM_DISABLE 0x0
-#define NCI_ANDROID_PASSIVE_OBSERVER_PARAM_ENABLE 0x1
+#define NCI_ANDROID_PASSIVE_OBSERVE_PARAM_SIZE 0x2
+#define NCI_QUERY_ANDROID_PASSIVE_OBSERVE_PARAM_SIZE 0x1
+#define NCI_ANDROID_PASSIVE_OBSERVE_PARAM_DISABLE 0x0
+#define NCI_ANDROID_PASSIVE_OBSERVE_PARAM_ENABLE 0x1
 /**********************************************
  * NCI Core Group Params
  **********************************************/
@@ -349,6 +356,7 @@
 #define NCI_STATUS_PMU_TXLDO_OVERCURRENT 0xE3
 #define NCI_STATUS_GPADC_ERROR 0xE7
 #define NCI_NFCEE_STS_COLD_TEMP_THRESOLD_REACHED 0xEB
+#define NCI_DISCOVERY_TARGET_ACTIVATION_FAILED 0xA1
 
 #define NCI_NFCEE_STS_CONN_ACTIVE 0x00
 #define NCI_NFCEE_STS_CONN_INACTIVE 0x01
@@ -380,7 +388,14 @@
 #define NCI_DEACTIVATE_REASON_NFCB_BAD_AFI 3 /* NFC-B Bad AFI    */
 /* DH Request Failed due to error */
 #define NCI_DEACTIVATE_REASON_DH_REQ_FAILED 4
-
+#if (NXP_EXTNS == TRUE)
+/* Low Power Removal mode: Tag is removed from field */
+#define NCI_DEACTIVATE_REASON_RF_REMOTE_ENDPOINT_REMOVED 0x05
+/* Low Power Removal mode: Wait Time is over, Tag is stil in field */
+#define NCI_DEACTIVATE_REASON_RF_TIMEOUT_EXCEPTION 0x06
+#define NCI_DEACTIVATE_REASON_RF_PROTOCOL_EXCEPTION 0x07
+#define NCI_DEACTIVATE_REASON_RF_FO_DETECTED 0x08
+#endif
 /* The NFCEE status in NFCEE Status Notification */
 typedef uint8_t tNCI_EE_NTF_STATUS;
 
@@ -458,17 +473,9 @@ typedef uint8_t tNCI_INTF_TYPE;
 #define NCI_DISCOVERY_TYPE_POLL_Q 0x71
 #endif
 #endif
-#define NCI_DISCOVERY_TYPE_POLL_A_ACTIVE 0x03
-/* NCI2.0 standardizes P2P poll active*/
-#define NCI_DISCOVERY_TYPE_POLL_ACTIVE 0x03
-#define NCI_DISCOVERY_TYPE_POLL_F_ACTIVE 0x05
 #define NCI_DISCOVERY_TYPE_LISTEN_A 0x80
 #define NCI_DISCOVERY_TYPE_LISTEN_B 0x81
 #define NCI_DISCOVERY_TYPE_LISTEN_F 0x82
-#define NCI_DISCOVERY_TYPE_LISTEN_A_ACTIVE 0x83
-/* NCI2.0 standardizes P2P listen active*/
-#define NCI_DISCOVERY_TYPE_LISTEN_ACTIVE 0x83
-#define NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE 0x85
 #define NCI_DISCOVERY_TYPE_LISTEN_ISO15693 0x86
 
 #if (NXP_EXTNS == TRUE)
@@ -641,7 +648,9 @@ typedef uint8_t tNCI_DISCOVERY_TYPE;
 #define NCI_PARAM_LEN_LF_T3T_PMM 8
 #define NCI_PARAM_LEN_LF_T3T_ID(X) (((X) >= NCI_VERSION_2_0) ? (0x12) : (0x0A))
 #define NCI_PARAM_LEN_LF_CON_ADV_FEAT 1
-
+#if (NXP_EXTNS == TRUE)
+#define NCI_PARAM_LEN_REMOVE_DETECTION 0x01 /* Param: Wait Time */
+#endif
 #define NCI_PARAM_LEN_LF_T3T_RD_ALLOWED 1  // Listen F NCI2.0 Parameter
 
 #define NCI_PARAM_LEN_FWI 1
@@ -666,7 +675,10 @@ typedef uint8_t tNCI_DISCOVERY_TYPE;
 #define NCI_POLLING_DH_ENABLE_MASK 0x01
 /* SCBR support check with Core Init resp OCT1 byte */
 #define NCI_SCBR_MASK 0x10
-
+#if (NXP_EXTNS == TRUE)
+/* RF RemovalDetection support check with Core Init resp OCT0 byte */
+#define NCI_REMOVAL_DETECTION_ENABLE_MASK 0x20
+#endif
 /* AID matching is allowed when the SELECT AID is longer */
 #define NCI_ROUTE_QUAL_LONG_SELECT 0x10
 /* AID matching is allowed when the SELECT AID is shorter */

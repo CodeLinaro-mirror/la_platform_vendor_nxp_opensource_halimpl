@@ -31,7 +31,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2022, 2024 NXP
  *
  ******************************************************************************/
  /******************************************************************************
@@ -138,8 +138,6 @@ typedef uint16_t tNFA_HANDLE;
 #define NFA_HANDLE_GROUP_CE 0x0300
 /* Handles to identify NFCEE    */
 #define NFA_HANDLE_GROUP_EE 0x0400
-/* P2P handles                  */
-#define NFA_HANDLE_GROUP_P2P 0x0500
 /* HCI handles                  */
 #define NFA_HANDLE_GROUP_HCI 0x0800
 /* Local NDEF message handle    */
@@ -394,9 +392,6 @@ typedef struct {
 #define NFA_SELECT_CPLT_EVT 10    /* Select completed */
 #define NFA_READ_CPLT_EVT 11      /* Read completed */
 #define NFA_WRITE_CPLT_EVT 12     /* Write completed */
-#define NFA_LLCP_ACTIVATED_EVT 13 /* LLCP link is activated */
-/* LLCP link is deactivated */
-#define NFA_LLCP_DEACTIVATED_EVT 14
 /* Response to NFA_RwPresenceCheck */
 #define NFA_PRESENCE_CHECK_EVT 15
 /* Tag Formating completed */
@@ -433,20 +428,18 @@ typedef struct {
 #define NFA_UPDATE_RF_PARAM_RESULT_EVT 32
 /* RF Interface error event */
 #define NFA_RW_INTF_ERROR_EVT 34
-/* status of setting P2P listen technologies */
-#define NFA_SET_P2P_LISTEN_TECH_EVT 33
-/* First packet received over LLCP link */
-#define NFA_LLCP_FIRST_PACKET_RECEIVED_EVT 35
 /* Listening enabled event */
 #define NFA_LISTEN_ENABLED_EVT 36
 /* Listening disabled event */
 #define NFA_LISTEN_DISABLED_EVT 37
-/* P2P services paused event */
-#define NFA_P2P_PAUSED_EVT 38
-/* P2P services resumed event */
-#define NFA_P2P_RESUMED_EVT 39
 /* T2T command completed */
 #define NFA_T2T_CMD_CPLT_EVT 40
+/* Core Generic Error */
+#define NFA_CORE_GENERIC_ERROR_EVT 44
+#if (NXP_EXTNS == TRUE)
+/* Removal Detection mode req failed event*/
+#define NFA_RF_REMOVAL_DETECTION_EVT 45
+#endif
 /* NFC deactivation type */
 #define NFA_DEACTIVATE_TYPE_IDLE NFC_DEACTIVATE_TYPE_IDLE
 #define NFA_DEACTIVATE_TYPE_SLEEP NFC_DEACTIVATE_TYPE_SLEEP
@@ -501,6 +494,9 @@ typedef struct {
 typedef struct {
   /* NFA_DEACTIVATE_TYPE_IDLE or NFA_DEACTIVATE_TYPE_SLEEP */
   tNFA_DEACTIVATE_TYPE type;
+#if (NXP_EXTNS == TRUE)
+  tNFC_DEACT_REASON reason; /* De-activate reason    */
+#endif
 } tNFA_DEACTIVATED;
 
 /* Structure for NFA_NDEF_DETECT_EVT event data */
@@ -535,21 +531,6 @@ typedef struct {
   uint32_t len;       /* Update length of NDEF data       */
   uint8_t* p_data;    /* data buffer                      */
 } tNFA_CE_NDEF_WRITE_CPLT;
-
-/* Data for NFA_LLCP_ACTIVATED_EVT */
-typedef struct {
-  bool is_initiator;        /* TRUE if initiator                */
-  uint16_t remote_wks;      /* Well-Known service mask of peer  */
-  uint8_t remote_lsc;       /* Link Service Class of peer       */
-  uint16_t remote_link_miu; /* Link MIU of peer                 */
-  uint16_t local_link_miu;  /* Link MIU of local                */
-  uint8_t remote_version;   /* LLCP version of remote           */
-} tNFA_LLCP_ACTIVATED;
-
-/* Data for NFA_LLCP_DEACTIVATED_EVT */
-typedef struct {
-  uint8_t reason; /* reason of deactivation           */
-} tNFA_LLCP_DEACTIVATED;
 
 /* Data for NFA_I93_CMD_CPLT_EVT */
 typedef struct {
@@ -622,8 +603,6 @@ typedef union {
   tNFA_TLV_DETECT tlv_detect;   /* NFA_TLV_DETECT_EVT                   */
   tNFA_RX_DATA data;            /* NFA_DATA_EVT                         */
   tNFA_CE_NDEF_WRITE_CPLT ndef_write_cplt; /* NFA_CE_NDEF_WRITE_CPLT_EVT */
-  tNFA_LLCP_ACTIVATED llcp_activated; /* NFA_LLCP_ACTIVATED_EVT               */
-  tNFA_LLCP_DEACTIVATED llcp_deactivated; /* NFA_LLCP_DEACTIVATED_EVT */
   tNFA_I93_CMD_CPLT i93_cmd_cplt;   /* NFA_I93_CMD_CPLT_EVT                 */
   tNFA_CE_REGISTERED ce_registered; /* NFA_CE_REGISTERED_EVT                */
   tNFA_CE_DEREGISTERED ce_deregistered; /* NFA_CE_DEREGISTERED_EVT */
@@ -877,7 +856,7 @@ extern void NFA_Init(tHAL_NFC_ENTRY* p_hal_entry_tbl);
 **                  the application using the tNFA_DM_CBACK.
 **
 **                  The tNFA_CONN_CBACK parameter is used to register a callback
-**                  for polling, p2p and card emulation events.
+**                  for polling and card emulation events.
 **
 **
 ** Returns          NFA_STATUS_OK if successfully initiated
@@ -1035,8 +1014,6 @@ extern tNFA_STATUS NFA_ReleaseExclusiveRfControl(void);
 **                  - NFA_ACTIVATED_EVT is generated when an NFC link is
 **                    activated.
 **                  - NFA_NDEF_DETECT_EVT is generated if tag is activated
-**                  - NFA_LLCP_ACTIVATED_EVT/NFA_LLCP_DEACTIVATED_EVT is
-**                    generated if NFC-DEP is activated
 **                  - NFA_DEACTIVATED_EVT will be returned after deactivating
 **                    NFC link.
 **
@@ -1111,68 +1088,6 @@ extern tNFA_STATUS NFA_EnableListening(void);
 **
 *******************************************************************************/
 extern tNFA_STATUS NFA_DisableListening(void);
-
-/*******************************************************************************
-**
-** Function         NFA_PauseP2p
-**
-** Description      Pause P2P services.
-**                  NFA_P2P_PAUSED_EVT will be returned after P2P services are
-**                  disabled.
-**
-**                  The P2P services enabled by NFA_P2p* API functions are not
-**                  available. NFA_ResumeP2p() is called to resume the P2P
-**                  services.
-**
-** Note:            If RF discovery is started,
-**                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT should
-**                  happen before calling this function
-**
-** Returns          NFA_STATUS_OK if successfully initiated
-**                  NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-extern tNFA_STATUS NFA_PauseP2p(void);
-
-/*******************************************************************************
-**
-** Function         NFA_ResumeP2p
-**
-** Description      Resume P2P services.
-**                  NFA_P2P_RESUMED_EVT will be returned after P2P services are.
-**                  enables again.
-**
-** Note:            If RF discovery is started,
-**                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT should
-**                  happen before calling this function
-**
-** Returns          NFA_STATUS_OK if successfully initiated
-**                  NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-extern tNFA_STATUS NFA_ResumeP2p(void);
-
-/*******************************************************************************
-**
-** Function         NFA_SetP2pListenTech
-**
-** Description      This function is called to set listen technology for
-**                  NFC-DEP. This funtion may be called before or after starting
-**                  any server on NFA P2P/CHO/SNEP.
-**                  If there is no technology for NFC-DEP, P2P listening will be
-**                  stopped.
-**
-**                  NFA_SET_P2P_LISTEN_TECH_EVT without data will be returned.
-**
-** Note:            If RF discovery is started,
-**                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT should
-**                  happen before calling this function
-**
-** Returns          NFA_STATUS_OK if successfully initiated
-**                  NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-extern tNFA_STATUS NFA_SetP2pListenTech(tNFA_TECHNOLOGY_MASK tech_mask);
 
 /*******************************************************************************
 **
@@ -1519,6 +1434,9 @@ extern tNFA_STATUS NFA_SetPowerSubStateForScreenState(uint8_t ScreenState);
 **                               before calling NFA_StopRfDiscovery
 **                               FALSE if changing RF listening tech according
 **                               to listenTech
+**                  change_default_tech : TRUE if the default technolofy mask
+**                               has to be changed according to listenTech
+**                               and pollTech settings
 **
 ** Note:            If RF discovery is started,
 **                  NFA_StopRfDiscovery()/NFA_RF_DISCOVERY_STOPPED_EVT
@@ -1530,7 +1448,8 @@ extern tNFA_STATUS NFA_SetPowerSubStateForScreenState(uint8_t ScreenState);
 *******************************************************************************/
 tNFA_STATUS NFA_ChangeDiscoveryTech(tNFA_TECHNOLOGY_MASK pollTech,
                                     tNFA_TECHNOLOGY_MASK listenTech,
-                                    bool is_revert_poll, bool is_revert_listen);
+                                    bool is_revert_poll, bool is_revert_listen,
+                                    bool change_default_tech = false);
 
 #if (NXP_EXTNS == TRUE)
 /*******************************************************************************
@@ -1648,5 +1567,32 @@ extern void NFA_SetRssiMode(bool enable);
 **
 *******************************************************************************/
 extern bool NFA_IsRssiEnabled();
+
+/*******************************************************************************
+**
+** Function         NFA_IsRfRemovalDetectionSupported
+**
+** Description      Indicates if RF Removal Detection mode is upported by NFCC
+**
+** Returns          true if supported else false.
+**
+*******************************************************************************/
+bool NFA_IsRfRemovalDetectionSupported();
+
+/*******************************************************************************
+**
+** Function         NFA_SendRemovalDetectionCmd
+**
+** Description      This function is called to start the procedure of Removal
+**                  Deteciton in Poll Mode
+**
+**                  wait_timeout(ms) - Time duration in milliseconds for which
+**                  NFCC shall execute Removal Detection Procedure.
+**
+** Returns          NFA_STATUS_OK if successfully initiated
+**                  NFA_STATUS_FAILED otherwise
+**
+*******************************************************************************/
+tNFA_STATUS NFA_SendRemovalDetectionCmd(uint8_t wait_timeout);
 #endif
 #endif /* NFA_API_H */

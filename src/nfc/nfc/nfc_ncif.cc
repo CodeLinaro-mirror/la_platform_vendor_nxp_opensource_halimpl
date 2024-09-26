@@ -140,7 +140,7 @@ static void check_and_store_last_cmd(NFC_HDR* p_buf) {
         ps[0] == ((NCI_MT_CMD << NCI_MT_SHIFT) | NCI_GID_CORE) &&
         ps[1] == NCI_MSG_CORE_SET_CONFIG &&
         ps[4] == NCI_PARAM_ID_CON_DISCOVERY_PARAM))) {
-    LOG(DEBUG) << StringPrintf("check_and_store_last_cmd:");
+    LOG(VERBOSE) << StringPrintf("check_and_store_last_cmd:");
     last_cmd.len = p_buf->len;
     last_cmd.data = std::make_unique<uint8_t[]>(last_cmd.len);
     memcpy(last_cmd.data.get(), ps, last_cmd.len);
@@ -160,7 +160,7 @@ static void check_and_store_last_cmd(NFC_HDR* p_buf) {
 *******************************************************************************/
 static bool check_and_send_last_cmd() {
   if (last_cmd.data != nullptr) {
-    LOG(DEBUG) << StringPrintf("check_and_send_last_cmd:");
+    LOG(VERBOSE) << StringPrintf("check_and_send_last_cmd:");
     NfcAdaptation::GetInstance().HalSetProperty("nfc.cmd_timeout", "");
     nfc_cb.p_hal->write(last_cmd.len, last_cmd.data.get());
     last_cmd.data = nullptr;
@@ -226,8 +226,6 @@ void nfc_ncif_cmd_timeout(void) {
     return;
   }
 #endif
-  storeNfcSnoopLogs(DEFAULT_CRASH_NFCSNOOP_PATH, NATIVE_CRASH_FILE_SIZE);
-
   /* report an error */
   nfc_ncif_event_status(NFC_GEN_ERROR_REVT, NFC_STATUS_HW_TIMEOUT);
   nfc_ncif_event_status(NFC_NFCC_TIMEOUT_REVT, NFC_STATUS_HW_TIMEOUT);
@@ -275,7 +273,7 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
   bool fragmented = false;
   bool empty_p_data = p_data == nullptr;
 
-  LOG(DEBUG) << StringPrintf("nfc_ncif_send_data :%d, num_buff:%d qc:%d",
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_send_data :%d, num_buff:%d qc:%d",
                              p_cb->conn_id, p_cb->num_buff, p_cb->tx_q.count);
   if (p_cb->id == NFC_RF_CONN_ID) {
     if (nfc_cb.nfc_state != NFC_STATE_OPEN) {
@@ -285,7 +283,7 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
           if (p_cb->init_credits == p_cb->num_buff) {
             /* all the credits are back */
             nfc_cb.flags &= ~NFC_FL_DEACTIVATING;
-            LOG(DEBUG) << StringPrintf(
+            LOG(VERBOSE) << StringPrintf(
                 "deactivating NFC-DEP init_credits:%d, num_buff:%d",
                 p_cb->init_credits, p_cb->num_buff);
             nfc_stop_timer(&nfc_cb.deactivate_timer);
@@ -358,7 +356,7 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
       nfc_start_timer(&nfc_cb.nci_wait_data_ntf_timer,
                       (uint16_t)(NFC_TTYPE_NCI_WAIT_DATA_NTF),
                         nfc_cb.nci_credit_ntf_timeout);
-      LOG(DEBUG) << StringPrintf("nfc_ncif_send_data :%d",
+      LOG(VERBOSE) << StringPrintf("nfc_ncif_send_data :%d",
                                  nfc_cb.nci_credit_ntf_timeout);
     }
 #endif
@@ -377,7 +375,7 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
     memset(&timer_end, 0, sizeof(timer_end));
     nfc::stats::stats_write(nfc::stats::NFC_HCE_TRANSACTION_OCCURRED,
                             (int32_t)delta_time_ms);
-    LOG(DEBUG) << StringPrintf("nfc_ncif_send_data delta_time:%d",
+    LOG(VERBOSE) << StringPrintf("nfc_ncif_send_data delta_time:%d",
                                delta_time_ms);
   }
   return (NCI_STATUS_OK);
@@ -402,7 +400,7 @@ void nfc_ncif_check_cmd_queue(NFC_HDR* p_buf) {
       GKI_enqueue(&nfc_cb.nci_cmd_xmit_q, p_buf);
 #if (NXP_EXTNS == TRUE)
       if (p_buf != nullptr) {
-        LOG(DEBUG) << StringPrintf(
+        LOG(VERBOSE) << StringPrintf(
             "nfc_ncif_check_cmd_queue : making p_buf NULL.");
         p_buf = nullptr;
       }
@@ -443,6 +441,7 @@ void nfc_ncif_check_cmd_queue(NFC_HDR* p_buf) {
       check_and_store_last_cmd(p_buf);
 #endif
       /* send to HAL */
+      nfcsnoop_capture(p_buf, false);
       HAL_WRITE(p_buf);
       /* start NFC command-timeout timer */
       nfc_start_timer(&nfc_cb.nci_wait_rsp_timer,
@@ -492,16 +491,15 @@ void nfc_ncif_check_cmd_queue(NFC_HDR* p_buf) {
 *******************************************************************************/
 void nfc_ncif_send_cmd(NFC_HDR* p_buf) {
 #if (NXP_EXTNS == TRUE)
-  LOG(DEBUG) << StringPrintf("nfc_ncif_send_cmd()");
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_send_cmd()");
   if (p_buf == nullptr) {
-    LOG(DEBUG) << StringPrintf("p_buf is NULL.");
+    LOG(VERBOSE) << StringPrintf("p_buf is NULL.");
     return;
   }
 #endif
   /* post the p_buf to NCIT task */
   p_buf->event = BT_EVT_TO_NFC_NCI;
   p_buf->layer_specific = 0;
-  nfcsnoop_capture(p_buf, false);
   nfc_ncif_check_cmd_queue(p_buf);
 }
 
@@ -542,6 +540,8 @@ bool nfc_ncif_process_event(NFC_HDR* p_msg) {
     return free;
   }
 
+  nfcsnoop_capture(p_msg, true);
+
   NCI_MSG_PRS_HDR0(p, mt, pbf, gid);
   oid = ((*p) & NCI_OID_MASK);
 
@@ -567,16 +567,15 @@ bool nfc_ncif_process_event(NFC_HDR* p_msg) {
     return free;
   }
 
-  nfcsnoop_capture(p_msg, true);
   switch (mt) {
     case NCI_MT_DATA:
-      LOG(DEBUG) << StringPrintf("NFC received data");
+      LOG(VERBOSE) << StringPrintf("NFC received data");
       nfc_ncif_proc_data(p_msg);
       free = false;
       break;
 
     case NCI_MT_RSP:
-      LOG(DEBUG) << StringPrintf("NFC received rsp gid:%d", gid);
+      LOG(VERBOSE) << StringPrintf("NFC received rsp gid:%d", gid);
       oid = ((*p) & NCI_OID_MASK);
       p_old = nfc_cb.last_hdr;
       NCI_MSG_PRS_HDR0(p_old, old_mt, pbf, old_gid);
@@ -616,7 +615,7 @@ bool nfc_ncif_process_event(NFC_HDR* p_msg) {
       break;
 
     case NCI_MT_NTF:
-      LOG(DEBUG) << StringPrintf("NFC received ntf gid:%d", gid);
+      LOG(VERBOSE) << StringPrintf("NFC received ntf gid:%d", gid);
       switch (gid) {
         case NCI_GID_CORE: /* 0000b NCI Core group */
           nci_proc_core_ntf(p_msg);
@@ -641,7 +640,7 @@ bool nfc_ncif_process_event(NFC_HDR* p_msg) {
       break;
 
     default:
-      LOG(DEBUG) << StringPrintf("NFC received unknown mt:0x%x, gid:%d", mt,
+      LOG(VERBOSE) << StringPrintf("NFC received unknown mt:0x%x, gid:%d", mt,
                                  gid);
   }
 
@@ -863,9 +862,7 @@ uint8_t* nfc_ncif_decode_rf_params(tNFC_RF_TECH_PARAMS* p_param, uint8_t* p) {
   p_start = p;
   memset(&p_param->param, 0, sizeof(tNFC_RF_TECH_PARAMU));
 
-  if (NCI_DISCOVERY_TYPE_POLL_A == p_param->mode ||
-      (NCI_DISCOVERY_TYPE_POLL_A_ACTIVE == p_param->mode &&
-       NFC_GetNCIVersion() < NCI_VERSION_2_0)) {
+  if (NCI_DISCOVERY_TYPE_POLL_A == p_param->mode) {
     p_pa = &p_param->param.pa;
     /*
 SENS_RES Response   2 bytes Defined in [DIGPROT] Available after Technology
@@ -993,9 +990,8 @@ Available after Technology Detection
     plen -= p_pb->sensb_res_len;
     STREAM_TO_ARRAY(p_pb->sensb_res, p, p_pb->sensb_res_len);
     memcpy(p_pb->nfcid0, p_pb->sensb_res, NFC_NFCID0_MAX_LEN);
-  } else if (NCI_DISCOVERY_TYPE_POLL_F == p_param->mode ||
-             (NCI_DISCOVERY_TYPE_POLL_F_ACTIVE == p_param->mode &&
-              NFC_GetNCIVersion() < NCI_VERSION_2_0)) {
+    p_pb->fwi = p_pb->sensb_res[10] >> 4;
+  } else if (NCI_DISCOVERY_TYPE_POLL_F == p_param->mode) {
     /*
 Bit Rate    1 byte  1   212 kbps/2   424 kbps/0 and 3 to 255  RFU
 SENSF_RES Response length.(n) 1 byte  Length of SENSF_RES (Byte 2 - Byte 17 or
@@ -1026,9 +1022,7 @@ Available after Technology Detection
     memcpy(p_pf->nfcid2, p_pf->sensf_res, NCI_NFCID2_LEN);
     p_pf->mrti_check = p_pf->sensf_res[NCI_MRTI_CHECK_INDEX];
     p_pf->mrti_update = p_pf->sensf_res[NCI_MRTI_UPDATE_INDEX];
-  } else if (NCI_DISCOVERY_TYPE_LISTEN_F == p_param->mode ||
-             (NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE == p_param->mode &&
-              NFC_GetNCIVersion() < NCI_VERSION_2_0)) {
+  } else if (NCI_DISCOVERY_TYPE_LISTEN_F == p_param->mode) {
     p_lf = &p_param->param.lf;
 
     if (plen < 1) {
@@ -1066,87 +1060,6 @@ Available after Technology Detection
       p_param->param.pk.uid_len = NFC_KOVIO_MAX_LEN;
     }
     STREAM_TO_ARRAY(p_param->param.pk.uid, p, p_param->param.pk.uid_len);
-  } else if (NCI_DISCOVERY_TYPE_POLL_ACTIVE == p_param->mode) {
-    acm_p = &p_param->param.acm_p;
-
-    /* Skip RF Tech Specific Parametres +
-     * Skip RF Technology mode, Tx , Rx baud rate & length params
-     * Byte 1         Byte 2     Byte 3    Byte 4
-     * Tech and Mode  Tx BR      Rx BR     Length of Act Param
-     */
-    p = p + len + 3;
-    plen = *p++;
-    if (plen < 1) {
-      goto invalid_packet;
-    }
-    LOG(INFO) << StringPrintf(
-        "RF Tech Specific Params, plen: 0x%x, atr_res_len: 0x%x", plen, *p);
-    plen--;
-
-    acm_p->atr_res_len = *p++;
-    if (acm_p->atr_res_len > 0) {
-      if (acm_p->atr_res_len > NFC_MAX_ATS_LEN)
-        acm_p->atr_res_len = NFC_MAX_ATS_LEN;
-
-      if (plen < acm_p->atr_res_len) {
-        goto invalid_packet;
-      }
-      plen -= acm_p->atr_res_len;
-      STREAM_TO_ARRAY(acm_p->atr_res, p, acm_p->atr_res_len);
-      /* ATR_RES
-      Byte 3~12 Byte 13 Byte 14 Byte 15 Byte 16 Byte 17 Byte 18~18+n
-      NFCID3T   DIDT    BST     BRT     TO      PPT     [GT0 ... GTn] */
-      mpl_idx = 14;
-      gb_idx = NCI_P_GEN_BYTE_INDEX;
-
-      if (acm_p->atr_res_len < mpl_idx + 1) {
-        goto invalid_packet;
-      }
-      acm_p->waiting_time = acm_p->atr_res[NCI_L_NFC_DEP_TO_INDEX] & 0x0F;
-      mpl = ((acm_p->atr_res[mpl_idx]) >> 4) & 0x03;
-      acm_p->max_payload_size = nfc_mpl_code_to_size[mpl];
-      if (acm_p->atr_res_len > gb_idx) {
-        acm_p->gen_bytes_len = acm_p->atr_res_len - gb_idx;
-        if (acm_p->gen_bytes_len > NFC_MAX_GEN_BYTES_LEN)
-          acm_p->gen_bytes_len = NFC_MAX_GEN_BYTES_LEN;
-        memcpy(acm_p->gen_bytes, &acm_p->atr_res[gb_idx], acm_p->gen_bytes_len);
-      }
-    }
-  } else if (NCI_DISCOVERY_TYPE_LISTEN_ACTIVE == p_param->mode) {
-    acm_p = &p_param->param.acm_p;
-
-    if (plen < 1) {
-      goto invalid_packet;
-    }
-    plen--;
-    acm_p->atr_res_len = *p++;
-    if (acm_p->atr_res_len > 0) {
-      if (acm_p->atr_res_len > NFC_MAX_ATS_LEN)
-        acm_p->atr_res_len = NFC_MAX_ATS_LEN;
-
-      if (plen < acm_p->atr_res_len) {
-        goto invalid_packet;
-      }
-      plen -= acm_p->atr_res_len;
-      STREAM_TO_ARRAY(acm_p->atr_res, p, acm_p->atr_res_len);
-      /* ATR_REQ
-      Byte 3~12 Byte 13 Byte 14 Byte 15 Byte 16 Byte 17~17+n
-      NFCID3I   DIDI    BSI     BRI     PPI     [GI0 ... GIn] */
-      mpl_idx = 13;
-      gb_idx = NCI_L_GEN_BYTE_INDEX;
-
-      if (acm_p->atr_res_len < mpl_idx + 1) {
-        goto invalid_packet;
-      }
-      mpl = ((acm_p->atr_res[mpl_idx]) >> 4) & 0x03;
-      acm_p->max_payload_size = nfc_mpl_code_to_size[mpl];
-      if (acm_p->atr_res_len > gb_idx) {
-        acm_p->gen_bytes_len = acm_p->atr_res_len - gb_idx;
-        if (acm_p->gen_bytes_len > NFC_MAX_GEN_BYTES_LEN)
-          acm_p->gen_bytes_len = NFC_MAX_GEN_BYTES_LEN;
-        memcpy(acm_p->gen_bytes, &acm_p->atr_res[gb_idx], acm_p->gen_bytes_len);
-      }
-    }
   }
 invalid_packet:
   return (p_start + len);
@@ -1285,7 +1198,7 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
   evt_data.activate.rx_bitrate = *p++;
   mode = evt_data.activate.rf_tech_param.mode;
   len_act = *p++;
-  LOG(DEBUG) << StringPrintf("nfc_ncif_proc_activate:%d %d, mode:0x%02x", len,
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_activate:%d %d, mode:0x%02x", len,
                              len_act, mode);
   /* just in case the interface reports activation parameters not defined in the
    * NCI spec */
@@ -1550,48 +1463,25 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
 
     p_pa_nfc = &p_intf->intf_param.pa_nfc;
 
-    /* Active mode, no info in activation parameters (NCI 2.0) */
-    if ((NFC_GetNCIVersion() >= NCI_VERSION_2_0) &&
-        ((mode == NCI_DISCOVERY_TYPE_POLL_ACTIVE) ||
-         (mode == NCI_DISCOVERY_TYPE_LISTEN_ACTIVE))) {
-        p_pa_nfc->atr_res_len =
-                  evt_data.activate.rf_tech_param.param.acm_p.atr_res_len;
-    } else {
-      if (plen < 1) {
-        evt_data.status = NCI_STATUS_FAILED;
-        goto invalid_packet;
-      }
-      plen--;
-      p_pa_nfc->atr_res_len = *p++;
+    if (plen < 1) {
+      evt_data.status = NCI_STATUS_FAILED;
+      goto invalid_packet;
     }
+    plen--;
+    p_pa_nfc->atr_res_len = *p++;
 
     if (p_pa_nfc->atr_res_len > 0) {
       if (p_pa_nfc->atr_res_len > NFC_MAX_ATS_LEN)
         p_pa_nfc->atr_res_len = NFC_MAX_ATS_LEN;
-
-      if ((NFC_GetNCIVersion() >= NCI_VERSION_2_0) &&
-          ((mode == NCI_DISCOVERY_TYPE_POLL_ACTIVE) ||
-           (mode == NCI_DISCOVERY_TYPE_LISTEN_ACTIVE))) {
-         /* NCI 2.0 : ATR_RES is included in RF technology parameters in active mode */
-         memcpy(p_pa_nfc->atr_res,
-                evt_data.activate.rf_tech_param.param.acm_p.atr_res,
-                p_pa_nfc->atr_res_len);
-      } else {
-        if (plen < p_pa_nfc->atr_res_len) {
-          evt_data.status = NCI_STATUS_FAILED;
-          goto invalid_packet;
-        }
-        plen -= p_pa_nfc->atr_res_len;
-        STREAM_TO_ARRAY(p_pa_nfc->atr_res, p, p_pa_nfc->atr_res_len);
+      if (plen < p_pa_nfc->atr_res_len) {
+        evt_data.status = NCI_STATUS_FAILED;
+        goto invalid_packet;
       }
+      plen -= p_pa_nfc->atr_res_len;
+      STREAM_TO_ARRAY(p_pa_nfc->atr_res, p, p_pa_nfc->atr_res_len);
 
       if ((mode == NCI_DISCOVERY_TYPE_POLL_A) ||
-          (mode == NCI_DISCOVERY_TYPE_POLL_F) ||
-          ((mode == NCI_DISCOVERY_TYPE_POLL_A_ACTIVE ||
-            mode == NCI_DISCOVERY_TYPE_POLL_F_ACTIVE) &&
-           NFC_GetNCIVersion() < NCI_VERSION_2_0) ||
-          (NFC_GetNCIVersion() >= NCI_VERSION_2_0 &&
-           mode == NCI_DISCOVERY_TYPE_POLL_ACTIVE)) {
+          (mode == NCI_DISCOVERY_TYPE_POLL_F)) {
         /* ATR_RES
         Byte 3~12 Byte 13 Byte 14 Byte 15 Byte 16 Byte 17 Byte 18~18+n
         NFCID3T   DIDT    BST     BRT     TO      PPT     [GT0 ... GTn] */
@@ -1605,12 +1495,7 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
         p_pa_nfc->waiting_time =
             p_pa_nfc->atr_res[NCI_L_NFC_DEP_TO_INDEX] & 0x0F;
       } else if ((mode == NCI_DISCOVERY_TYPE_LISTEN_A) ||
-                 (mode == NCI_DISCOVERY_TYPE_LISTEN_F) ||
-                 (NFC_GetNCIVersion() < NCI_VERSION_2_0 &&
-                  (mode == NCI_DISCOVERY_TYPE_LISTEN_A_ACTIVE ||
-                   mode == NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE)) ||
-                 (NFC_GetNCIVersion() >= NCI_VERSION_2_0 &&
-                  mode == NCI_DISCOVERY_TYPE_LISTEN_ACTIVE)) {
+                 (mode == NCI_DISCOVERY_TYPE_LISTEN_F)) {
         /* ATR_REQ
         Byte 3~12 Byte 13 Byte 14 Byte 15 Byte 16 Byte 17~17+n
         NFCID3I   DIDI    BSI     BRI     PPI     [GI0 ... GIn] */
@@ -1662,7 +1547,7 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
    */
   else if (evt_data.activate.intf_param.type == nfcFL.nfcMwFL._NCI_INTERFACE_UICC_DIRECT ||
            evt_data.activate.intf_param.type == nfcFL.nfcMwFL._NCI_INTERFACE_ESE_DIRECT) {
-    LOG(DEBUG) << StringPrintf("nfc_ncif_proc_activate:interface type  %x",
+    LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_activate:interface type  %x",
                                evt_data.activate.intf_param.type);
   }
 #endif
@@ -1678,7 +1563,34 @@ invalid_packet:
     (*nfc_cb.p_discv_cback)(NFC_ACTIVATE_DEVT, &evt_data);
   }
 }
+#if (NXP_EXTNS == TRUE)
+/*******************************************************************************
+**
+** Function         nfc_ncif_proc_removal_detection
+**
+** Description      This function is called to process Poll Removal Detection
+**                  response and notification
+**
+** Returns          void
+**
+*******************************************************************************/
+void nfc_ncif_proc_removal_detection(uint8_t status, bool is_ntf) {
+  /*If Hal close is running in nfc HAL, return.
+  Else it will cause abnormal nfc_state update*/
+  if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_CLOSE) return;
+  tNFC_DISCOVER evt_data;
+  evt_data.removal_detection.status = status;
+  evt_data.removal_detection.is_ntf = is_ntf;
 
+  if (nfc_cb.p_discv_cback) {
+    (*nfc_cb.p_discv_cback)(NFC_REMOVAL_DETECTION_DEVT, &evt_data);
+  } else {
+    LOG(ERROR) << __func__
+               << "nfc_cb.p_discv_cback is null, Unable to handle Removal "
+                  "Detection rsp/ntf";
+  }
+}
+#endif
 /*******************************************************************************
 **
 ** Function         nfc_ncif_proc_deactivate
@@ -1840,7 +1752,7 @@ void nfc_ncif_proc_ee_discover_req(uint8_t* p, uint16_t plen) {
     return;
   }
 
-  LOG(DEBUG) << StringPrintf("nfc_ncif_proc_ee_discover_req %d len:%d", *p,
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_ee_discover_req %d len:%d", *p,
                              plen);
 
   if (*p > NFC_MAX_EE_DISC_ENTRIES) {
@@ -1859,7 +1771,7 @@ void nfc_ncif_proc_ee_discover_req(uint8_t* p, uint16_t plen) {
       p_info->op = *p++;                  /* T */
       if (*p != NFC_EE_DISCOVER_INFO_LEN) /* L */
       {
-        LOG(DEBUG) << StringPrintf("bad entry len:%d", *p);
+        LOG(VERBOSE) << StringPrintf("bad entry len:%d", *p);
         return;
       }
       p++;
@@ -2031,7 +1943,7 @@ void nfc_ncif_proc_reset_rsp(uint8_t* p, bool is_ntf) {
             || status == NCI2_X_RESET_TRIGGER_TYPE_POWERED_ON
 #endif
     ) {
-      LOG(DEBUG) << StringPrintf(
+      LOG(VERBOSE) << StringPrintf(
           "CORE_RESET_NTF Received status nfc_state : 0x%x : 0x%x", status,
           nfc_cb.nfc_state);
       nfc_stop_timer(&nfc_cb.nci_wait_rsp_timer);
@@ -2049,12 +1961,11 @@ void nfc_ncif_proc_reset_rsp(uint8_t* p, bool is_ntf) {
       }
       if (nfc_cb.nfc_state == NFC_STATE_CORE_INIT) {
         NFC_SetFeatureList(nfc_fw_version);
-        nfa_ee_max_ee_cfg = nfcFL.nfccFL._NFA_EE_MAX_EE_SUPPORTED;
-        LOG(DEBUG) << StringPrintf("NFA_EE_MAX_EE_SUPPORTED to use %d",
+        LOG(VERBOSE) << StringPrintf("NFA_EE_MAX_EE_SUPPORTED to use %d",
                                    nfa_ee_max_ee_cfg);
       }
 #endif
-      LOG(DEBUG) << StringPrintf(" CORE_RESET_NTF nci_version%x",
+      LOG(VERBOSE) << StringPrintf(" CORE_RESET_NTF nci_version%x",
                                  nfc_cb.nci_version);
       status = NCI_STATUS_OK;
     } else {
@@ -2071,7 +1982,7 @@ void nfc_ncif_proc_reset_rsp(uint8_t* p, bool is_ntf) {
       nfc_reset_all_conn_cbs();
     }
   } else {
-    LOG(DEBUG) << StringPrintf("CORE_RESET_RSP len :0x%x ", *p_len);
+    LOG(VERBOSE) << StringPrintf("CORE_RESET_RSP len :0x%x ", *p_len);
     if ((*p_len) == NCI_CORE_RESET_RSP_LEN(NCI_VERSION_2_0)) {
       wait_for_ntf = TRUE;
     } else if ((*p_len) == NCI_CORE_RESET_RSP_LEN(NCI_VERSION_1_0)) {
@@ -2126,7 +2037,7 @@ void nfc_ncif_proc_init_rsp(NFC_HDR* p_msg) {
       p_cb->id = NFC_RF_CONN_ID;
       // check scbr bit as per NCI 2.0 spec
       nfc_cb.isScbrSupported = p[5] & NCI_SCBR_MASK;
-      LOG(DEBUG) << StringPrintf("scbr support: 0x%x", nfc_cb.isScbrSupported);
+      LOG(VERBOSE) << StringPrintf("scbr support: 0x%x", nfc_cb.isScbrSupported);
       p_cb->act_protocol = NCI_PROTOCOL_UNKNOWN;
 
       nfc_set_state(NFC_STATE_W4_POST_INIT_CPLT);
@@ -2273,7 +2184,7 @@ void nfc_data_event(tNFC_CONN_CB* p_cb) {
             if ((data_cevt.status != NFC_STATUS_OK) &&
                 ((data_cevt.status >= T2T_STATUS_OK_1_BIT) &&
                  (data_cevt.status <= T2T_STATUS_OK_7_BIT))) {
-              LOG(DEBUG) << StringPrintf("%s: T2T tag data xchange", __func__);
+              LOG(VERBOSE) << StringPrintf("%s: T2T tag data xchange", __func__);
               data_cevt.status = NFC_STATUS_OK;
             }
           }
@@ -2315,12 +2226,12 @@ void nfc_ncif_proc_data(NFC_HDR* p_msg) {
   uint16_t len;
 
   pp = (uint8_t*)(p_msg + 1) + p_msg->offset;
-  LOG(DEBUG) << StringPrintf("nfc_ncif_proc_data 0x%02x%02x%02x", pp[0], pp[1],
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_data 0x%02x%02x%02x", pp[0], pp[1],
                              pp[2]);
   NCI_DATA_PRS_HDR(pp, pbf, cid, len);
   p_cb = nfc_find_conn_cb_by_conn_id(cid);
   if (p_cb && (p_msg->len >= NCI_DATA_HDR_SIZE)) {
-    LOG(DEBUG) << StringPrintf("nfc_ncif_proc_data len:%d", len);
+    LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_data len:%d", len);
 
     len = p_msg->len - NCI_MSG_HDR_SIZE;
     p_msg->layer_specific = 0;
@@ -2369,7 +2280,7 @@ void nfc_ncif_proc_data(NFC_HDR* p_msg) {
         p_last->len += len;
         /* do not need to update pbf and len in NCI header.
          * They are stripped off at NFC_DATA_CEVT and len may exceed 255 */
-        LOG(DEBUG) << StringPrintf("nfc_ncif_proc_data len:%d", p_last->len);
+        LOG(VERBOSE) << StringPrintf("nfc_ncif_proc_data len:%d", p_last->len);
         p_last->layer_specific = p_msg->layer_specific;
         GKI_freebuf(p_msg);
         nfc_data_event(p_cb);
@@ -2422,7 +2333,7 @@ bool nfc_ncif_proc_proprietary_rsp(uint8_t mt, uint8_t gid, uint8_t oid) {
 #if (NXP_EXTNS == TRUE)
   bool isRstRsp = FALSE;
 #endif
-  LOG(DEBUG) << StringPrintf("%s: mt=%u, gid=%u, oid=%u", __func__, mt, gid,
+  LOG(VERBOSE) << StringPrintf("%s: mt=%u, gid=%u, oid=%u", __func__, mt, gid,
                              oid);
 
   switch (mt) {
@@ -2486,7 +2397,7 @@ bool nfc_ncif_proc_proprietary_rsp(uint8_t mt, uint8_t gid, uint8_t oid) {
     nfc_cb.rawVsCbflag = false;
   }
 #endif
-  LOG(DEBUG) << StringPrintf("%s: exit status=%u rawVsCbflag=%u", __func__,
+  LOG(VERBOSE) << StringPrintf("%s: exit status=%u rawVsCbflag=%u", __func__,
                              stat, nfc_cb.rawVsCbflag);
   return stat;
 }
@@ -2564,7 +2475,7 @@ void set_default_power_state_for_active_ee() {
 **
 *******************************************************************************/
 void nfc_ncif_credit_ntf_timeout() {
-  LOG(DEBUG) << StringPrintf("nfc_ncif_credit_ntf_timeout : Enter");
+  LOG(VERBOSE) << StringPrintf("nfc_ncif_credit_ntf_timeout : Enter");
 
   tNFC_CONN_CB* p_cb;
   // No need to wait for response since credit ntf timeout calls recovery
@@ -2580,7 +2491,7 @@ void nfc_ncif_credit_ntf_timeout() {
   if (p_cb && (p_cb->num_buff != NFC_CONN_NO_FC) && (p_cb->num_buff == 0))
     p_cb->num_buff++;
   set_default_power_state_for_active_ee();
-  LOG(DEBUG) << StringPrintf("cmd timeout sending core reset!!!");
+  LOG(VERBOSE) << StringPrintf("cmd timeout sending core reset!!!");
   nfc_ncif_cmd_timeout();
   // nci_snd_core_reset(0x00);
 }
@@ -2597,13 +2508,13 @@ void nfc_ncif_credit_ntf_timeout() {
 *******************************************************************************/
 void nfc_ncif_proc_generic_error_ntf(tNFC_STATUS status)
 {
-  LOG(DEBUG) << StringPrintf(
+  LOG(VERBOSE) << StringPrintf(
       "nfc_ncif_proc_generic_error_ntf: enter, status=%d", status);
   switch (status) {
     case NCI_NFCEE_STS_COLD_TEMP_THRESOLD_REACHED: {
       nfc_cb.nci_ese_cold_temp_timeout =
                             NfcConfig::getUnsigned(NAME_NXP_SE_COLD_TEMP_ERROR_DELAY, 0x05);
-      LOG(DEBUG) << StringPrintf("Waiting for nci_ese_cold_temp_timeout = %d",
+      LOG(VERBOSE) << StringPrintf("Waiting for nci_ese_cold_temp_timeout = %d",
                                  nfc_cb.nci_ese_cold_temp_timeout);
       nfc_start_timer(&nfc_cb.nci_wait_se_temp_error_delay , (uint16_t)(NFC_TTYPE_SE_TEMP_ERROR_DELAY),
                     nfc_cb.nci_ese_cold_temp_timeout);
@@ -2619,7 +2530,7 @@ void nfc_ncif_proc_generic_error_ntf(tNFC_STATUS status)
       break;
     }
     default:
-      LOG(DEBUG) << StringPrintf(
+      LOG(VERBOSE) << StringPrintf(
           "%s: Unhandled CORE_GENERIC_ERROR_NTF status = %d", __func__, status);
       break;
   }
@@ -2634,7 +2545,7 @@ void nfc_ncif_proc_generic_error_ntf(tNFC_STATUS status)
 **
 *******************************************************************************/
 void nfc_ee_temp_error_delay_timeout(){
-  LOG(DEBUG) << StringPrintf("nfc_ee_temp_error_delay_timeout: enter");
+  LOG(VERBOSE) << StringPrintf("nfc_ee_temp_error_delay_timeout: enter");
   tNFA_EE_ECB* p_cb = nfa_ee_find_ecb(ESE_HOST);
   if(p_cb != nullptr) {
     /*Override eSE status to be able to start ee_discovery*/

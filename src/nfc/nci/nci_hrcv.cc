@@ -31,7 +31,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2019-2023 NXP
+ *  Copyright 2019-2024 NXP
  *
  ******************************************************************************/
 /******************************************************************************
@@ -81,7 +81,7 @@ bool nci_proc_core_rsp(NFC_HDR* p_msg) {
   p = (uint8_t*)(p_msg + 1) + p_msg->offset;
   pp = p + 1;
   NCI_MSG_PRS_HDR1(pp, op_code);
-  LOG(DEBUG) << StringPrintf("nci_proc_core_rsp opcode:0x%x", op_code);
+  LOG(VERBOSE) << StringPrintf("nci_proc_core_rsp opcode:0x%x", op_code);
   len = *pp++;
 
   /* process the message based on the opcode and message type */
@@ -145,7 +145,7 @@ void nci_proc_core_ntf(NFC_HDR* p_msg) {
     return;
   }
   NCI_MSG_PRS_HDR1(pp, op_code);
-  LOG(DEBUG) << StringPrintf("nci_proc_core_ntf opcode:0x%x", op_code);
+  LOG(VERBOSE) << StringPrintf("nci_proc_core_ntf opcode:0x%x", op_code);
   pp++;
   len -= NCI_MSG_HDR_SIZE;
   /* process the message based on the opcode and message type */
@@ -251,6 +251,9 @@ void nci_proc_rf_management_rsp(NFC_HDR* p_msg) {
     case NCI_MSG_RF_INTF_EXT_STOP:
       nfc_ncif_event_status(NFC_RF_INTF_EXT_STOP_REVT, *pp);
       break;
+    case NCI_MSG_RF_REMOVAL_DETECTION:
+      nfc_ncif_proc_removal_detection(*pp, false);
+      break;
 #endif
     case NCI_MSG_RF_ISO_DEP_NAK_PRESENCE:
       nfc_ncif_proc_isodep_nak_presence_check_status(*pp, false);
@@ -329,6 +332,15 @@ void nci_proc_rf_management_ntf(NFC_HDR* p_msg) {
       break;
 #endif
 #endif
+#if (NXP_EXTNS == TRUE)
+    case NCI_MSG_RF_REMOVAL_DETECTION:
+      if (p_msg->len < 4) {
+        android_errorWriteLog(0x534e4554, "176582502");
+        return;
+      }
+      nfc_ncif_proc_removal_detection(*pp, true);
+      break;
+#endif
     case NCI_MSG_RF_ISO_DEP_NAK_PRESENCE:
       if (p_msg->len < 4) {
         android_errorWriteLog(0x534e4554, "176582502");
@@ -366,7 +378,7 @@ void nci_proc_ee_management_rsp(NFC_HDR* p_msg) {
   p = (uint8_t*)(p_msg + 1) + p_msg->offset;
   pp = p + 1;
   NCI_MSG_PRS_HDR1(pp, op_code);
-  LOG(DEBUG) << StringPrintf("nci_proc_ee_management_rsp opcode:0x%x", op_code);
+  LOG(VERBOSE) << StringPrintf("nci_proc_ee_management_rsp opcode:0x%x", op_code);
   len = p_msg->len - NCI_MSG_HDR_SIZE;
   /* Use pmsg->len in boundary checks, skip *pp */
   pp++;
@@ -449,7 +461,7 @@ void nci_proc_ee_management_ntf(NFC_HDR* p_msg) {
   p = (uint8_t*)(p_msg + 1) + p_msg->offset;
   pp = p + 1;
   NCI_MSG_PRS_HDR1(pp, op_code);
-  LOG(DEBUG) << StringPrintf("nci_proc_ee_management_ntf opcode:0x%x", op_code);
+  LOG(VERBOSE) << StringPrintf("nci_proc_ee_management_ntf opcode:0x%x", op_code);
   len = *pp++;
 
   switch (op_code) {
@@ -480,7 +492,7 @@ void nci_proc_ee_management_ntf(NFC_HDR* p_msg) {
       }
       pp = p + yy;
       nfc_response.nfcee_info.num_tlvs = *pp++;
-      LOG(DEBUG) << StringPrintf(
+      LOG(VERBOSE) << StringPrintf(
           "nfcee_id: 0x%x num_interface:0x%x/0x%x, num_tlvs:0x%x",
           nfc_response.nfcee_info.nfcee_id,
           nfc_response.nfcee_info.num_interface, yy,
@@ -501,7 +513,7 @@ void nci_proc_ee_management_ntf(NFC_HDR* p_msg) {
         } else {
           len -= yy + 2;
         }
-        LOG(DEBUG) << StringPrintf("tag:0x%x, len:0x%x", p_tlv->tag,
+        LOG(VERBOSE) << StringPrintf("tag:0x%x, len:0x%x", p_tlv->tag,
                                    p_tlv->len);
         if (p_tlv->len > NFC_MAX_EE_INFO) p_tlv->len = NFC_MAX_EE_INFO;
         STREAM_TO_ARRAY(p_tlv->info, pp, p_tlv->len);

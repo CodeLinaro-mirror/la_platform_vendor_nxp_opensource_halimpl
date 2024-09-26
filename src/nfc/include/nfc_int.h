@@ -31,7 +31,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2020,2022-2023 NXP
+ *  Copyright 2018-2020,2022-2024 NXP
  *
  ******************************************************************************/
 /******************************************************************************
@@ -70,10 +70,6 @@
 #define NFC_TTYPE_SE_TEMP_ERROR_DELAY 4
 #endif
 
-#define NFC_TTYPE_LLCP_LINK_MANAGER 100
-#define NFC_TTYPE_LLCP_LINK_INACT 101
-#define NFC_TTYPE_LLCP_DATA_LINK 102
-#define NFC_TTYPE_LLCP_DELAY_FIRST_PDU 103
 #define NFC_TTYPE_RW_T1T_RESPONSE 104
 #define NFC_TTYPE_RW_T2T_RESPONSE 105
 #define NFC_TTYPE_RW_T3T_RESPONSE 106
@@ -97,12 +93,6 @@ enum {
   NFC_STATE_NFCC_POWER_OFF_SLEEP /* NFCC is power-off sleep mode             */
 };
 typedef uint8_t tNFC_STATE;
-
-/* DM P2P Priority event type */
-enum {
-  NFA_DM_P2P_PRIO_RSP = 0x01, /* P2P priority event from RSP   */
-  NFA_DM_P2P_PRIO_NTF         /* P2P priority event from NTF   */
-};
 
 /* NFC control block flags */
 /* NFC_Deactivate () is called and the NCI cmd is not sent   */
@@ -269,6 +259,8 @@ typedef struct {
                           to an acceptable range once eSe detected COLD_TEMP_ERROR*/
   uint8_t nci_ese_cold_temp_timeout;
   uint8_t hci_fc_flags;
+  /* Indicates support of Removal Detection in Poll */
+  bool isRemovalDetectSupported;
 #endif
 } tNFC_CB;
 
@@ -370,5 +362,7 @@ extern void nfc_ncif_credit_ntf_timeout(void);
 void check_nfcee_session_and_reset();
 extern void nfc_ncif_proc_generic_error_ntf(tNFC_STATUS status);
 extern void nfc_ee_temp_error_delay_timeout();
+extern void nfc_ncif_proc_removal_detection(uint8_t status,
+                                            bool is_ntf = false);
 #endif
 #endif /* NFC_INT_H_ */

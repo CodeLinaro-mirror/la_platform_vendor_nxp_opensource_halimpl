@@ -70,7 +70,7 @@
 #define NXP_EN_SN300U    1
 #define NXP_EN_SN330U    1
 #define NXP_ANDROID_VER (15U)        /* NXP android version */
-#define NFC_NXP_MW_VERSION_MAJ (0x04) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x0B) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION  (0x00) /* MW RC Version */
@@ -538,6 +538,7 @@ typedef uint8_t tNFC_RF_STS;
 typedef uint8_t tNFC_RF_TECH;
 
 extern uint8_t NFC_GetNCIVersion();
+extern bool NFC_IsRfRemovalDetectionSupported();
 
 /* Supported Protocols */
 #define NFC_PROTOCOL_UNKNOWN NCI_PROTOCOL_UNKNOWN /* Unknown */
@@ -573,18 +574,12 @@ typedef uint8_t tNFC_PROTOCOL;
 #if (NXP_EXTNS == TRUE)
 #define NFC_DISCOVERY_TYPE_POLL_WLC NCI_DISCOVERY_TYPE_POLL_WLC
 #endif
-#define NFC_DISCOVERY_TYPE_POLL_A_ACTIVE NCI_DISCOVERY_TYPE_POLL_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_F_ACTIVE NCI_DISCOVERY_TYPE_POLL_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_ACTIVE NCI_DISCOVERY_TYPE_POLL_ACTIVE
 #define NFC_DISCOVERY_TYPE_POLL_V NCI_DISCOVERY_TYPE_POLL_V
 #define NFC_DISCOVERY_TYPE_POLL_B_PRIME NCI_DISCOVERY_TYPE_POLL_B_PRIME
 #define NFC_DISCOVERY_TYPE_POLL_KOVIO NCI_DISCOVERY_TYPE_POLL_KOVIO
 #define NFC_DISCOVERY_TYPE_LISTEN_A NCI_DISCOVERY_TYPE_LISTEN_A
 #define NFC_DISCOVERY_TYPE_LISTEN_B NCI_DISCOVERY_TYPE_LISTEN_B
 #define NFC_DISCOVERY_TYPE_LISTEN_F NCI_DISCOVERY_TYPE_LISTEN_F
-#define NFC_DISCOVERY_TYPE_LISTEN_A_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_F_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_ACTIVE
 #define NFC_DISCOVERY_TYPE_LISTEN_ISO15693 NCI_DISCOVERY_TYPE_LISTEN_ISO15693
 #define NFC_DISCOVERY_TYPE_LISTEN_B_PRIME NCI_DISCOVERY_TYPE_LISTEN_B_PRIME
 #if (NXP_EXTNS == TRUE)
@@ -751,6 +746,10 @@ enum {
   NFC_SELECT_DEVT,                 /* Status of NFC_DiscoverySelect    */
   NFC_ACTIVATE_DEVT,               /* RF interface is activated        */
   NFC_DEACTIVATE_DEVT              /* Status of RF deactivation        */
+#if (NXP_EXTNS == TRUE)
+  ,
+  NFC_REMOVAL_DETECTION_DEVT /* Status of RF Removal Detection   */
+#endif
 };
 typedef uint16_t tNFC_DISCOVER_EVT;
 
@@ -773,6 +772,7 @@ typedef struct {
                             13) Available after Technology Detection */
   uint8_t sensb_res[NFC_MAX_SENSB_RES_LEN]; /* SENSB_RES Response (ATQ) */
   uint8_t nfcid0[NFC_NFCID0_MAX_LEN];
+  uint8_t fwi;
 #if (NXP_EXTNS == TRUE)
   uint8_t pupiid_len;
   uint8_t pupiid[NFC_PUPIID_MAX_LEN];
@@ -965,6 +965,13 @@ typedef struct {
   tNFC_DEACT_REASON reason; /* De-activate reason    */
 } tNFC_DEACTIVATE_DEVT;
 
+#if (NXP_EXTNS == TRUE)
+/* the data type associated with NFC_REMOVAL_DETECTION_DEVT   */
+typedef struct {
+  tNFC_STATUS status; /* The event status.        */
+  bool is_ntf;        /* TRUE, if deactivate notif*/
+} tNFC_REMOVAL_DETECTION_DEVT;
+#endif
 typedef union {
   tNFC_STATUS status; /* The event status.        */
   tNFC_START_DEVT start;
@@ -973,6 +980,9 @@ typedef union {
   tNFC_STOP_DEVT stop;
   tNFC_ACTIVATE_DEVT activate;
   tNFC_DEACTIVATE_DEVT deactivate;
+#if (NXP_EXTNS == TRUE)
+  tNFC_REMOVAL_DETECTION_DEVT removal_detection;
+#endif
 } tNFC_DISCOVER;
 
 typedef struct {

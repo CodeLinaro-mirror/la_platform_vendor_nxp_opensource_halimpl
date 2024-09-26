@@ -1,3 +1,4 @@
+
 cc_defaults {
     name: "sn100nfc_utils_defaults",
     include_dirs: [
@@ -42,7 +43,7 @@ cc_library_static {
     ],
     apex_available: [
          "//apex_available:platform",
-         "com.android.nfcservices"
+         "com.android.nfcservices",
     ],
 }
 
@@ -58,7 +59,6 @@ cc_test {
     static_libs: [
         "libsn100nfcutils",
         "libgmock",
-        "libc++fs"
     ],
     shared_libs: [
         "libbase",
