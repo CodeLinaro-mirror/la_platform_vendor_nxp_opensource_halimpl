@@ -181,7 +181,7 @@ cc_library_headers {
 }
 
 filegroup {
-    name: "nxp_gtest_filegroup",
+    name: "nxp_nq_gtest_filegroup",
 
     srcs: [
         "halimpl/observe_mode/NciDiscoveryCommandBuilder.cc",
@@ -193,7 +193,7 @@ filegroup {
 }
 
 cc_library_headers {
-    name: "nxp_gtest_headers",
+    name: "nxp_nq_gtest_headers",
     host_supported: true,
     export_include_dirs:[
         "halimpl/common",
