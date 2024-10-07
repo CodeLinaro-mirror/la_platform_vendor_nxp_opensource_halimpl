@@ -161,6 +161,8 @@ typedef enum
   TARGET_SM_CLARENCE                   = 568, /**< SM_CLARENCE target */
   TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
   TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
+  TARGET_SMP_KAANAPALI                 = 661, /**< SMP_KAANAPALI target */
+  TARGET_SM_KAANAPALI                  = 660, /**< SM_KAANAPALI target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -345,7 +347,8 @@ bool secure_zone_support(void)
         return DEFAULT_CONFIG;
     }
     msm_id = atoi(soc_info);
-    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P))
+    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P) ||
+        (msm_id == TARGET_SMP_KAANAPALI) || (msm_id == TARGET_SM_KAANAPALI))
 	return true;
     else
 	return false;
@@ -417,6 +420,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM8750:
         case TARGET_SM8750P:
+        case TARGET_SMP_KAANAPALI:
+        case TARGET_SM_KAANAPALI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
@@ -460,6 +465,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM8750:
         case TARGET_SM8750P:
+        case TARGET_SMP_KAANAPALI:
+        case TARGET_SM_KAANAPALI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
