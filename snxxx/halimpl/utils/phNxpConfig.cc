@@ -163,6 +163,7 @@ typedef enum
   TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
   TARGET_SM_RAMOS                      = 681, /**<SM_RAMOS_BONITO target */
   TARGET_SM_BONITO                     = 655, /**<SM_BONITO_DEFAULT target */
+  TARGET_SMP_BONITO                    = 694, /**<SMP_BONITO_DEFAULT target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -347,7 +348,7 @@ bool secure_zone_support(void)
         return DEFAULT_CONFIG;
     }
     msm_id = atoi(soc_info);
-    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P) || (msm_id == TARGET_SM_RAMOS) || (msm_id == TARGET_SM_BONITO))
+    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P) || (msm_id == TARGET_SM_RAMOS) || (msm_id == TARGET_SM_BONITO) || (msm_id == TARGET_SMP_BONITO))
 	return true;
     else
 	return false;
@@ -421,6 +422,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
+	case TARGET_SMP_BONITO:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
@@ -466,6 +468,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
+	case TARGET_SMP_BONITO:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
