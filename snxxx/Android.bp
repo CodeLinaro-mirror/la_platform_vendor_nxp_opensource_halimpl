@@ -69,6 +69,7 @@ cc_library_shared {
         "halimpl/dnld/phDnldNfc_Utils.cc",
         "halimpl/dnld/phNxpNciHal_Dnld.cc",
         "halimpl/hal/phNxpNciHal.cc",
+        "halimpl/hal/phNxpNciHal_VendorProp.cc",
         "halimpl/hal/phNxpNciHal_ext.cc",
         "halimpl/log/phNxpLog.cc",
         "halimpl/src/adaptation/EseAdaptation.cc",
@@ -178,3 +179,27 @@ cc_library_headers {
         "halimpl/recovery",
     ],
 }
+/*
+filegroup {
+    name: "nxp_gtest_filegroup",
+
+    srcs: [
+        "halimpl/observe_mode/NciDiscoveryCommandBuilder.cc",
+        "halimpl/observe_mode/ReaderPollConfigParser.cc",
+    ],
+    visibility: [
+        "//hardware/nxp/nfc/snxxx/tests/gtest",
+    ],
+}*/
+
+/*cc_library_headers {
+    name: "nxp_gtest_headers",
+    host_supported: true,
+    export_include_dirs:[
+        "halimpl/common",
+        "halimpl/observe_mode",
+    ],
+    visibility: [
+        "//hardware/nxp/nfc/snxxx/tests/gtest",
+    ],
+}*/
