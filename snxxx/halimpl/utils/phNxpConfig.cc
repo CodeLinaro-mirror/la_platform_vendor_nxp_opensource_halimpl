@@ -149,6 +149,7 @@ typedef enum
   TARGET_SMP_KAILUA                    = 536, /**< SMP_KAILUA target */
   TARGET_SM_CAMANO                     = 608, /**< SM_CAMANO target */
   TARGET_SM_SHAW                       = 644, /**< SM_SHAW target */
+  TARGET_SMP_CAMANO                    = 687, /**< SMP_CAMANO target */
   TARGET_SM6125_QCM                    = 467, /**< QCM6125 target */
   TARGET_SM6125_QCS                    = 468, /**< QCS6125 target */
   TARGET_SM6125_SM                     = 394, /**< SM6125 target */
@@ -426,7 +427,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             }
             break;
         case TARGET_SM_CAMANO:
-        case TARGET_SM_SHAW:
+        case TARGET_SMP_CAMANO:
+	case TARGET_SM_SHAW:
 	    if (!strcmp(nq_chip_info.nq_chipid, SN100_CHIP_ID)) {
                 // SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
@@ -477,7 +479,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             }
             break;
         case TARGET_SM_CAMANO:
-        case TARGET_SM_SHAW:
+        case TARGET_SMP_CAMANO:
+	case TARGET_SM_SHAW:
 	    if (!strcmp(nq_chip_info.nq_chipid, SN100_CHIP_ID)) {
                 // SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
