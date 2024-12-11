@@ -161,6 +161,8 @@ typedef enum
   TARGET_SM_CLARENCE                   = 568, /**< SM_CLARENCE target */
   TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
   TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
+  TARGET_SMP_ELIZA                     = 686, /**< SMP_ELIZA target */
+  TARGET_SM_ELIZA                      = 659, /**< SM_ELIZA target */
   TARGET_SM_RAMOS                      = 681, /**<SM_RAMOS_BONITO target */
   TARGET_SM_BONITO                     = 655, /**<SM_BONITO_DEFAULT target */
   TARGET_SMP_BONITO                    = 694, /**<SMP_BONITO_DEFAULT target */
@@ -348,7 +350,7 @@ bool secure_zone_support(void)
         return DEFAULT_CONFIG;
     }
     msm_id = atoi(soc_info);
-    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P) || (msm_id == TARGET_SM_RAMOS) || (msm_id == TARGET_SM_BONITO) || (msm_id == TARGET_SMP_BONITO))
+    if ((msm_id == TARGET_SM8750) || (msm_id == TARGET_SM8750P))
 	return true;
     else
 	return false;
@@ -420,6 +422,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM8750:
         case TARGET_SM8750P:
+	case TARGET_SMP_ELIZA:
+        case TARGET_SM_ELIZA:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
@@ -466,6 +470,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SM8750:
         case TARGET_SM8750P:
+        case TARGET_SMP_ELIZA:
+        case TARGET_SM_ELIZA:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
