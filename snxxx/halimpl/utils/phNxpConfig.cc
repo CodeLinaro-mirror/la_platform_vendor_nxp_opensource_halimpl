@@ -163,6 +163,7 @@ typedef enum
   TARGET_IOT_QCM_MILOS                 = 657, /**< MILOS QCM IOT with Modem target*/
   TARGET_IOT_QCS_MILOS                 = 658, /**< MILOS QCS  without Modem target*/
   TARGET_SGP_LANAI                     = 682, /**< SGP_LANAI Gaming SKU without modem*/
+  TARGET_SMP_LANAIQ                    = 696, /**< SMP_LANAIQ SKU variant used for tablet*/
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -347,7 +348,7 @@ bool secure_zone_support(void)
         return DEFAULT_CONFIG;
     }
     msm_id = atoi(soc_info);
-    if ((msm_id == TARGET_SM_LANAI) || (msm_id == TARGET_SMP_LANAI) || (msm_id == TARGET_SGP_LANAI))
+    if ((msm_id == TARGET_SM_LANAI) || (msm_id == TARGET_SMP_LANAI) || (msm_id == TARGET_SGP_LANAI) || (msm_id == TARGET_SMP_LANAIQ))
 	return true;
     else
 	return false;
@@ -442,6 +443,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_PALAWAN:
         case TARGET_SMP_LAMMA:
 	case TARGET_SGP_LANAI:
+	case TARGET_SMP_LANAIQ:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -484,6 +486,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_PALAWAN:
         case TARGET_SMP_LAMMA:
 	case TARGET_SGP_LANAI:
+	case TARGET_SMP_LANAIQ:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
