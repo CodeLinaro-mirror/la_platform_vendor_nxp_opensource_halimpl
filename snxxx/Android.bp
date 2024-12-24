@@ -98,6 +98,7 @@ cc_library_shared {
         "halimpl/recovery/phNxpNciHal_Recovery.cc",
         "halimpl/dynamic_protection/phNfcDynamicProtection.cc",
         "halimpl/hal/phNxpNciHal_PowerTrackerIface.cc",
+        "halimpl/hal/phNxpNciHal_WiredSeIface.cc",
     ],
 
     local_include_dirs: [

@@ -249,7 +249,7 @@ extern tNfc_featureList nfcFL;
     nfcFL._FW_MOBILE_MAJOR_NUMBER = FW_MOBILE_MAJOR_NUMBER_PN48AD;     \
     nfcFL.nfccFL._NFCC_DWNLD_MODE = NFCC_DWNLD_WITH_VEN_RESET;         \
     nfcFL.nfccFL._NFCC_4K_FW_SUPPORT = false;                          \
-    UPDATE_NFCC_CAPABILITY()	                                       \
+    UPDATE_NFCC_CAPABILITY()                                           \
     switch (chipType) {                                                \
       case pn557:                                                      \
         nfcFL.nfccFL._NFCC_I2C_READ_WRITE_IMPROVEMENT = true;          \
