@@ -164,6 +164,7 @@ typedef enum
   TARGET_IOT_QCS_MILOS                 = 658, /**< MILOS QCS  without Modem target*/
   TARGET_SGP_LANAI                     = 682, /**< SGP_LANAI Gaming SKU without modem*/
   TARGET_SMP_LANAIQ                    = 696, /**< SMP_LANAIQ SKU variant used for tablet*/
+  TARGET_SM_LAMMA                      = 700, /**< SM_LAMMA Gaming SKU SOC*/
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -444,6 +445,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_LAMMA:
 	case TARGET_SGP_LANAI:
 	case TARGET_SMP_LANAIQ:
+	case TARGET_SM_LAMMA:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -487,6 +489,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_LAMMA:
 	case TARGET_SGP_LANAI:
 	case TARGET_SMP_LANAIQ:
+	case TARGET_SM_LAMMA:
             // SN220 V1 and V3
             config_id = GENERIC_38_4_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
