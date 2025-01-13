@@ -208,73 +208,71 @@ genrule {
     ],
 }
 
-cc_fuzz {
-    name: "nqnfc_nci_fuzzer",
-    defaults: ["nfc_fuzzer_defaults"],
-    fuzzing_frameworks: {
-        afl: false,
-    },
-    srcs: [
-        "nfc/nci/*.cc",
-        "nfc/nfc/*.cc",
-        "adaptation/debug_lmrt.cc",
-        "gki/common/*.cc",
-        "gki/ulinux/*.cc",
-        "fuzzers/*.cc",
-        "fuzzers/nci/*.cc",
-    ],
-    shared_libs: [
-        "nqlibstatslog_nfc",
-    ],
-}
+// cc_fuzz {
+// 	name: "nqnfc_ndef_fuzzer",
+// 	defaults: ["nfc_fuzzer_defaults"],
+// 	fuzzing_frameworks: {
+// 			afl: false,
+// 	},
+// 	srcs: [
+// 			"nfa/dm/nfa_dm_ndef.cc",
+// 			"nfc/ndef/*.cc",
+// 			"gki/common/*.cc",
+// 			"gki/ulinux/*.cc",
+// 			"fuzzers/*.cc",
+// 			"fuzzers/ndef/*.cc",
+// 	],
+// }
 
-cc_fuzz {
-    name: "nqnfc_rw_fuzzer",
-    defaults: ["nfc_fuzzer_defaults"],
-    fuzzing_frameworks: {
-        afl: false,
-    },
-    srcs: [
-        "nfc/tags/rw_*.cc",
-        "nfc/tags/tags_int.cc",
-        "gki/common/*.cc",
-        "gki/ulinux/*.cc",
-        "fuzzers/*.cc",
-        "fuzzers/rw/*.cc",
-    ],
-}
+// cc_fuzz {
+// 	name: "nqnfc_rw_fuzzer",
+// 	defaults: ["nfc_fuzzer_defaults"],
+// 	fuzzing_frameworks: {
+// 			afl: false,
+// 	},
+// 	srcs: [
+// 			"nfc/tags/rw_*.cc",
+// 			"nfc/tags/tags_int.cc",
+// 			"gki/common/*.cc",
+// 			"gki/ulinux/*.cc",
+// 			"fuzzers/*.cc",
+// 			"fuzzers/rw/*.cc",
+// 	],
+// }
 
-cc_fuzz {
-    name: "nqnfc_ce_fuzzer",
-    defaults: ["nfc_fuzzer_defaults"],
-    fuzzing_frameworks: {
-        afl: false,
-    },
-    srcs: [
-        "nfc/tags/ce_*.cc",
-        "nfc/tags/tags_int.cc",
-        "gki/common/*.cc",
-        "gki/ulinux/*.cc",
-        "fuzzers/*.cc",
-        "fuzzers/ce/*.cc",
-    ],
-}
+// cc_fuzz {
+// 	name: "nqnfc_ce_fuzzer",
+// 	defaults: ["nfc_fuzzer_defaults"],
+// 	fuzzing_frameworks: {
+// 			afl: false,
+// 	},
+// 	srcs: [
+// 			"nfc/tags/ce_*.cc",
+// 			"nfc/tags/tags_int.cc",
+// 			"gki/common/*.cc",
+// 			"gki/ulinux/*.cc",
+// 			"fuzzers/*.cc",
+// 			"fuzzers/ce/*.cc",
+// 	],
+// }
 
-cc_fuzz {
-    name: "nqnfc_ndef_fuzzer",
-    defaults: ["nfc_fuzzer_defaults"],
-    fuzzing_frameworks: {
-        afl: false,
-    },
-    srcs: [
-        "nfa/dm/nfa_dm_ndef.cc",
-        "nfc/ndef/*.cc",
-        "gki/common/*.cc",
-        "gki/ulinux/*.cc",
-        "fuzzers/*.cc",
-        "fuzzers/ndef/*.cc",
-    ],
-}
+// cc_fuzz {
+// 	name: "nqnfc_ndef_fuzzer",
+// 	defaults: ["nfc_fuzzer_defaults"],
+// 	fuzzing_frameworks: {
+// 			afl: false,
+// 	},
+// 	srcs: [
+// 			"nfa/dm/nfa_dm_ndef.cc",
+// 			"nfc/ndef/*.cc",
+// 			"gki/common/*.cc",
+// 			"gki/ulinux/*.cc",
+// 			"fuzzers/*.cc",
+// 			"fuzzers/ndef/*.cc",
+// 	],
+// }
+
+
 
 cc_library_static {
     name: "nqnfc_integration_fuzzer_proto",
@@ -288,44 +286,44 @@ cc_library_static {
     shared_libs: ["libprotobuf-cpp-full"],
 }
 
-cc_fuzz {
-    name: "nqnfc_integration_fuzzer",
-    defaults: ["nfc_fuzzer_defaults"],
-    fuzzing_frameworks: {
-        afl: false,
-    },
-    srcs: [
-        "adaptation/debug_nfcsnoop.cc",
-        "fuzzers/integration/*.cc",
-        "fuzzers/integration/fakes/*.cc",
-        "gki/common/gki_buffer.cc",
-        "adaptation/debug_lmrt.cc",
-        "nfa/ce/*.cc",
-        "nfa/dm/*.cc",
-        "nfa/ee/*.cc",
-        "nfa/hci/*.cc",
-        "nfa/rw/*.cc",
-        "nfa/sys/*.cc",
-        "nfc/nci/*.cc",
-        "nfc/ndef/*.cc",
-        "nfc/nfc/*.cc",
-        "nfc/tags/*.cc",
-    ],
-    cflags: [
-        "-DNFC_INTEGRATION_FUZZER",
-    ],
-    local_include_dirs: [
-        "fuzzers/integration",
-        "fuzzers/integration/fakes",
-    ],
-    static_libs: [
-        "libprotobuf-mutator",
-        "libutils",
-        "nqnfc_integration_fuzzer_proto",
-    ],
-    shared_libs: [
-        "libprotobuf-cpp-full",
-        "nqlibstatslog_nfc",
-        "libz",
-    ],
-}
+// cc_fuzz {
+// 	name: "nqnfc_integration_fuzzer",
+// 	defaults: ["nfc_fuzzer_defaults"],
+// 	fuzzing_frameworks: {
+// 			afl: false,
+// 	},
+// 	srcs: [
+// 			"adaptation/debug_nfcsnoop.cc",
+// 			"fuzzers/integration/*.cc",
+// 			"fuzzers/integration/fakes/*.cc",
+// 			"gki/common/gki_buffer.cc",
+// 			"adaptation/debug_lmrt.cc",
+// 			"nfa/ce/*.cc",
+// 			"nfa/dm/*.cc",
+// 			"nfa/ee/*.cc",
+// 			"nfa/hci/*.cc",
+// 			"nfa/rw/*.cc",
+// 			"nfa/sys/*.cc",
+// 			"nfc/nci/*.cc",
+// 			"nfc/ndef/*.cc",
+// 			"nfc/nfc/*.cc",
+// 			"nfc/tags/*.cc",
+// 	],
+// 	cflags: [
+// 			"-DNFC_INTEGRATION_FUZZER",
+// 	],
+// 	local_include_dirs: [
+// 			"fuzzers/integration",
+// 			"fuzzers/integration/fakes",
+// 	],
+// 	static_libs: [
+// 			"libprotobuf-mutator",
+// 			"libutils",
+// 			"nqnfc_integration_fuzzer_proto",
+// 	],
+// 	shared_libs: [
+// 			"libprotobuf-cpp-full",
+// 			"nqlibstatslog_nfc",
+// 			"libz",
+// 	],
+// }

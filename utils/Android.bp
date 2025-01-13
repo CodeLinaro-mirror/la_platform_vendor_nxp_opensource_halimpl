@@ -11,7 +11,9 @@ package {
 cc_defaults {
     name: "sn100nfc_utils_defaults",
     include_dirs: [
-        "system/nfc",
+        "packages/modules/Nfc/libnfc-nci/src",
+        "packages/modules/Nfc/libnfc-nci",
+        "packages/modules/Nfc",        
     ],
     cflags: [
         "-Wall",
