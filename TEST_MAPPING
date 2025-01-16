@@ -6,7 +6,7 @@
   ],
   "postsubmit": [
     {
-      "name": "libnfc-nci-tests"
+      "name": "libnfc-nqnci-tests"
     }
   ]
 }

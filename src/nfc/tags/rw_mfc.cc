@@ -39,7 +39,7 @@
  ******************************************************************************/
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <com_android_nfc_nci_flags.h>
+#include <com_android_nfc_nci_nqflags.h>
 #include <log/log.h>
 #include <string.h>
 
@@ -52,7 +52,7 @@
 #include "rw_int.h"
 #include "tags_int.h"
 
-using com::android::nfc::nci::flags::mfc_read_mad;
+using com::android::nfc::nci::nqflags::mfc_read_mad;
 
 #define MFC_KeyA 0x60
 #define MFC_KeyB 0x61
