@@ -30,7 +30,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  Copyright 2018-2021, 2023 NXP
+ *  Copyright 2018-2021, 2023-2024 NXP
  *
  ******************************************************************************/
 #pragma once
@@ -78,6 +78,7 @@
 #define NAME_DEFAULT_ROUTE "DEFAULT_ROUTE"
 #define NAME_OFF_HOST_ESE_PIPE_ID "OFF_HOST_ESE_PIPE_ID"
 #define NAME_OFF_HOST_SIM_PIPE_ID "OFF_HOST_SIM_PIPE_ID"
+#define NAME_OFF_HOST_SIM_PIPE_IDS "OFF_HOST_SIM_PIPE_IDS"
 #define NAME_ISO_DEP_MAX_TRANSCEIVE "ISO_DEP_MAX_TRANSCEIVE"
 #define NAME_DEVICE_HOST_ALLOW_LIST "DEVICE_HOST_ALLOW_LIST"
 #define NAME_DEFAULT_ISODEP_ROUTE "DEFAULT_ISODEP_ROUTE"
@@ -149,6 +150,7 @@
 #define NAME_OFF_HOST_ESIM_PIPE_ID "OFF_HOST_ESIM_PIPE_ID"
 #define NAME_OFF_HOST_ESIM2_PIPE_ID "OFF_HOST_ESIM2_PIPE_ID"
 #define NAME_NXP_SE_SMB_TERMINAL_TYPE "NXP_SE_SMB_TERMINAL_TYPE"
+#define NAME_ISO15693_SKIP_GET_SYS_INFO_CMD "ISO15693_SKIP_GET_SYS_INFO_CMD"
 #endif
 
 class NfcConfig {
