@@ -48,6 +48,7 @@
 #include "ndef_utils.h"
 #include "nfa_api.h"
 #include "nfa_ce_int.h"
+#include "nfc_int.h"
 
 #if (NXP_EXTNS == TRUE)
 #include "nfa_sys_int.h"
@@ -69,6 +70,60 @@ extern void nfa_srd_init();
 /*****************************************************************************
 **  APIs
 *****************************************************************************/
+/*******************************************************************************
+**
+** Function         NFA_SetNfccMode
+**
+** Description      This function sets the different NFC controller modes.
+**
+**                  mode ENABLE_MODE_DEFAULT or ENABLE_MODE_TRANSPARENT
+**                  or ENABLE_MODE_EE
+**
+** Returns          none
+**
+*******************************************************************************/
+extern void NFA_SetNfccMode(uint8_t mode) {
+  LOG(DEBUG) << StringPrintf("%s: (%d) -> (%d)", __func__, nfc_cb.nfcc_mode,
+                             mode);
+  nfc_cb.nfcc_mode = mode;
+}
+
+/*******************************************************************************
+**
+** Function         NFA_Partial_Init
+**
+** Description      This function initializes control blocks for NFA based on
+**                  mode
+**
+**                  p_hal_entry_tbl points to a table of HAL entry points
+**                  mode ENABLE_MODE_DEFAULT or ENABLE_MODE_TRANSPARENT
+**                  or ENABLE_MODE_EE
+**
+**                  NOTE: the buffer that p_hal_entry_tbl points must be
+**                  persistent until NFA is disabled.
+**
+** Returns          none
+**
+*******************************************************************************/
+extern void NFA_Partial_Init(tHAL_NFC_ENTRY* p_hal_entry_tbl, uint8_t mode) {
+  LOG(DEBUG) << StringPrintf("%s:enter ", __func__);
+  if (mode == ENABLE_MODE_TRANSPARENT) {
+    nfa_sys_init();
+    nfa_dm_init();
+  } else if (mode == ENABLE_MODE_EE) {
+    nfa_sys_init();
+    nfa_dm_init();
+    nfa_ee_init();
+  } else {
+    LOG(ERROR) << StringPrintf("Unknown Mode!");
+    return;
+  }
+  /* Initialize NFC module */
+  NFC_Init(p_hal_entry_tbl);
+  NFA_SetNfccMode(mode);
+  LOG(DEBUG) << StringPrintf("%s:exit ", __func__);
+}
+
 /*******************************************************************************
 **
 ** Function         NFA_Init
@@ -847,11 +902,10 @@ tNFA_STATUS NFA_Select(uint8_t rf_disc_id, tNFA_NFC_PROTOCOL protocol,
       "rf_disc_id:0x%X, protocol:0x%X, rf_interface:0x%X", rf_disc_id, protocol,
       rf_interface);
 
-  if (((rf_interface == NFA_INTERFACE_ISO_DEP) &&
-       (protocol != NFA_PROTOCOL_ISO_DEP)) ||
-      ((rf_interface == NFA_INTERFACE_NFC_DEP) &&
-       (protocol != NFA_PROTOCOL_NFC_DEP))) {
-    LOG(ERROR) << StringPrintf("RF interface is not matched protocol");
+  if ((rf_interface == NFA_INTERFACE_ISO_DEP) &&
+      (protocol != NFA_PROTOCOL_ISO_DEP)) {
+    LOG(ERROR) << StringPrintf("%s; RF interface is not matched protocol",
+                               __func__);
     return (NFA_STATUS_INVALID_PARAM);
   }
 
@@ -981,12 +1035,6 @@ tNFA_STATUS NFA_SendRawFrame(uint8_t* p_raw_data, uint16_t data_len,
 
   LOG(VERBOSE) << StringPrintf("data_len:%d", data_len);
 
-  /* Validate parameters */
-  if (((data_len == 0) || (p_raw_data == nullptr)) &&
-      (!(nfa_dm_cb.disc_cb.disc_state == NFA_DM_RFST_LISTEN_ACTIVE &&
-         nfa_dm_cb.disc_cb.activated_protocol == NFA_PROTOCOL_T3T)))
-    return (NFA_STATUS_INVALID_PARAM);
-
   size = NFC_HDR_SIZE + NCI_MSG_OFFSET_SIZE + NCI_DATA_HDR_SIZE + data_len;
   /* Check for integer overflow */
   if (size < data_len) {
@@ -1001,7 +1049,7 @@ tNFA_STATUS NFA_SendRawFrame(uint8_t* p_raw_data, uint16_t data_len,
     p_msg->len = data_len;
 
     p = (uint8_t*)(p_msg + 1) + p_msg->offset;
-    if (p_raw_data != nullptr) {
+    if ((data_len != 0) && (p_raw_data != nullptr)) {
       memcpy(p, p_raw_data, data_len);
     }
 
@@ -1351,6 +1399,21 @@ void NFA_EnableDtamode(tNFA_eDtaModes eDtaMode) {
   LOG(VERBOSE) << StringPrintf("%s: 0x%x ", __func__, eDtaMode);
   appl_dta_mode_flag = 0x01;
   nfa_dm_cb.eDtaMode = eDtaMode;
+}
+
+/*******************************************************************************
+**
+** Function:        NFA_DisableDtamode
+**
+** Description:     Disable DTA Mode
+**
+** Returns:         none:
+**
+*******************************************************************************/
+void NFA_DisableDtamode(void) {
+  LOG(VERBOSE) << StringPrintf("%s: enter", __func__);
+  appl_dta_mode_flag = 0x0;
+  nfa_dm_cb.eDtaMode = NFA_DTA_APPL_MODE;
 }
 
 /*******************************************************************************

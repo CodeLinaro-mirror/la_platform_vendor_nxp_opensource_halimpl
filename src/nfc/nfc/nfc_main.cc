@@ -61,6 +61,7 @@
 #include "ce_int.h"
 #include "gki.h"
 #include "nci_hmsgs.h"
+#include "nfa_sys.h"
 #include "nfc_int.h"
 #include "nfc_target.h"
 #include "rw_int.h"
@@ -515,15 +516,10 @@ void nfc_main_handle_hal_evt(tNFC_HAL_EVT_MSG* p_msg) {
       break;
 
     case HAL_NFC_POST_INIT_CPLT_EVT:
-#if (NXP_EXTNS == TRUE)
-      if (NfcAdaptation::GetInstance().NFA_GetBootMode() ==
-          NFC_FAST_BOOT_MODE) {
+      if (nfc_cb.nfcc_mode == ENABLE_MODE_TRANSPARENT) {
         nfc_set_state(NFC_STATE_IDLE);
-        nfa_sys_cback_notify_MinEnable_complete(0);
+        nfa_sys_cback_notify_partial_enable_complete(NFA_ID_SYS);
       } else if (nfc_cb.p_nci_init_rsp) {
-#else
-      if (nfc_cb.p_nci_init_rsp) {
-#endif
         /*
         ** if NFC_Disable() is called before receiving
         ** HAL_NFC_POST_INIT_CPLT_EVT, then wait for HAL_NFC_CLOSE_CPLT_EVT.
@@ -608,20 +604,15 @@ void nfc_main_handle_hal_evt(tNFC_HAL_EVT_MSG* p_msg) {
           LOG(ERROR) << StringPrintf("%s; TZ HAL event to switch OFF NFC", __func__);
           nfc_ncif_event_status(NFC_TZ_SECURE_ZONE_DISABLE_NFC_REVT, HAL_NFC_STATUS_FAILED); /* must trig NFA_DM_TZ_SECURE_ZONE_DISABLE_NFC_EVT */
           break;
-#if (NXP_EXTNS == FALSE)
-        case HAL_HCI_NETWORK_RESET:
-          delete_stack_non_volatile_store(true);
-          break;
-#endif
         default:
           break;
       }
       break;
-#if (NXP_EXTNS == TRUE)
+
     case HAL_HCI_NETWORK_RESET:
       delete_stack_non_volatile_store(true);
       break;
-#endif
+
     default:
       LOG(ERROR) << StringPrintf("unhandled event (0x%x).", p_msg->hal_evt);
       break;
