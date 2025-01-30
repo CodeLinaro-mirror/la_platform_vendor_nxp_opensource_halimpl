@@ -35,8 +35,6 @@
 #include <phNxpLog.h>
 #include <string.h>
 #include "phNxpNciHal_utils.h"
-#include <NfccTransportFactory.h>
-#include "phNxpConfig.h"
 
 #define CRC_LEN 2
 #define NORMAL_MODE_HEADER_LEN 3
@@ -44,9 +42,11 @@
 #define FW_DNLD_LEN_OFFSET 1
 #define NORMAL_MODE_LEN_OFFSET 2
 #define FLUSH_BUFFER_SIZE 0xFF
+//To enable the VBAT monitor feature.
+// #define NXP_NFC_VBAT_MONITOR
+
 extern phTmlNfc_i2cfragmentation_t fragmentation_enabled;
 extern phTmlNfc_Context_t* gpphTmlNfc_Context;
-extern spTransport gpTransportObj;
 /*******************************************************************************
 **
 ** Function         Close
@@ -83,9 +83,7 @@ void NfccI2cTransport::Close(void* pDevHandle) {
 NFCSTATUS NfccI2cTransport::OpenAndConfigure(pphTmlNfc_Config_t pConfig,
                                              void** pLinkHandle) {
   int nHandle;
-  unsigned long num = 0;
   NFCSTATUS status = NFCSTATUS_SUCCESS;
-
   NXPLOG_TML_D("%s Opening port=%s\n", __func__, pConfig->pDevName);
   /* open port */
   nHandle = open((const char*)pConfig->pDevName, O_RDWR);
@@ -98,21 +96,6 @@ NFCSTATUS NfccI2cTransport::OpenAndConfigure(pphTmlNfc_Config_t pConfig,
     if (0 != sem_init(&mTxRxSemaphore, 0, 1)) {
       NXPLOG_TML_E("%s Failed: reason sem_init : retval %x", __func__, nHandle);
       status = NFCSTATUS_FAILED;
-    }
-  }
-
-  if (GetNxpNumValue(NAME_ENABLE_VEN_TOGGLE, &num, sizeof(num))) {
-    NXPLOG_TML_D("ENABLE_VEN_TOGGLE value: %lu", num);
-    if (num == 0 && bFwDnldFlag) {
-      NXPLOG_TML_D("Not toggling NFC ENABLE PIN and bFwDnldFlag value: %u", bFwDnldFlag);
-    } else if (num == 0 && !bFwDnldFlag) {
-      NXPLOG_TML_D("Not toggling NFC ENABLE PIN and bFwDnldFlag value: %u", bFwDnldFlag);
-      (void)gpTransportObj->NfccReset(*pLinkHandle, MODE_NFC_ENABLED);
-    } else {
-      NXPLOG_TML_D("Toggling NFC ENABLE PIN");
-      (void)gpTransportObj->NfccReset(*pLinkHandle, MODE_POWER_OFF);
-      usleep(10 * 1000);
-      (void)gpTransportObj->NfccReset(*pLinkHandle, MODE_POWER_ON);
     }
   }
   return status;
@@ -210,6 +193,11 @@ int NfccI2cTransport::Read(void* pDevHandle, uint8_t* pBuffer,
     } else if (ret_Read == 0) {
       NXPLOG_TML_E("%s [hdr]EOF", __func__);
       return -1;
+#ifdef NXP_NFC_VBAT_MONITOR
+    } else if (errno == EREMOTEIO) {
+      NXPLOG_TML_E("%s [hdr] errno : %x", __func__, errno);
+      return -EREMOTEIO;
+#endif
     } else {
       NXPLOG_TML_E("%s [hdr] errno : %x", __func__, errno);
       NXPLOG_TML_E(" %s pBuffer[0] = %x pBuffer[1]= %x", __func__, pBuffer[0],

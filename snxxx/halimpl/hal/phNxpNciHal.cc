@@ -49,6 +49,7 @@
 #include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_ULPDet.h"
 #include "phNxpNciHal_VendorProp.h"
+#include "phNxpNciHal_WiredSeIface.h"
 #include "phNxpNciHal_extOperations.h"
 
 #ifdef NFC_SECURE_PERIPHERAL_ENABLED
@@ -67,6 +68,12 @@ using android::base::WriteStringToFile;
 #define NS_PER_S 1000000000
 #define MAX_WAIT_MS_FOR_RESET_NTF 1600
 #define INVALID_PARAM 0x09
+#define IS_HCI_PACKET(nciPkt) \
+  (nciPkt[NCI_GID_INDEX] == 0x01) && (nciPkt[NCI_OID_INDEX] == 0x00)
+#define IS_NFCEE_DISABLE(nciPkt)                                     \
+  (nciPkt[NCI_GID_INDEX] == 0x22 && nciPkt[NCI_OID_INDEX] == 0x01 && \
+   nciPkt[NCI_MSG_LEN_INDEX] == 0x02 &&                              \
+   nciPkt[NFCEE_MODE_SET_CMD_MODE_INDEX] == 0x00)
 
 bool bEnableMfcExtns = false;
 bool bEnableMfcReader = false;
@@ -131,6 +138,7 @@ uint8_t fw_dwnld_flag = false;
 #endif
 bool nfc_debug_enabled = true;
 PowerTrackerHandle gPowerTrackerHandle;
+WiredSeHandle gWiredSeHandle;
 sem_t sem_reset_ntf_received;
 /*  Used to send Callback Transceive data during Mifare Write.
  *  If this flag is enabled, no need to send response to Upper layer */
@@ -1158,6 +1166,8 @@ int phNxpNciHal_write(uint16_t data_len, const uint8_t* p_data) {
   if (bEnableMfcExtns && p_data[NCI_GID_INDEX] == 0x00) {
     return NxpMfcReaderInstance.Write(data_len, p_data);
   }else if (phNxpNciHal_isVendorSpecificCommand(data_len, p_data)) {
+    phNxpNciHal_print_packet("SEND", p_data, data_len,
+                             RfFwRegionDnld_handle == NULL);
     return phNxpNciHal_handleVendorSpecificCommand(data_len, p_data);
   } else if (isObserveModeEnabled() &&
              p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
@@ -1165,6 +1175,15 @@ int phNxpNciHal_write(uint16_t data_len, const uint8_t* p_data) {
     NciDiscoveryCommandBuilder builder;
     vector<uint8_t> v_data = builder.reConfigRFDiscCmd(data_len, p_data);
     return phNxpNciHal_write_internal(v_data.size(), v_data.data());
+  } else if (IS_HCI_PACKET(p_data)) {
+    // Inform WiredSe service that HCI Pkt is sending from libnfc layer
+    phNxpNciHal_WiredSeDispatchEvent(&gWiredSeHandle, SENDING_HCI_PKT);
+  } else if (IS_NFCEE_DISABLE(p_data)) {
+    // NFCEE_MODE_SET(DISABLE) is called. Dispatch event to WiredSe so
+    // that it can close if session is ongoing on same NFCEE
+    phNxpNciHal_WiredSeDispatchEvent(
+        &gWiredSeHandle, DISABLING_NFCEE,
+        (WiredSeEvtData)NfcPkt((uint8_t*)p_data, data_len));
   }
   long value = 0;
   /* NXP Removal Detection timeout Config */
@@ -1465,6 +1484,12 @@ static void phNxpNciHal_read_complete(void* pContext,
           nxpncihal_ctrl.p_rx_data, nxpncihal_ctrl.rx_data_len);
       NXPLOG_NCIHAL_D("Mfc Response Status = 0x%x", mfcRspStatus);
       SEM_POST(&(nxpncihal_ctrl.ext_cb_data));
+    } else if (phNxpNciHal_WiredSeDispatchEvent(
+                   &gWiredSeHandle, NFC_PKT_RECEIVED,
+                   (WiredSeEvtData)NfcPkt(nxpncihal_ctrl.p_rx_data,
+                                          nxpncihal_ctrl.rx_data_len)) ==
+               NFCSTATUS_SUCCESS) {
+      NXPLOG_NCIHAL_D("%s => %d, Processed WiredSe Packet", __func__, __LINE__);
     }
     /* Read successful send the event to higher layer */
     else if (status == NFCSTATUS_SUCCESS) {
@@ -1502,6 +1527,24 @@ static void phNxpNciHal_read_complete(void* pContext,
 }
 
 /******************************************************************************
+ * Function         phNxpNciHal_notifyPollingFrame
+ *
+ * Description      Send polling info notification to send to upper layer
+ *
+ * Parameters       p_data - Polling loop info notification
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+void phNxpNciHal_notifyPollingFrame(uint16_t data_len, uint8_t* p_data) {
+  phNxpNciHal_print_packet("RECV", p_data, data_len,
+                           RfFwRegionDnld_handle == NULL);
+  if (nxpncihal_ctrl.p_nfc_stack_data_cback != NULL) {
+    (*nxpncihal_ctrl.p_nfc_stack_data_cback)(data_len, p_data);
+  }
+}
+
+/******************************************************************************
  * Function         phNxpNciHal_client_data_callback
  *
  * Description      This will process the data and sends message to lib-nfc
@@ -1529,7 +1572,7 @@ void phNxpNciHal_client_data_callback() {
     }
     readerPollConfigParser.setNotificationType(notificationType);
     readerPollConfigParser.setReaderPollCallBack(
-        nxpncihal_ctrl.p_nfc_stack_data_cback);
+        phNxpNciHal_notifyPollingFrame);
     readerPollConfigParser.parseAndSendReaderPollInfo(
         nxpncihal_ctrl.p_rx_data, nxpncihal_ctrl.rx_data_len);
   } else {
@@ -2301,6 +2344,17 @@ static void phNxpNciHal_core_initialized_complete(NFCSTATUS status) {
  *
  ******************************************************************************/
 int phNxpNciHal_pre_discover(void) {
+  if (nxpncihal_ctrl.halStatus != HAL_STATUS_CLOSE) {
+    // Flush SRAM content to flash
+    CONCURRENCY_LOCK();
+    if (phNxpNciHal_ext_send_sram_config_to_flash() != NFCSTATUS_SUCCESS) {
+      NXPLOG_NCIHAL_E("phNxpNciHal_ext_send_sram_config_to_flash: Failed");
+    }
+    CONCURRENCY_UNLOCK();
+    // Inform WireSe Service that NFC is ON
+    phNxpNciHal_WiredSeDispatchEvent(&gWiredSeHandle, NFC_STATE_CHANGE,
+                                     (WiredSeEvtData)NfcState::NFC_ON);
+  }
   /* Nothing to do here for initial version */
   // This is set to return Failed as no vendor specific pre-discovery action is
   // needed in case of HalPrediscover
@@ -2361,6 +2415,8 @@ int phNxpNciHal_close(bool bShutdown) {
   if (gPowerTrackerHandle.stop != NULL) {
     gPowerTrackerHandle.stop();
   }
+  phNxpNciHal_WiredSeDispatchEvent(&gWiredSeHandle, NFC_STATE_CHANGE,
+                                   (WiredSeEvtData)NfcState::NFC_OFF);
   if (IS_CHIP_TYPE_L(sn100u)) {
     if (!(GetNxpNumValue(NAME_NXP_UICC_LISTEN_TECH_MASK, &uiccListenMask,
                          sizeof(uiccListenMask)))) {
@@ -2382,16 +2438,31 @@ int phNxpNciHal_close(bool bShutdown) {
     sem_post(&(nxpncihal_ctrl.syncSpiNfc));
   }
 
+  /**
+   * @brief Incase of chipset greater than or equal to SN110,
+   * If Chipset is SN300 &
+   *    - NAME_NXP_CE_SUPPORT_IN_NFC_OFF_PHONE_OFF is 0x00,
+   *      then CE support in Phone off NFC off is not supported &
+   *      Autonomous mode is disabled.
+   *    - NAME_NXP_CE_SUPPORT_IN_NFC_OFF_PHONE_OFF is 0x03,
+   *      then CE support for T4T in Phone off NFC off is supported &
+   *      Autonomous mode is disabled.
+   * otherwise, CE support in Phone off NFC off is not supported &
+   * Autonomous mode is disabled.
+   */
   if (!bShutdown && phNxpNciHal_getULPDetFlag() == false) {
     if ((IS_CHIP_TYPE_GE(sn100u) && IS_CHIP_TYPE_L(sn300u)) ||
         ((IS_CHIP_TYPE_EQ(sn300u)) &&
          (GetNxpNumValue(NAME_NXP_CE_SUPPORT_IN_NFC_OFF_PHONE_OFF, &num,
                          sizeof(num))) &&
-         (num == 0x00))) {
-      status = phNxpNciHal_send_ext_cmd(sizeof(cmd_ce_in_phone_off),
-                                        cmd_ce_in_phone_off);
-      if (status != NFCSTATUS_SUCCESS) {
-        NXPLOG_NCIHAL_E("CMD_CE_IN_PHONE_OFF: Failed");
+         ((num == NXP_PHONE_OFF_NFC_OFF_CE_NOT_SUPPORTED) ||
+          (num == NXP_PHONE_OFF_NFC_OFF_T4T_CE_SUPPORTED)))) {
+      if (num == NXP_PHONE_OFF_NFC_OFF_CE_NOT_SUPPORTED) {
+        status = phNxpNciHal_send_ext_cmd(sizeof(cmd_ce_in_phone_off),
+                                          cmd_ce_in_phone_off);
+        if (status != NFCSTATUS_SUCCESS) {
+          NXPLOG_NCIHAL_E("CMD_CE_IN_PHONE_OFF: Failed");
+        }
       }
       config_ext.autonomous_mode = 0x00;
       status = phNxpNciHal_setAutonomousMode();
@@ -2564,6 +2635,56 @@ void phNxpNciHal_close_complete(NFCSTATUS status) {
 }
 
 /******************************************************************************
+ * Function         phNxpNciHal_clean_resources
+ *
+ * Description      This function clean the resources.
+ *
+ * Returns          void.
+ *
+ ******************************************************************************/
+void phNxpNciHal_clean_resources() {
+  phNxpNciHal_deinitializeRegRfFwDnld();
+
+  if (gPowerTrackerHandle.stop != NULL) {
+    gPowerTrackerHandle.stop();
+  }
+  phNxpNciHal_WiredSeDispatchEvent(&gWiredSeHandle, NFC_STATE_CHANGE,
+                                   (WiredSeEvtData)NfcState::NFC_OFF);
+
+  sem_destroy(&sem_reset_ntf_received);
+  sem_destroy(&nxpncihal_ctrl.syncSpiNfc);
+
+  if (NULL != gpphTmlNfc_Context->pDevHandle) {
+    phNxpNciHal_close_complete(NFCSTATUS_SUCCESS);
+    /* Abort any pending read and write */
+    NFCSTATUS status = phTmlNfc_ReadAbort();
+    if (status != NFCSTATUS_SUCCESS) {
+      NXPLOG_TML_E("phTmlNfc_ReadAbort Failed");
+    }
+    phOsalNfc_Timer_Cleanup();
+
+    status = phTmlNfc_Shutdown();
+    if (status != NFCSTATUS_SUCCESS) {
+      NXPLOG_TML_E("phTmlNfc_Shutdown Failed");
+    }
+
+    PhNxpEventLogger::GetInstance().Finalize();
+    phNxpTempMgr::GetInstance().Reset();
+    phTmlNfc_CleanUp();
+
+    phDal4Nfc_msgrelease(nxpncihal_ctrl.gDrvCfg.nClientId);
+
+    memset(&nxpncihal_ctrl, 0x00, sizeof(nxpncihal_ctrl));
+  }
+
+  phNxpNciHal_cleanup_monitor();
+  write_unlocked_status = NFCSTATUS_SUCCESS;
+  phNxpNciHal_release_info();
+  /* reset config cache */
+  resetNxpConfig();
+}
+
+/******************************************************************************
  * Function         phNxpNciHal_configDiscShutdown
  *
  * Description      Enable the CE and VEN config during shutdown.
@@ -2613,8 +2734,14 @@ int phNxpNciHal_configDiscShutdown(void) {
   if (IS_CHIP_TYPE_GE(sn220u)) {
     if (phNxpNciHal_isULPDetSupported() &&
         phNxpNciHal_getULPDetFlag() == false) {
+      if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
+        NXPLOG_NCIHAL_D("phNxpNciHal_close is already closed, ignoring close");
+        return NFCSTATUS_FAILED;
+      }
       NXPLOG_NCIHAL_D("Ulpdet supported");
       status = phNxpNciHal_propConfULPDetMode(true);
+      phNxpNciHal_clean_resources();
+      CONCURRENCY_UNLOCK();
       return status;
     }
   }
@@ -3750,18 +3877,22 @@ static NFCSTATUS phNxpNciHal_do_swp_session_reset(void) {
  ******************************************************************************/
 void phNxpNciHal_do_factory_reset(void) {
   NFCSTATUS status = NFCSTATUS_FAILED;
+  bool isHalOpenRequested = false;
   // After factory reset phone will turnoff so mutex not required here.
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
+    isHalOpenRequested = true;
     status = phNxpNciHal_MinOpen();
     if (status != NFCSTATUS_SUCCESS) {
       NXPLOG_NCIHAL_E("%s: NXP Nfc Open failed", __func__);
       return;
     }
-    phNxpNciHal_deinitializeRegRfFwDnld();
   }
   status = phNxpNciHal_do_swp_session_reset();
   if (status != NFCSTATUS_SUCCESS) {
     NXPLOG_NCIHAL_E("%s failed. status = %x ", __func__, status);
+  }
+  if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN && isHalOpenRequested) {
+    phNxpNciHal_close(false);
   }
 }
 /******************************************************************************
@@ -4111,6 +4242,7 @@ void phNxpNciHal_deinitializeRegRfFwDnld() {
     fpPropConfCover = NULL;
     dlclose(RfFwRegionDnld_handle);
     RfFwRegionDnld_handle = NULL;
+    fpDoAntennaActivity = NULL;
   }
 }
 
