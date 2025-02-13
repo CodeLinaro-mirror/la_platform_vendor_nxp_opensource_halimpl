@@ -31,6 +31,7 @@
 #include "phNxpNciHal_IoctlOperations.h"
 #include "phNxpNciHal_LxDebug.h"
 #include "phNxpNciHal_PowerTrackerIface.h"
+#include "phNxpNciHal_VendorProp.h"
 
 #define NXP_EN_SN110U 1
 #define NXP_EN_SN100U 1
@@ -40,7 +41,7 @@
 #define NXP_EN_SN300U 1
 #define NXP_EN_SN330U 1
 #define NFC_NXP_MW_ANDROID_VER (15U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x04) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x0B) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
@@ -60,6 +61,7 @@ extern PowerTrackerHandle gPowerTrackerHandle;
 extern bool_t gsIsFwRecoveryRequired;
 
 extern bool nfc_debug_enabled;
+extern const char* core_reset_ntf_count_prop_name;
 uint8_t icode_detected = 0x00;
 uint8_t icode_send_eof = 0x00;
 static uint8_t ee_disc_done = 0x00;
@@ -76,6 +78,7 @@ static uint32_t bCoreInitRsp[40];
 static uint32_t iCoreInitRspLen;
 
 extern uint32_t timeoutTimerId;
+extern sem_t sem_reset_ntf_received;
 
 /************** HAL extension functions ***************************************/
 static void hal_extns_write_rsp_timeout_cb(uint32_t TimerId, void* pContext);
@@ -100,6 +103,8 @@ static NFCSTATUS phNxpNciHal_process_screen_state_cmd(uint16_t* cmd_len,
                                                       uint8_t* p_cmd_data,
                                                       uint16_t* rsp_len,
                                                       uint8_t* p_rsp_data);
+static bool phNxpNciHal_update_core_reset_ntf_prop();
+
 void printNfcMwVersion() {
   uint32_t validation = (NXP_EN_SN100U << 13);
   validation |= (NXP_EN_SN110U << 14);
@@ -482,7 +487,17 @@ static NFCSTATUS phNxpNciHal_ext_process_nfc_init_rsp(uint8_t* p_ntf,
       NXPLOG_NCIHAL_D("NxpNci> FW Version: %x.%x.%x", p_ntf[len - 2],
                       p_ntf[len - 1], p_ntf[len]);
     } else {
-      phNxpNciHal_emergency_recovery(p_ntf[3]);
+      bool is_abort_req = true;
+      if ((p_ntf[3] == CORE_RESET_TRIGGER_TYPE_WATCHDOG_RESET ||
+           p_ntf[3] == CORE_RESET_TRIGGER_TYPE_FW_ASSERT) ||
+          ((p_ntf[3] == CORE_RESET_TRIGGER_TYPE_UNRECOVERABLE_ERROR) &&
+           (p_ntf[4] == CORE_RESET_TRIGGER_TYPE_WATCHDOG_RESET ||
+            p_ntf[4] == CORE_RESET_TRIGGER_TYPE_FW_ASSERT))) {
+        /* WA : In some cases for Watchdog reset FW sends reset reason code as
+         * unrecoverable error and config status as WATCHDOG_RESET */
+        is_abort_req = phNxpNciHal_update_core_reset_ntf_prop();
+      }
+      if (is_abort_req) phNxpNciHal_emergency_recovery(p_ntf[3]);
       status = NFCSTATUS_FAILED;
     } /* Parsing CORE_INIT_RSP*/
   } else if (p_ntf[0] == NCI_MT_RSP &&
@@ -1607,4 +1622,36 @@ static NFCSTATUS phNxpNciHal_process_screen_state_cmd(uint16_t* cmd_len,
     status = NFCSTATUS_FAILED;
   }
   return status;
+}
+
+/******************************************************************************
+ * Function         phNxpNciHal_update_core_reset_ntf_prop
+ *
+ * Description      This function updates the vendor property which keep track
+ *                  core reset ntf count for fw recovery.
+ *
+ * Returns          void
+ *
+ *****************************************************************************/
+
+static bool phNxpNciHal_update_core_reset_ntf_prop() {
+  NXPLOG_NCIHAL_D("%s: Entry", __func__);
+  bool is_abort_req = true;
+  int32_t core_reset_count =
+      phNxpNciHal_getVendorProp_int32(core_reset_ntf_count_prop_name, 0);
+  if (core_reset_count == CORE_RESET_NTF_RECOVERY_REQ_COUNT) {
+    NXPLOG_NCIHAL_D("%s: Notify main thread of fresh ntf received", __func__);
+    sem_post(&sem_reset_ntf_received);
+    is_abort_req = false;
+  }
+  ++core_reset_count;
+  std::string ntf_count_str = std::to_string(core_reset_count);
+  NXPLOG_NCIHAL_D("Core reset counter prop value  %d", core_reset_count);
+  if (NFCSTATUS_SUCCESS !=
+      phNxpNciHal_setVendorProp(core_reset_ntf_count_prop_name,
+                                ntf_count_str.c_str())) {
+    NXPLOG_NCIHAL_D("setting core_reset_ntf_count_prop failed");
+  }
+  NXPLOG_NCIHAL_D("%s: Exit", __func__);
+  return is_abort_req;
 }
