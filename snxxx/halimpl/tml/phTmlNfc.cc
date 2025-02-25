@@ -578,7 +578,6 @@ void phTmlNfc_CleanUp(void) {
 *******************************************************************************/
 NFCSTATUS phTmlNfc_Shutdown(void) {
   NFCSTATUS wShutdownStatus = NFCSTATUS_SUCCESS;
-  unsigned long num = 0;
 
   /* Check whether TML is Initialized */
   if (NULL != gpphTmlNfc_Context) {
@@ -595,13 +594,9 @@ NFCSTATUS phTmlNfc_Shutdown(void) {
     sem_post(&gpphTmlNfc_Context->postMsgSemaphore);
     usleep(1000);
 
-    if (NULL != gpphTmlNfc_Context->pDevHandle) {
-      if (GetNxpNumValue(NAME_ENABLE_VEN_TOGGLE, &num, sizeof(num))) {
-        if (num == 1) {
-          (void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle, MODE_POWER_OFF);
-        }
-      }
-      (void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle, MODE_NFC_DISABLED);
+    if (IS_CHIP_TYPE_L(sn100u)) {
+	(void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
+                                      MODE_POWER_OFF);
     }
     phTmlNfc_IoCtl(phTmlNfc_e_ResetNfcState);
     gpTransportObj->Close(gpphTmlNfc_Context->pDevHandle);
@@ -984,6 +979,16 @@ NFCSTATUS phTmlNfc_IoCtl(phTmlNfc_ControlCode_t eControlCode) {
       case phTmlNfc_e_PullVenHigh: {
         gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
                                   MODE_POWER_ON);
+        break;
+      }
+      case phTmlNfc_e_NfcEnable: {
+        gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
+                                  MODE_NFC_ENABLED);
+        break;
+      }
+      case phTmlNfc_e_NfcDisable: {
+        gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
+                                  MODE_NFC_DISABLED);
         break;
       }
       default: {
