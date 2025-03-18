@@ -324,8 +324,8 @@ static void* phTmlNfc_TmlThread(void* pParam) {
       if (NULL != gpphTmlNfc_Context->pDevHandle) {
         NXPLOG_TML_D("NFCC - Invoking Read.....\n");
         dwNoBytesWrRd =
-            gpTransportObj->Read(gpphTmlNfc_Context->pDevHandle,
-              temp, PH_TMLNFC_MAX_READ_NCI_BUFF_LEN);
+            gpTransportObj->Read(gpphTmlNfc_Context->pDevHandle, temp,
+                                 PH_TMLNFC_MAX_READ_NCI_BUFF_LEN);
 
         if (-1 == dwNoBytesWrRd) {
           NXPLOG_TML_E("NFCC - Error in Read.....\n");
@@ -455,8 +455,7 @@ static void* phTmlNfc_TmlWriterThread(void* pParam) {
         if (-1 == dwNoBytesWrRd) {
           if (gpTransportObj->IsFwDnldModeEnabled()) {
             if (retry_cnt++ < MAX_WRITE_RETRY_COUNT) {
-              NXPLOG_TML_D("NFCC - Error in Write  - Retry 0x%x",
-                           retry_cnt);
+              NXPLOG_TML_D("NFCC - Error in Write  - Retry 0x%x", retry_cnt);
               // Add a 10 ms delay to ensure NFCC is not still in stand by mode.
               usleep(10 * 1000);
               goto retry;
@@ -578,6 +577,7 @@ void phTmlNfc_CleanUp(void) {
 *******************************************************************************/
 NFCSTATUS phTmlNfc_Shutdown(void) {
   NFCSTATUS wShutdownStatus = NFCSTATUS_SUCCESS;
+  unsigned long num = 0;
 
   /* Check whether TML is Initialized */
   if (NULL != gpphTmlNfc_Context) {
@@ -594,9 +594,13 @@ NFCSTATUS phTmlNfc_Shutdown(void) {
     sem_post(&gpphTmlNfc_Context->postMsgSemaphore);
     usleep(1000);
 
-    if (IS_CHIP_TYPE_L(sn100u)) {
-	(void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
-                                      MODE_POWER_OFF);
+    if (NULL != gpphTmlNfc_Context->pDevHandle) {
+      if (GetNxpNumValue(NAME_ENABLE_VEN_TOGGLE, &num, sizeof(num))) {
+        if (num == 1) {
+          (void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle, MODE_POWER_OFF);
+        }
+      }
+      (void)gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle, MODE_NFC_DISABLED);
     }
     phTmlNfc_IoCtl(phTmlNfc_e_ResetNfcState);
     gpTransportObj->Close(gpphTmlNfc_Context->pDevHandle);
@@ -979,16 +983,6 @@ NFCSTATUS phTmlNfc_IoCtl(phTmlNfc_ControlCode_t eControlCode) {
       case phTmlNfc_e_PullVenHigh: {
         gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
                                   MODE_POWER_ON);
-        break;
-      }
-      case phTmlNfc_e_NfcEnable: {
-        gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
-                                  MODE_NFC_ENABLED);
-        break;
-      }
-      case phTmlNfc_e_NfcDisable: {
-        gpTransportObj->NfccReset(gpphTmlNfc_Context->pDevHandle,
-                                  MODE_NFC_DISABLED);
         break;
       }
       default: {

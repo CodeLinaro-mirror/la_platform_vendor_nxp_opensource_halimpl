@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 NXP
+ * Copyright 2019-2025 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ static vector<uint8_t> uicc2HciParams(0);
 static vector<uint8_t> uiccHciCeParams(0);
 extern phNxpNciHal_Control_t nxpncihal_ctrl;
 extern phTmlNfc_Context_t* gpphTmlNfc_Context;
-extern void* RfFwRegionDnld_handle;
 extern NFCSTATUS phNxpNciHal_ext_send_sram_config_to_flash();
 
 /*******************************************************************************
@@ -797,13 +796,9 @@ int phNxpNciHal_handleVendorSpecificCommand(uint16_t data_len,
              p_data[NCI_MSG_INDEX_FOR_FEATURE] == NCI_ANDROID_OBSERVER_MODE) {
     return handleObserveMode(data_len, p_data);
   } else if (data_len >= 4 && p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
-                                 NCI_ANDROID_GET_OBSERVER_MODE_STATUS) {
+                                  NCI_ANDROID_GET_OBSERVER_MODE_STATUS) {
     // 2F 0C 01 04 => ObserveMode Status Command length is 4 Bytes
     return handleGetObserveModeStatus(data_len, p_data);
-  } else if (data_len >= 4 && p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
-                                 NCI_ANDROID_GET_CAPABILITY) {
-    // 2F 0C 01 00 => GetCapability Command length is 4 Bytes
-    return handleGetCapability(data_len, p_data);
   } else {
     return phNxpNciHal_write_internal(data_len, p_data);
   }
@@ -821,22 +816,19 @@ int phNxpNciHal_handleVendorSpecificCommand(uint16_t data_len,
 void phNxpNciHal_vendorSpecificCallback(int oid, int opcode,
                                         vector<uint8_t> data) {
   static phLibNfc_Message_t msg;
-  nxpncihal_ctrl.vendor_msg[0] = (uint8_t)(NCI_GID_PROP | NCI_MT_RSP);
-  nxpncihal_ctrl.vendor_msg[1] = oid;
-  nxpncihal_ctrl.vendor_msg[2] = 1 + (int)data.size();
-  nxpncihal_ctrl.vendor_msg[3] = opcode;
+  nxpncihal_ctrl.p_rsp_data[0] = (uint8_t)(NCI_GID_PROP | NCI_MT_RSP);
+  nxpncihal_ctrl.p_rsp_data[1] = oid;
+  nxpncihal_ctrl.p_rsp_data[2] = 1 + (int)data.size();
+  nxpncihal_ctrl.p_rsp_data[3] = opcode;
   if ((int)data.size() > 0) {
-    memcpy(&nxpncihal_ctrl.vendor_msg[4], data.data(),
+    memcpy(&nxpncihal_ctrl.p_rsp_data[4], data.data(),
            data.size() * sizeof(uint8_t));
   }
-  nxpncihal_ctrl.vendor_msg_len = 4 + (int)data.size();
+  nxpncihal_ctrl.rsp_len = 4 + (int)data.size();
 
-  msg.eMsgType = NCI_HAL_VENDOR_MSG;
+  msg.eMsgType = NCI_HAL_RX_MSG;
   msg.pMsgData = NULL;
   msg.Size = 0;
-  phNxpNciHal_print_packet("RECV", nxpncihal_ctrl.vendor_msg,
-                           nxpncihal_ctrl.vendor_msg_len,
-                           RfFwRegionDnld_handle == NULL);
   phTmlNfc_DeferredCall(gpphTmlNfc_Context->dwCallbackThreadId,
                         (phLibNfc_Message_t*)&msg);
 }

@@ -136,7 +136,6 @@ class ReaderPollConfigParser {
  public:
   bool readExtraBytesForUnknownEvent = false;
   uint8_t extraByteLength = 0;
-  uint8_t notificationType = 0;
   vector<uint8_t> unknownEventTimeStamp;
   vector<uint8_t> extraBytes = vector<uint8_t>();
   /*****************************************************************************
@@ -195,32 +194,4 @@ class ReaderPollConfigParser {
    *
    ****************************************************************************/
   void resetExtraBytesInfo();
-
-  /*****************************************************************************
-   *
-   * Function         setNotificationType
-   *
-   * Description      Function to select the Notification type for Observe mode
-   *                  By default all type of notification enabled if not set
-   *
-   * Parameters       None
-   *
-   * Returns          void
-   *
-   ****************************************************************************/
-  void setNotificationType(uint8_t notificationType);
-
-  /*****************************************************************************
-   *
-   * Function         getTimestampInMicroSeconds
-   *
-   * Description      Function to convert Timestamp in microseconds and gives it
-   *in Big endian format
-   *
-   * Parameters       rawFrame
-   *
-   * Returns          vector<uint8_t>
-   *
-   ****************************************************************************/
-  vector<uint8_t> getTimestampInMicroSeconds(vector<uint8_t> rawFrame);
 };
