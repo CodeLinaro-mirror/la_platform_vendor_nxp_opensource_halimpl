@@ -972,6 +972,7 @@ int phNxpNciHal_MinOpen() {
   }
   /* Call open complete */
   phNxpNciHal_MinOpen_complete(wConfigStatus);
+  phTmlNfc_IoCtl(phTmlNfc_e_NfcEnable);
   NXPLOG_NCIHAL_D("phNxpNciHal_MinOpen(): exit");
   return wConfigStatus;
 }
@@ -2581,7 +2582,9 @@ close_and_return:
     status = phTmlNfc_WriteAbort();
 
     phOsalNfc_Timer_Cleanup();
-
+    if (!bShutdown) {
+        phTmlNfc_IoCtl(phTmlNfc_e_NfcDisable);
+    }
     status = phTmlNfc_Shutdown();
 
     if (0 != pthread_join(nxpncihal_ctrl.client_thread, (void**)NULL)) {
