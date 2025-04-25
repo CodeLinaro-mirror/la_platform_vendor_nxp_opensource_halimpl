@@ -154,6 +154,13 @@ typedef enum
   TARGET_SMP_KAANAPALI                 = 661, /**< SMP_KAANAPALI target */
   TARGET_SM_KAANAPALI                  = 660, /**< SM_KAANAPALI target */
   TARGET_SM_MOLOKAI                    = 685, /**< SM_MOLOKAI target */
+  TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
+  TARGET_QCM6490                       = 497, /**< QCM6490 target */
+  TARGET_QCS6490                       = 498, /**< QCS6490 target */
+  TARGET_QCS5430                       = 575, /**< QCS_KODIAK_LITE */
+  TARGET_QCM5430                       = 576, /**< QCM_KODIAK_LITE */
+  TARGET_SMP_KODIAK                    = 499, /**< SMP_KODIAK target */
+  TARGET_FAROE                         = 515, /**< FAROE target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -435,6 +442,23 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
+        case TARGET_SM_KODIAK:
+        case TARGET_QCM6490:
+        case TARGET_QCS6490:
+        case TARGET_QCS5430:
+        case TARGET_QCM5430:
+        case TARGET_SMP_KODIAK:
+        case TARGET_FAROE:
+            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                //SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                //SN110
+                config_id = GENERIC_19_2_TYPE_SN1xx;
+                strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            }
+            break;
        case TARGET_SMP_CLARENCE:
        case TARGET_SM_CLARENCE:
             //SN110
@@ -480,6 +504,23 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            break;
+        case TARGET_SM_KODIAK:
+        case TARGET_QCM6490:
+        case TARGET_QCS6490:
+        case TARGET_QCS5430:
+        case TARGET_QCM5430:
+        case TARGET_SMP_KODIAK:
+        case TARGET_FAROE:
+            if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                //SN220
+                config_id = GENERIC_19_2_TYPE_SN220;
+                strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                //SN110
+                config_id = GENERIC_19_2_TYPE_SN1xx;
+                strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            }
             break;
         case TARGET_SMP_CLARENCE:
         case TARGET_SM_CLARENCE:
