@@ -425,6 +425,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
                 strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300
+                 config_id = GENERIC_19_2_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+
             } else {
                 //SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
@@ -462,6 +467,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
                 strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300
+                 config_id = GENERIC_19_2_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             } else {
                 //SN110
                 config_id = GENERIC_19_2_TYPE_SN1xx;
