@@ -18,6 +18,7 @@
  * TML Implementation.
  */
 
+#include <hardware_legacy/power.h>
 #include <phDal4Nfc_messageQueueLib.h>
 #include <phNxpConfig.h>
 #include <phNxpLog.h>
@@ -40,6 +41,7 @@
 /* Indicates a Initial or offset value */
 #define PH_TMLNFC_VALUE_ONE (0x01)
 
+constexpr const char kChannelWakelockName[] = "nxp_nfc_write_channel";
 spTransport gpTransportObj;
 extern bool_t gsIsFirstHalMinOpen;
 extern phNxpNciHal_Control_t nxpncihal_ctrl;
@@ -101,11 +103,10 @@ NFCSTATUS phTmlNfc_Init(pphTmlNfc_Config_t pConfig) {
           (NFCSTATUS_SUCCESS != phTmlNfc_ConfigTransport()))
         return NFCSTATUS_FAILED;
 
-      if (gsIsFirstHalMinOpen) {
-        if (!gpTransportObj->Flushdata(pConfig)) {
-          NXPLOG_NCIHAL_E("Flushdata Failed");
-        }
+      if (!gpTransportObj->Flushdata(pConfig)) {
+        NXPLOG_NCIHAL_E("Flushdata Failed");
       }
+
       /* Initialise all the internal TML variables */
       memset(gpphTmlNfc_Context, PH_TMLNFC_RESET_VALUE,
              sizeof(phTmlNfc_Context_t));
@@ -250,8 +251,11 @@ static void* phTmlNfc_TmlThread(void* pParam) {
       NXPLOG_TML_E("sem_wait didn't return success \n");
     }
 
+    pthread_mutex_lock(&gpphTmlNfc_Context->tReadInfo.lock);
     /* If Tml read is requested */
     if (1 == gpphTmlNfc_Context->tReadInfo.bEnable) {
+      pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
+
       NXPLOG_TML_D("NFCC - Read requested.....\n");
       /* Set the variable to success initially */
       wStatus = NFCSTATUS_SUCCESS;
@@ -289,7 +293,9 @@ static void* phTmlNfc_TmlThread(void* pParam) {
 
           NXPLOG_TML_D("NFCC - Read successful.....\n");
           /* This has to be reset only after a successful read */
+          pthread_mutex_lock(&gpphTmlNfc_Context->tReadInfo.lock);
           gpphTmlNfc_Context->tReadInfo.bEnable = 0;
+          pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
           phNxpNciHal_print_packet("RECV", tMsg.data, dwNoBytesWrRd);
 
           /* Fill the Transaction info structure to be passed to Callback
@@ -316,6 +322,7 @@ static void* phTmlNfc_TmlThread(void* pParam) {
         NXPLOG_TML_D("NFCC -gpphTmlNfc_Context->pDevHandle is NULL");
       }
     } else {
+      pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
       NXPLOG_TML_D("NFCC - read request NOT enabled");
       usleep(10 * 1000);
     }
@@ -429,6 +436,8 @@ NFCSTATUS phTmlNfc_Write(uint8_t* pBuffer, uint16_t wLength) {
   if (NULL != gpphTmlNfc_Context) {
     if ((NULL != gpphTmlNfc_Context->pDevHandle) && (NULL != pBuffer) &&
         (PH_TMLNFC_RESET_VALUE != wLength)) {
+      /* Acquire wake lock */
+      acquire_wake_lock(PARTIAL_WAKE_LOCK, kChannelWakelockName);
       NXPLOG_TML_D("NFCC - Write requested.....\n");
       do {
         /* Variable to fetch the actual number of bytes written */
@@ -463,6 +472,8 @@ NFCSTATUS phTmlNfc_Write(uint8_t* pBuffer, uint16_t wLength) {
           break;
         }
       } while (true);
+      /* release wake lock */
+      release_wake_lock(kChannelWakelockName);
     } else {
       wStatus = PHNFCSTVAL(CID_NFC_TML, NFCSTATUS_INVALID_PARAMETER);
     }
@@ -521,7 +532,10 @@ NFCSTATUS phTmlNfc_Read(uint8_t* pBuffer, uint16_t wLength,
         wReadStatus = NFCSTATUS_PENDING;
 
         /* Set event to invoke Reader Thread */
+        pthread_mutex_lock(&gpphTmlNfc_Context->tReadInfo.lock);
         gpphTmlNfc_Context->tReadInfo.bEnable = 1;
+        pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
+
         ret = sem_getvalue(&gpphTmlNfc_Context->rxSemaphore, &rxSemVal);
         /* Post rxSemaphore either if sem_getvalue() is failed or rxSemVal is 0
          */
@@ -564,7 +578,10 @@ NFCSTATUS phTmlNfc_Read(uint8_t* pBuffer, uint16_t wLength,
 *******************************************************************************/
 NFCSTATUS phTmlNfc_ReadAbort(void) {
   NFCSTATUS wStatus = NFCSTATUS_INVALID_PARAMETER;
+
+  pthread_mutex_lock(&gpphTmlNfc_Context->tReadInfo.lock);
   gpphTmlNfc_Context->tReadInfo.bEnable = 0;
+  pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
 
   /*Reset the flag to accept another Read Request */
   gpphTmlNfc_Context->tReadInfo.bThreadBusy = false;
@@ -597,6 +614,7 @@ NFCSTATUS phTmlNfc_IoCtl(phTmlNfc_ControlCode_t eControlCode) {
   if (NULL == gpphTmlNfc_Context) {
     wStatus = NFCSTATUS_FAILED;
   } else {
+    pthread_mutex_lock(&gpphTmlNfc_Context->tReadInfo.lock);
     uint8_t read_flag = (gpphTmlNfc_Context->tReadInfo.bEnable > 0);
 
     switch (eControlCode) {
@@ -746,6 +764,7 @@ NFCSTATUS phTmlNfc_IoCtl(phTmlNfc_ControlCode_t eControlCode) {
       gpphTmlNfc_Context->tReadInfo.bEnable = 1;
       sem_post(&gpphTmlNfc_Context->rxSemaphore);
     }
+    pthread_mutex_unlock(&gpphTmlNfc_Context->tReadInfo.lock);
   }
 
   return wStatus;

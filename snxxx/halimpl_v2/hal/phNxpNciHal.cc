@@ -564,9 +564,10 @@ int phNxpNciHal_MinOpen() {
     }
   }
 #endif
-
+  CONCURRENCY_LOCK();
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_MIN_OPEN) {
     NXPLOG_NCIHAL_D("phNxpNciHal_MinOpen(): already open");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_SUCCESS;
   }
   phNxpExtn_LibSetup();
@@ -586,10 +587,10 @@ int phNxpNciHal_MinOpen() {
 
   if (phNxpNciHal_init_monitor() == NULL) {
     NXPLOG_NCIHAL_E("Init monitor failed");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_FAILED;
   }
 
-  CONCURRENCY_LOCK();
   memset(&tOsalConfig, 0x00, sizeof(tOsalConfig));
   memset(&tTmlConfig, 0x00, sizeof(tTmlConfig));
   memset(&nxpprofile_ctrl, 0, sizeof(phNxpNciProfile_Control_t));
@@ -689,7 +690,13 @@ int phNxpNciHal_MinOpen() {
   bool bIsNfccDlState = false;
   phNxpNciHal_ext_init();
 
-  phTmlNfc_IoCtl(phTmlNfc_e_EnableVen);
+  if (chipInfo == pn557) {
+    NXPLOG_NCIHAL_D("phTmlNfc_e_ResetDevice\n");
+    phTmlNfc_IoCtl(phTmlNfc_e_ResetDevice);
+  } else {
+    NXPLOG_NCIHAL_D("phTmlNfc_e_EnableVen\n");
+    phTmlNfc_IoCtl(phTmlNfc_e_EnableVen);
+  }
 
   if (phNxpNciHal_isULPDetSupported()) {
     status = phTmlNfc_IoCtl(phTmlNfc_e_PullVenHigh);
@@ -1998,12 +2005,14 @@ int phNxpNciHal_close(bool bShutdown) {
 
   phNxpNciHal_deinitializeRegRfFwDnld();
   NfcHalAutoThreadMutex a(sHalFnLock);
+  CONCURRENCY_LOCK();
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
     NXPLOG_NCIHAL_D("phNxpNciHal_close is already closed, ignoring close");
+    CONCURRENCY_UNLOCK();
     return NFCSTATUS_FAILED;
   }
-  NXPLOG_NCIHAL_D("phNxpNciHal_close not closing extension library");
-  //phNxpExtn_LibClose();
+  NXPLOG_NCIHAL_D("phNxpNciHal_close Closing extension library");
+  phNxpExtn_LibClose();
   if (gPowerTrackerHandle.stop != NULL) {
     gPowerTrackerHandle.stop();
   }
@@ -2023,7 +2032,7 @@ int phNxpNciHal_close(bool bShutdown) {
     }
   }
 
-  CONCURRENCY_LOCK();
+
   int sem_val;
   sem_getvalue(&(nxpncihal_ctrl.syncSpiNfc), &sem_val);
   if (sem_val == 0) {

@@ -23,8 +23,9 @@
 #include "NciDiscoveryCommandBuilder.h"
 #include "NfcExtension.h"
 #include "ObserveMode.h"
-#include "phNxpNciHal_extOperations.h"
+#include "phNxpAutoCard.h"
 #include "phNxpNciHal_WiredSeIface.h"
+#include "phNxpNciHal_extOperations.h"
 
 #define MAX_NXP_HAL_EXTN_BYTES 10
 
@@ -80,6 +81,9 @@ int NfcWriter::write(uint16_t data_len, const uint8_t* p_data) {
   if (p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
       p_data[NCI_OID_INDEX] == NCI_RF_DISC_COMMAND_OID) {
     NciDiscoveryCommandBuilderInstance.setDiscoveryCommand(data_len, p_data);
+  } else if (p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
+             p_data[NCI_OID_INDEX] == NCI_RF_DEACTIVATE_OID) {
+    NciDiscoveryCommandBuilderInstance.setRfDiscoveryReceived(false);
   }
 
   if (bEnableMfcExtns && p_data[NCI_GID_INDEX] == 0x00) {
@@ -104,8 +108,16 @@ int NfcWriter::write(uint16_t data_len, const uint8_t* p_data) {
         gWiredSeHandle, DISABLING_NFCEE,
         createWiredSeEvtData((uint8_t*)p_data, data_len));
   } else {
-    NFCSTATUS status = phNxpExtn_HandleNciMsg(&data_len, p_data);
-    NXPLOG_NCIHAL_D("Vendor specific status: %d", status);
+    NFCSTATUS status;
+    if ((p_data[NCI_GID_INDEX] == (NCI_MT_CMD | NCI_GID_PROP)) &&
+        (p_data[NCI_OID_INDEX] == NCI_ROW_PROP_OID_VAL) &&
+        (p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
+         NxpAutoCardInstance.AUTOCARD_FEATURE_SUB_OID)) {
+      status = NxpAutoCardInstance.handleNciMessage(data_len, (uint8_t*)p_data);
+    } else {
+      status = phNxpExtn_HandleNciMsg(&data_len, p_data);
+      NXPLOG_NCIHAL_D("Vendor specific status: %d", status);
+    }
     if (status == NFCSTATUS_EXTN_FEATURE_SUCCESS) {
       return data_len;
     }
@@ -140,6 +152,9 @@ int NfcWriter::direct_write(uint16_t data_len, const uint8_t* p_data) {
   int wdata_len = 0;
   uint8_t cmd_icode_eof[] = {0x00, 0x00, 0x00};
   static phLibNfc_Message_t msg;
+  // Create an alias in local buffer as buffer may modified internally later
+  uint8_t* p_data_updated = (uint8_t*)p_data;
+
   if (nxpncihal_ctrl.halStatus != HAL_STATUS_OPEN) {
     return NFCSTATUS_FAILED;
   }
@@ -148,11 +163,10 @@ int NfcWriter::direct_write(uint16_t data_len, const uint8_t* p_data) {
     android_errorWriteLog(0x534e4554, "121267042");
     goto clean_and_return;
   }
-
   CONCURRENCY_LOCK();
   /* Check for NXP ext before sending write */
   status =
-      phNxpNciHal_write_ext(&data_len, (uint8_t*)p_data,
+      phNxpNciHal_write_ext(&data_len, (uint8_t**)&p_data_updated,
                             &nxpncihal_ctrl.rsp_len, nxpncihal_ctrl.p_rsp_data);
   if (status != NFCSTATUS_SUCCESS) {
     /* Do not send packet to NFCC, send response directly */
@@ -166,7 +180,7 @@ int NfcWriter::direct_write(uint16_t data_len, const uint8_t* p_data) {
     goto clean_and_return;
   }
 
-  wdata_len = this->write_unlocked(data_len, p_data, ORIG_LIBNFC);
+  wdata_len = this->write_unlocked(data_len, p_data_updated, ORIG_LIBNFC);
 
   if (IS_CHIP_TYPE_L(sn100u) && IS_CHIP_TYPE_NE(pn557) && icode_send_eof == 1) {
     usleep(10000);
@@ -180,6 +194,8 @@ int NfcWriter::direct_write(uint16_t data_len, const uint8_t* p_data) {
 clean_and_return:
   /* No data written */
   CONCURRENCY_UNLOCK();
+  // Free buffer if it is internally allocated
+  if (p_data_updated != p_data) free(p_data_updated);
   return wdata_len;
 }
 
@@ -249,6 +265,12 @@ int NfcWriter::write_unlocked(uint16_t data_len, const uint8_t* p_data,
 
     status = phTmlNfc_Write((uint8_t*)p_data, (uint16_t)data_len);
     if (status == NFCSTATUS_SUCCESS) {
+      if (origin == ORIG_EXTNS &&
+          p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
+          p_data[NCI_OID_INDEX] == NCI_RF_DISC_COMMAND_OID) {
+        NciDiscoveryCommandBuilderInstance.setDiscoveryCommand(data_len,
+                                                               p_data);
+      }
       write_unlocked_status = NFCSTATUS_SUCCESS;
       break;
     }

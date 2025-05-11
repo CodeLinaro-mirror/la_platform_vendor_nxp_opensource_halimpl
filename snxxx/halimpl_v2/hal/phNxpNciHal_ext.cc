@@ -43,7 +43,7 @@
 #define NXP_EN_SN330U 1
 #define NXP_NDEF_TAG_EMULATION_LOGICAL_CHANNEL 5
 #define NFC_NXP_MW_ANDROID_VER (16U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x04) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x06) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
@@ -53,6 +53,48 @@
 #define NCI_NFC_DEP_RF_INTF 0x03
 #define NCI_STATUS_OK 0x00
 #define NCI_MODE_HEADER_LEN 3
+
+/*
+Macro to reallocate new buffer.
+This functions like realloc. But it will free memory
+only if free_old_memory is set to true.
+Initially free_old_memory should be set to false as old buffer is
+owned by application and we shouldn't free it.
+Once it reallocates new memory, free_old_memory will be set to true
+as this memory is not application memory and allocated internally
+so that next REALLOC_BUFFER will free internal allocated memory
+to avoid resource leak.
+*/
+#define REALLOC_BUFFER(buffer, buffer_size, new_size, free_old_memory)       \
+  ({                                                                         \
+    do {                                                                     \
+      /* If new size is less than  or equal to old size no realloc is needed \
+       */                                                                    \
+      if (new_size <= buffer_size) break;                                    \
+      /* Allocate new buffer with requested size */                          \
+      uint8_t* new_buffer = (uint8_t*)calloc(new_size, sizeof(uint8_t));     \
+      if (new_buffer) {                                                      \
+        NXPLOG_NCIHAL_D("Reallocated new buffer of size %d", new_size);      \
+        /* Copy old content to new buffer */                                 \
+        memcpy(new_buffer, buffer, buffer_size);                             \
+        /* Check whether memory should be freed,                             \
+           else just mark that next realloc should free previous memory */   \
+        if (free_old_memory) {                                               \
+          NXPLOG_NCIHAL_D("Free old memory");                                \
+          free(buffer);                                                      \
+        } else {                                                             \
+          NXPLOG_NCIHAL_D("Skip Free application memory");                   \
+          free_old_memory = true;                                            \
+        }                                                                    \
+        /* Copy new buffer address */                                        \
+        buffer = new_buffer;                                                 \
+      } else {                                                               \
+        NXPLOG_NCIHAL_E("Fail to allocate memory");                          \
+      }                                                                      \
+    } while (0);                                                             \
+    /* Return newly allocated buffer */                                      \
+    buffer;                                                                  \
+  })
 
 /******************* Global variables *****************************************/
 extern phNxpNciHal_Control_t nxpncihal_ctrl;
@@ -662,14 +704,15 @@ static NFCSTATUS phNxpNciHal_process_ext_cmd_rsp(uint16_t cmd_len,
 
   /*Response check for Set config, Core Reset & Core init command sent part of
    * HAL_EXT*/
-  if (nxpncihal_ctrl.halStatus == HAL_OPEN_CORE_INITIALIZING &&
-      nxpncihal_ctrl.p_rx_data[0] == 0x40 &&
+  if (nxpncihal_ctrl.p_rx_data[0] == 0x40 &&
       nxpncihal_ctrl.p_rx_data[1] <= 0x02 &&
       nxpncihal_ctrl.p_rx_data[2] != 0x00) {
     status = nxpncihal_ctrl.p_rx_data[3];
     if (status != NCI_STATUS_OK) {
-      /*Add 500ms delay for FW to flush circular buffer */
-      usleep(500 * 1000);
+      if (nxpncihal_ctrl.halStatus == HAL_OPEN_CORE_INITIALIZING) {
+        /*Add 500ms delay for FW to flush circular buffer */
+        usleep(500 * 1000);
+      }
       NXPLOG_NCIHAL_D("Status Failed. Status = 0x%02x", status);
     }
   }
@@ -700,9 +743,19 @@ clean_and_return:
  *                  do not send anything to NFCC.
  *
  ******************************************************************************/
-NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
+NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t** pp_cmd_data,
                                 uint16_t* rsp_len, uint8_t* p_rsp_data) {
   NFCSTATUS status = NFCSTATUS_SUCCESS;
+  // Initialize with passed buffer. Later if modification is required
+  // we will reallocate to a different buffer
+  uint8_t* p_cmd_data = *pp_cmd_data;
+  // To control whether realloc should free old memory.
+  // If memory is passed from application then we should not
+  // free it as application still holds reference to that memory.
+  // If memory is allocated internally by REALLOC_BUFFER then
+  // it will set this variable so that it can be freed
+  // by next REALLOC_BUFFER to avoid memory leak.
+  bool free_old_memory = false;
 
   if (p_cmd_data[0] == PROPRIETARY_CMD_FELICA_READER_MODE &&
       p_cmd_data[1] == PROPRIETARY_CMD_FELICA_READER_MODE &&
@@ -752,6 +805,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
 #endif
     } else if (p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x03) {
       NXPLOG_NCIHAL_D("EmvCo Poll mode - Discover map only for A and B");
+      // Modification is required. Reallocate new buffer
+      *pp_cmd_data = REALLOC_BUFFER(p_cmd_data, *cmd_len, 8, free_old_memory);
       p_cmd_data[2] = 0x05;
       p_cmd_data[3] = 0x02;
       p_cmd_data[4] = 0x00;
@@ -764,6 +819,8 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
 
   if (mfc_mode == true && p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x03) {
     NXPLOG_NCIHAL_D("EmvCo Poll mode - Discover map only for A");
+    // Modification is required. Reallocate new buffer
+    *pp_cmd_data = REALLOC_BUFFER(p_cmd_data, *cmd_len, 6, free_old_memory);
     p_cmd_data[2] = 0x03;
     p_cmd_data[3] = 0x01;
     p_cmd_data[4] = 0x00;
@@ -775,13 +832,16 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
   if (*cmd_len <= (NCI_MAX_DATA_LEN - 3) && bEnableMfcReader &&
       (p_cmd_data[0] == 0x21 && p_cmd_data[1] == 0x00) &&
       (nxpprofile_ctrl.profile_type == NFC_FORUM_PROFILE)) {
-    if (p_cmd_data[2] == 0x04 && p_cmd_data[3] == 0x01 &&
+    if (*cmd_len > 6 && p_cmd_data[2] == 0x04 && p_cmd_data[3] == 0x01 &&
         p_cmd_data[4] == 0x80 && p_cmd_data[5] == 0x01 &&
         p_cmd_data[6] == 0x83) {
       mfc_mode = true;
     } else {
       if (bEnableMfcReader) {
         NXPLOG_NCIHAL_D("Going through extns - Adding Mifare in RF Discovery");
+        // Modification is required. Reallocate new buffer
+        *pp_cmd_data = REALLOC_BUFFER(p_cmd_data, *cmd_len, (*cmd_len + 3),
+                                      free_old_memory);
         p_cmd_data[2] += 3;
         p_cmd_data[3] += 1;
         p_cmd_data[*cmd_len] = 0x80;
@@ -830,11 +890,14 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
     status = NFCSTATUS_FAILED;
   }
   // 2002 0904 3000 3100 3200 5000
-  else if (*cmd_len <= (NCI_MAX_DATA_LEN - 1) &&
+  else if (*cmd_len <= (NCI_MAX_DATA_LEN - 1) && *cmd_len >= 12 &&
            (p_cmd_data[0] == 0x20 && p_cmd_data[1] == 0x02) &&
            ((p_cmd_data[2] == 0x09 && p_cmd_data[3] == 0x04) /*||
             (p_cmd_data[2] == 0x0D && p_cmd_data[3] == 0x04)*/
             )) {
+    // Modification is required. Reallocate new buffer
+    *pp_cmd_data =
+        REALLOC_BUFFER(p_cmd_data, *cmd_len, (*cmd_len + 1), free_old_memory);
     *cmd_len += 0x01;
     p_cmd_data[2] += 0x01;
     p_cmd_data[9] = 0x01;
@@ -966,7 +1029,6 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t* p_cmd_data,
       gPowerTrackerHandle.stateChange(SCREEN_ON);
     }
   }
-
   return status;
 }
 
