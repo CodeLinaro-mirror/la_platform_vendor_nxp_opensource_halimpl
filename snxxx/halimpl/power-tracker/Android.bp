@@ -7,12 +7,12 @@
     //default_applicable_licenses: ["hardware_nxp_nfc_license"],
 //}
 
-sysprop_library {
+/*sysprop_library {
     name: "NQNfcProps",
     srcs: ["NfcProperties.sysprop"],
     property_owner: "Vendor",
     device_specific: true,
-}
+}*/
 
 //cc_library_shared {
 //    name: "power_tracker",
@@ -43,10 +43,10 @@ sysprop_library {
 //    static_libs: ["libNfcProps"],
 //}
 
-cc_library_headers {
+/*cc_library_headers {
   name: "nqpower_tracker_headers",
   vendor: true,
   export_include_dirs: [
     "include",
   ],
-}
+}*/

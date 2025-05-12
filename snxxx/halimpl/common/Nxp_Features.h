@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2022-2024 NXP
+ *  Copyright 2022-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -218,28 +218,28 @@ extern tNfc_featureList nfcFL;
     }                                                 \
   }
 
-#define CONFIGURE_FEATURELIST_NFCC_WITH_ESE(chipType)                     \
-  {                                                                       \
-    switch (chipType) {                                                   \
-      case pn81T:                                                         \
-        CONFIGURE_FEATURELIST_NFCC(pn557)                                 \
-        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        break;                                                            \
-      case sn100u:                                                        \
-        CONFIGURE_FEATURELIST_NFCC(sn100u)                                \
-        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        break;                                                            \
-      case sn220u:                                                        \
-        CONFIGURE_FEATURELIST_NFCC(sn220u)                                \
-        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        break;                                                            \
-      case sn300u:                                                        \
-        CONFIGURE_FEATURELIST_NFCC(sn300u)                                \
-        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true;                   \
-        break;                                                            \
-      default:                                                            \
-        break;                                                            \
-    }                                                                     \
+#define CONFIGURE_FEATURELIST_NFCC_WITH_ESE(chipType)   \
+  {                                                     \
+    switch (chipType) {                                 \
+      case pn81T:                                       \
+        CONFIGURE_FEATURELIST_NFCC(pn557)               \
+        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true; \
+        break;                                          \
+      case sn100u:                                      \
+        CONFIGURE_FEATURELIST_NFCC(sn100u)              \
+        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true; \
+        break;                                          \
+      case sn220u:                                      \
+        CONFIGURE_FEATURELIST_NFCC(sn220u)              \
+        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true; \
+        break;                                          \
+      case sn300u:                                      \
+        CONFIGURE_FEATURELIST_NFCC(sn300u)              \
+        nfcFL.nfccFL._NFCC_SPI_FW_DOWNLOAD_SYNC = true; \
+        break;                                          \
+      default:                                          \
+        break;                                          \
+    }                                                   \
   }
 
 #define CONFIGURE_FEATURELIST_NFCC(chipType)                           \
