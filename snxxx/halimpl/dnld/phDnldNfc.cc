@@ -24,7 +24,9 @@
 #include <phNxpConfig.h>
 #include <phNxpLog.h>
 #include <phTmlNfc.h>
+
 #include <string>
+
 #include "NxpNfcCapability.h"
 
 #if (NXP_NFC_RECOVERY == TRUE)

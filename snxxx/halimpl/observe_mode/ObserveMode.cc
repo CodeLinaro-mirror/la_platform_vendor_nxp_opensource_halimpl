@@ -17,6 +17,7 @@
 #include <phNfcNciConstants.h>
 
 #include <vector>
+
 #include "phNxpNciHal_extOperations.h"
 
 using namespace std;

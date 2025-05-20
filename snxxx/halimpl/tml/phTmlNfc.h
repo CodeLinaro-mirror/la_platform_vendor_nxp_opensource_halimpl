@@ -28,6 +28,7 @@
 #ifndef PHTMLNFC_H
 #define PHTMLNFC_H
 
+#include <errno.h>
 #include <phNfcCommon.h>
 #include <errno.h>
 
