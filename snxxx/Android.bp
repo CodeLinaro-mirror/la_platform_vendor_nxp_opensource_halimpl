@@ -15,7 +15,7 @@
 
 /******************************************************************************
  *
- *  Copyright 2021-2024 NXP
+ *  Copyright 2021-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -251,6 +251,7 @@ cc_library_shared {
         "halimpl_v2/dynamic_protection/phNfcDynamicProtection.cc",
         "halimpl_v2/hal/phNxpNciHal_PowerTrackerIface.cc",
         "halimpl_v2/nfc_comm/NfcWriter.cc",
+        "halimpl_v2/autocard/*.cc",
         "halimpl_v2/hal/phNxpNciHal_WorkerThread.cc",
         "halimpl_v2/nfc_extn/NfcExtension.cc",
         "halimpl_v2/hal/phNxpNciHal_WiredSeIface.cc",
@@ -270,6 +271,7 @@ cc_library_shared {
         "halimpl_v2/mifare",
         "halimpl_v2/recovery",
         "halimpl_v2/observe_mode",
+        "halimpl_v2/autocard",
         "halimpl_v2/nfc_comm",
         "halimpl_v2/nfc_extn",
         "halimpl_v2/dynamic_protection",
@@ -357,3 +359,4 @@ cc_library_headers {
         "//hardware/nxp/nfc/snxxx/tests/gtest",
     ],
 }
+
