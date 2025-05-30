@@ -24,13 +24,6 @@ endif
 ifeq ($(call is-board-platform-in-list, sun canoe),true)
 TARGET_ENABLE_PERIPHERAL_CONTROL := true
 ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
-    $(call soong_config_set,nfc,board_secure_peripheral_framework,sun)
-endif
-endif
-
-ifeq ($(call is-board-platform-in-list, blair parrot),true)
-TARGET_ENABLE_PERIPHERAL_CONTROL := false
-ifeq ($(TARGET_ENABLE_PERIPHERAL_CONTROL), true)
-    $(call soong_config_set,nfc,board_secure_peripheral_framework,pineapple)
+    $(call soong_config_set,nfc,board_secure_peripheral_framework,canoe)
 endif
 endif
