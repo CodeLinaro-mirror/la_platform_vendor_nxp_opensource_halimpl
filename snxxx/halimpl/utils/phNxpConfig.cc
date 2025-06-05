@@ -163,6 +163,9 @@ typedef enum
   TARGET_SG_CLARENCE                   = 653, /**< SG_CLARENCE target */
   TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
   TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
+  TARGET_SCP_NETRANIPRO                = 713, /**< SCP_NETRANIPRO target */
+  TARGET_SCQ_NETRANIPRO                = 714, /**< SCQ_NETRANIPRO target */
+  TARGET_SM_NETRANILITE                = 715, /**< SM_NETRANILITE target */
   TARGET_SMP_ELIZA                     = 686, /**< SMP_ELIZA target */
   TARGET_SM_ELIZA                      = 659, /**< SM_ELIZA target */
   TARGET_SM_RAMOS                      = 681, /**<SM_RAMOS_BONITO target */
@@ -443,10 +446,13 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SCP_NETRANI:
         case TARGET_SCQ_NETRANI:
         case TARGET_SM_NETRANI7:
-        case TARGET_SCP_NETRANI7:
+	case TARGET_SCP_NETRANIPRO:
+        case TARGET_SCQ_NETRANIPRO:
+	case TARGET_SCP_NETRANI7:
         case TARGET_SM_NETRANIPRO:
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
+        case TARGET_SM_NETRANILITE:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -494,9 +500,12 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SCQ_NETRANI:
         case TARGET_SM_NETRANI7:
         case TARGET_SCP_NETRANI7:
-        case TARGET_SM_NETRANIPRO:
+	case TARGET_SCP_NETRANIPRO:
+        case TARGET_SCQ_NETRANIPRO:
+	case TARGET_SM_NETRANIPRO:
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
+        case TARGET_SM_NETRANILITE:
             // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
