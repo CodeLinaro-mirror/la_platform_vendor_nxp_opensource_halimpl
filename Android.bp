@@ -17,6 +17,12 @@
 //  The original Work has been changed by NXP.
 //  Copyright (C) 2022 NXP
 
+soong_namespace {
+  imports: [
+            "vendor/qcom/proprietary/monaco"
+    ],
+}
+
 package {
     default_applicable_licenses: ["vendor_nxp_nfc_license"],
 }
