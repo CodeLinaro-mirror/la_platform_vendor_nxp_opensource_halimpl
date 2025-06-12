@@ -1,6 +1,6 @@
 # Enable build support for NFC open source vendor modules
 ifeq ($(call is-board-platform-in-list, kalama bengal crow bengal_515),true)
-TARGET_USES_NQ_NFC := true
+TARGET_USES_NQ_NFC := false
 endif
 
 NQ_VENDOR_NFC := vendor.nxp.hardware.nfc@2.0-service
