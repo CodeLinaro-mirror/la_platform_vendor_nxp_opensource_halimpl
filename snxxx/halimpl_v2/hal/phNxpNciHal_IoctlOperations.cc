@@ -60,9 +60,6 @@ extern phNxpNci_getCfg_info_t* mGetCfg_info;
 extern EseAdaptation* gpEseAdapt;
 #endif
 extern nfc_stack_callback_t* p_nfc_stack_cback_backup;
-#ifndef FW_DWNLD_FLAG
-extern uint8_t fw_dwnld_flag;
-#endif
 
 /* TML Context */
 extern phTmlNfc_Context_t* gpphTmlNfc_Context;
@@ -95,7 +92,6 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NXPLOG_NCIX_LOGLEVEL",
                                 "NXPLOG_NCIR_LOGLEVEL",
                                 "NXP_NFC_SE_TERMINAL_NUM",
-                                "NXP_POLL_FOR_EFD_TIMEDELAY",
                                 "NXP_NFCC_MERGE_SAK_ENABLE",
                                 "NXP_STAG_TIMEOUT_CFG",
                                 "DEFAULT_T4TNFCEE_AID_POWER_STATE",
@@ -107,7 +103,6 @@ std::set<string> gNciConfigs = {"NXP_SE_COLD_TEMP_ERROR_DELAY",
                                 "NXP_PROP_RESET_EMVCO_CMD",
                                 "NFA_CONFIG_FORMAT",
                                 "T4T_NFCEE_ENABLE",
-                                "NXP_DISCONNECT_TAG_IN_SCRN_OFF",
                                 "NXP_RDR_REQ_GUARD_TIME",
                                 "NXP_ENABLE_DISABLE_LOGS",
                                 "NXP_RDR_DISABLE_ENABLE_LPCD",

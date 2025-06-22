@@ -43,7 +43,7 @@
 #define NXP_EN_SN330U 1
 #define NXP_NDEF_TAG_EMULATION_LOGICAL_CHANNEL 5
 #define NFC_NXP_MW_ANDROID_VER (16U)  /* Android version used by NFC MW */
-#define NFC_NXP_MW_VERSION_MAJ (0x06) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MAJ (0x07) /* MW Major Version */
 #define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
 #define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
 #define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
@@ -431,7 +431,9 @@ NFCSTATUS phNxpNciHal_process_ext_rsp(uint8_t* p_ntf, uint16_t* p_len) {
     return status;
   } else if (p_ntf[0] == 0x61 && p_ntf[1] == 0x21 && p_ntf[2] == 0x00) {
     status = NFCSTATUS_FAILED;
-    NXPLOG_NCIHAL_D("ignore core generic error");
+    NXPLOG_NCIHAL_D("notify  PLL_UNLOCK error to upper layer");
+    /* Post to extentsion lib */
+    phNxpExtn_HandleHalEvent(NFCC_HAL_INPUT_CLK_ERR_CODE);
     return status;
   }
   // 4200 02 00 01
@@ -546,8 +548,8 @@ static NFCSTATUS phNxpNciHal_ext_process_nfc_init_rsp(uint8_t* p_ntf,
     } /* Parsing CORE_INIT_RSP*/
   } else if (p_ntf[0] == NCI_MT_RSP &&
              ((p_ntf[1] & NCI_OID_MASK) == NCI_MSG_CORE_INIT)) {
-    if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
-      NXPLOG_NCIHAL_D("CORE_INIT_RSP NCI2.0 received !");
+    if (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0) {
+      NXPLOG_NCIHAL_D("CORE_INIT_RSP NCI2.0 and above received !");
       /* Remove NFC-DEP interface support from INIT RESP */
       RemoveNfcDepIntfFromInitResp(p_ntf, p_len);
       /* If NDEF T4T is enabled, then change Max Logical Connections to 5
@@ -1045,11 +1047,14 @@ NFCSTATUS phNxpNciHal_write_ext(uint16_t* cmd_len, uint8_t** pp_cmd_data,
  ******************************************************************************/
 NFCSTATUS phNxpNciHal_send_ext_cmd(uint16_t cmd_len, uint8_t* p_cmd) {
   NFCSTATUS status = NFCSTATUS_FAILED;
-  nxpncihal_ctrl.cmd_len = cmd_len;
-  memcpy(nxpncihal_ctrl.p_cmd_data, p_cmd, cmd_len);
-  status = phNxpNciHal_process_ext_cmd_rsp(nxpncihal_ctrl.cmd_len,
-                                           nxpncihal_ctrl.p_cmd_data);
-
+  if (p_cmd && cmd_len > 0) {
+    nxpncihal_ctrl.cmd_len = cmd_len;
+    memcpy(nxpncihal_ctrl.p_cmd_data, p_cmd, cmd_len);
+    status = phNxpNciHal_process_ext_cmd_rsp(nxpncihal_ctrl.cmd_len,
+      nxpncihal_ctrl.p_cmd_data);
+  } else {
+    NXPLOG_NCIHAL_E("%s: invalid arguments", __func__);
+  }
   return status;
 }
 
@@ -1625,10 +1630,18 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
     supportedRfInterfaces =
         coreInitResp + indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE;
   }
+  if (*coreInitRespLen < indexOfSupportedRfIntf + 1 + NCI_HEADER_SIZE) {
+    NXPLOG_NCIHAL_E("%s: coreInitResp too short", __func__);
+    return;
+  }
   uint8_t* supportedRfInterfacesDetails = supportedRfInterfaces;
   /* Get the index of Supported RF Interface for NFC-DEP interface in CORE_INIT
    * Response*/
   for (int i = 0; i < noOfSupportedInterface; i++) {
+    if ((supportedRfInterfaces + 2) > (coreInitResp + *coreInitRespLen)) {
+      NXPLOG_NCIHAL_E("%s: Buffer overrun detected", __func__);
+      return;
+    }
     if (*supportedRfInterfaces == NCI_NFC_DEP_RF_INTF) {
       removeNfcDepRequired = true;
       break;
@@ -1645,6 +1658,11 @@ void RemoveNfcDepIntfFromInitResp(uint8_t* coreInitResp,
   } else {
     coreInitResp[16] = noOfSupportedInterface - 1;
     uint8_t noBytesToSkipForNfcDep = 2 + *(supportedRfInterfaces + 1);
+    if (rfInterfacesLength <
+        (supportedRfInterfaces - supportedRfInterfacesDetails) +
+            noBytesToSkipForNfcDep) {
+      return;
+    }
     memcpy(supportedRfInterfaces,
            supportedRfInterfaces + noBytesToSkipForNfcDep,
            (rfInterfacesLength -

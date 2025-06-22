@@ -20,7 +20,7 @@
  *
  *  The original Work has been changed by NXP.
  *
- *  Copyright 2013-2024 NXP
+ *  Copyright 2013-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -153,7 +153,6 @@ extern char Fw_Lib_Path[256];
 #define NAME_NXP_SMB_ERROR_RETRY "NXP_SMB_ERROR_RETRY"
 #define NAME_DEFAULT_GSMA_PWR_STATE "DEFAULT_GSMA_PWR_STATE"
 #define NAME_NXP_NFC_SE_TERMINAL_NUM "NXP_NFC_SE_TERMINAL_NUM"
-#define NAME_NXP_POLL_FOR_EFD_TIMEDELAY "NXP_POLL_FOR_EFD_TIMEDELAY"
 #define NAME_NXP_NFCC_MERGE_SAK_ENABLE "NXP_NFCC_MERGE_SAK_ENABLE"
 #define NAME_NXP_STAG_TIMEOUT_CFG "NXP_STAG_TIMEOUT_CFG"
 #define NAME_NXP_RF_FILE_VERSION_INFO "NXP_RF_FILE_VERSION_INFO"

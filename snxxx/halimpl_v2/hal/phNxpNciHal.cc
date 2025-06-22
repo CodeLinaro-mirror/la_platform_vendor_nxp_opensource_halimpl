@@ -46,6 +46,7 @@
 #include "NfcExtension.h"
 #include "NfcWriter.h"
 #include "NfccTransportFactory.h"
+#include "NxpNfcExtension.h"
 #include "NxpNfcThreadMutex.h"
 #include "ObserveMode.h"
 #include "ReaderPollConfigParser.h"
@@ -54,8 +55,8 @@
 #include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_ULPDet.h"
 #include "phNxpNciHal_VendorProp.h"
-#include "phNxpNciHal_WorkerThread.h"
 #include "phNxpNciHal_WiredSeIface.h"
+#include "phNxpNciHal_WorkerThread.h"
 #include "phNxpNciHal_extOperations.h"
 
 #ifdef NFC_SECURE_PERIPHERAL_ENABLED
@@ -132,9 +133,6 @@ uint8_t write_unlocked_status = NFCSTATUS_SUCCESS;
 uint8_t wFwUpdateReq = false;
 uint8_t wRfUpdateReq = false;
 uint32_t timeoutTimerId = 0;
-#ifndef FW_DWNLD_FLAG
-uint8_t fw_dwnld_flag = false;
-#endif
 bool nfc_debug_enabled = true;
 PowerTrackerHandle gPowerTrackerHandle;
 WiredSeHandle* gWiredSeHandle;
@@ -484,8 +482,8 @@ NFCSTATUS phNxpNciHal_CheckValidFwVersion(void) {
     status = NFCSTATUS_SUCCESS;
   } else if ((ufw_current_major_no == nfcFL._FW_MOBILE_MAJOR_NUMBER) ||
              ((ufw_current_major_no == FW_MOBILE_MAJOR_NUMBER_PN81A) &&
-              (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0))) {
-    NXPLOG_NCIHAL_E("FW Version 2");
+              (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0))) {
+    NXPLOG_NCIHAL_E("NCI_VERSION = 0x%x", nxpncihal_ctrl.nci_info.nci_version);
     status = NFCSTATUS_SUCCESS;
   } else if (ufw_current_major_no == sfw_infra_major_no) {
     if ((rom_version == FW_MOBILE_ROM_VERSION_PN553 ||
@@ -549,6 +547,7 @@ int phNxpNciHal_MinOpen() {
   NFCSTATUS wConfigStatus = NFCSTATUS_SUCCESS;
   NFCSTATUS status = NFCSTATUS_SUCCESS;
   int dnld_retry_cnt = 0;
+  unsigned long value = 0;
   sIsHalOpenErrorRecovery = false;
   setObserveModeFlag(false);
   NciDiscoveryCommandBuilderInstance.setObserveModePerTech(
@@ -621,7 +620,13 @@ int phNxpNciHal_MinOpen() {
   }
   /* Configure hardware link */
   nxpncihal_ctrl.gDrvCfg.nClientId = phDal4Nfc_msgget(0, 0600);
-  nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I2C; /* For NFCC */
+  int isfound = GetNxpNumValue(NAME_NXP_TRANSPORT, &value, sizeof(value));
+  if (isfound > 0 && value == I3C) {
+    nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I3C; /* For NFCC */
+    strcat(nfc_dev_node, "-i3c");
+  } else {
+    nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I2C; /* For NFCC */
+  }
   tTmlConfig.pDevName = (int8_t*)nfc_dev_node;
   tOsalConfig.dwCallbackThreadId = (uintptr_t)nxpncihal_ctrl.gDrvCfg.nClientId;
   tOsalConfig.pLogFile = NULL;
@@ -1027,10 +1032,6 @@ int phNxpNciHal_write_internal(uint16_t data_len, const uint8_t* p_data) {
   return nfcData.direct_write(data_len, p_data);
 }
 
-void phNxpHal_EnqueueWrite(const uint8_t* pBuffer, uint16_t wLength) {
-  nfcData.enqueue_write(pBuffer, wLength);
-}
-
 /******************************************************************************
  * Function         phNxpNciHal_write_unlocked
  *
@@ -1044,6 +1045,11 @@ void phNxpHal_EnqueueWrite(const uint8_t* pBuffer, uint16_t wLength) {
  ******************************************************************************/
 int phNxpNciHal_write_unlocked(uint16_t data_len, const uint8_t* p_data,
                                int origin) {
+  // For EXTNS library command window check is done before
+  // enque packet. Hence should not do window check again.
+  if (origin == ORIG_EXTNS) {
+    return nfcData.write_window_checked_unlocked(data_len, p_data, origin);
+  }
   return nfcData.write_unlocked(data_len, p_data, origin);
 }
 /******************************************************************************
@@ -1139,9 +1145,10 @@ static void phNxpNciHal_read_complete(void* pContext,
     else if (status == NFCSTATUS_SUCCESS) {
       NFCSTATUS extStatus = phNxpExtn_HandleNciRspNtf(
           &nxpncihal_ctrl.rx_data_len, nxpncihal_ctrl.p_rx_data);
+
       NXPLOG_NCIHAL_D("extStatus = 0x%d", extStatus);
-      // Send the response to upper layer, if it is not handled by Nfc extension
-      // library
+      // Send the response to upper layer, if it is not handled by Nfc
+      // extension library
       if (NFCSTATUS_EXTN_FEATURE_SUCCESS != extStatus) {
         phNxpNciHal_client_data_callback();
       }
@@ -1336,7 +1343,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
       goto retry_core_init;
     }
 
-    if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
+    if (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0) {
       status =
           phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci2_0), cmd_init_nci2_0);
     } else {
@@ -1393,7 +1400,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
       NXPLOG_NCIHAL_E("Failed to retrieve NFCC hard fault counter debug info");
     }
   }
-
+  phNxpNfcExtn_core_initialized();
   num = 0;
   if (GetNxpNumValue("NXP_I3C_MODE", &num, sizeof(num))) {
     if (num == 1) {
@@ -1425,10 +1432,10 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
   request_EEPROM(&mEEPROM_info);
 
   if (IS_CHIP_TYPE_GE(sn100u)) {
-    unsigned long num = 0;
+    num = 0;
     if ((GetNxpNumValue(NAME_NXP_CE_SUPPORT_IN_NFC_OFF_PHONE_OFF, &num,
                         sizeof(num))) &&
-        (IS_CHIP_TYPE_EQ(sn300u))) {
+        (IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(sn300u))) {
       if (num == ENABLE_T4T_CE) enable_ce_in_phone_off = num;
     }
     mEEPROM_info.buffer = &enable_ce_in_phone_off;
@@ -1823,7 +1830,7 @@ int phNxpNciHal_core_initialized(uint16_t core_init_rsp_params_len,
       }
       status = phNxpNciHal_send_ext_cmd(sizeof(cmd_reset_nci), cmd_reset_nci);
       if (status == NFCSTATUS_SUCCESS) {
-        if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
+        if (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0) {
           status = phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci2_0),
                                             cmd_init_nci2_0);
         } else {
@@ -2005,6 +2012,8 @@ int phNxpNciHal_close(bool bShutdown) {
 
   phNxpNciHal_deinitializeRegRfFwDnld();
   NfcHalAutoThreadMutex a(sHalFnLock);
+  phNxpNciHal_WiredSeDispatchEvent(gWiredSeHandle, NFC_STATE_CHANGE,
+                                   createWiredSeEvtData(NfcState::NFC_OFF));
   CONCURRENCY_LOCK();
   if (nxpncihal_ctrl.halStatus == HAL_STATUS_CLOSE) {
     NXPLOG_NCIHAL_D("phNxpNciHal_close is already closed, ignoring close");
@@ -2016,8 +2025,6 @@ int phNxpNciHal_close(bool bShutdown) {
   if (gPowerTrackerHandle.stop != NULL) {
     gPowerTrackerHandle.stop();
   }
-  phNxpNciHal_WiredSeDispatchEvent(gWiredSeHandle, NFC_STATE_CHANGE,
-                                   createWiredSeEvtData(NfcState::NFC_OFF));
   if (IS_CHIP_TYPE_L(sn100u)) {
     if (!(GetNxpNumValue(NAME_NXP_UICC_LISTEN_TECH_MASK, &uiccListenMask,
                          sizeof(uiccListenMask)))) {
@@ -2051,8 +2058,9 @@ int phNxpNciHal_close(bool bShutdown) {
    * Autonomous mode is disabled.
    */
   if (!bShutdown && phNxpNciHal_getULPDetFlag() == false) {
-    if ((IS_CHIP_TYPE_GE(sn100u) && IS_CHIP_TYPE_L(sn300u)) ||
-        ((IS_CHIP_TYPE_EQ(sn300u)) &&
+    if ((IS_CHIP_TYPE_GE(sn100u) && IS_CHIP_TYPE_L(sn300u) &&
+         !IS_CHIP_TYPE_EQ(sn220u)) ||
+        ((IS_CHIP_TYPE_EQ(sn220u) || IS_CHIP_TYPE_EQ(sn300u)) &&
          (GetNxpNumValue(NAME_NXP_CE_SUPPORT_IN_NFC_OFF_PHONE_OFF, &num,
                          sizeof(num))) &&
          ((num == NXP_PHONE_OFF_NFC_OFF_CE_NOT_SUPPORTED) ||
@@ -3254,7 +3262,7 @@ retry_core_reset:
   uint8_t cmd_init_nci[] = {0x20, 0x01, 0x00};
   uint8_t cmd_init_nci2_0[] = {0x20, 0x01, 0x02, 0x00, 0x00};
 retry_core_init:
-  if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
+  if (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0) {
     status = phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci2_0), cmd_init_nci2_0);
   } else {
     status = phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci), cmd_init_nci);
@@ -3369,7 +3377,7 @@ void phNxpNciHal_enable_i2c_fragmentation() {
       if (status != NFCSTATUS_SUCCESS) {
         NXPLOG_NCIHAL_E("NCI_CORE_RESET: Failed");
       }
-      if (nxpncihal_ctrl.nci_info.nci_version == NCI_VERSION_2_0) {
+      if (nxpncihal_ctrl.nci_info.nci_version >= NCI_VERSION_2_0) {
         status =
             phNxpNciHal_send_ext_cmd(sizeof(cmd_init_nci2_0), cmd_init_nci2_0);
       } else {
