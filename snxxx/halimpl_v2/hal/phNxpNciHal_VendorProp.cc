@@ -91,7 +91,7 @@ int phNxpNciHal_getFragmentedVendorProp(const char* key, char* value) {
       // Completed reading of all chunks
       break;
     } else {
-      strcat(value, propValue);
+      strlcat(value, propValue, sizeof(propValue));
     }
   }
   return strlen(value);
