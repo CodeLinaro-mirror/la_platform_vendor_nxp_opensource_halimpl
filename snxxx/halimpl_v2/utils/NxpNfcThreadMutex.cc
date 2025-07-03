@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright 2021-2024 NXP
+ *  Copyright 2021-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ NfcHalThreadMutex::NfcHalThreadMutex() {
   pthread_mutexattr_t mutexAttr;
 
   pthread_mutexattr_init(&mutexAttr);
-  if(pthread_mutex_init(&mMutex, &mutexAttr))
+  if(!pthread_mutex_init(&mMutex, &mutexAttr))
     LOG(DEBUG) << StringPrintf("init mutex success");
   else
     LOG(ERROR) << StringPrintf("fail to init mutex");
@@ -130,7 +130,7 @@ void NfcHalThreadCondVar::timedWait(struct timespec* time) {
 *******************************************************************************/
 void NfcHalThreadCondVar::timedWait(uint8_t sec) {
   struct timespec timeout_spec;
-  clock_gettime(CLOCK_REALTIME, &timeout_spec);
+  clock_gettime(CLOCK_MONOTONIC, &timeout_spec);
   timeout_spec.tv_sec += sec;
   pthread_cond_timedwait(&mCondVar, *this, &timeout_spec);
 }

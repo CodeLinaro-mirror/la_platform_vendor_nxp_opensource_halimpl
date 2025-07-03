@@ -23,7 +23,6 @@
 #include "NciDiscoveryCommandBuilder.h"
 #include "NfcExtension.h"
 #include "ObserveMode.h"
-#include "phNxpAutoCard.h"
 #include "phNxpNciHal_WiredSeIface.h"
 #include "phNxpNciHal_extOperations.h"
 
@@ -88,16 +87,26 @@ int NfcWriter::write(uint16_t data_len, const uint8_t* p_data) {
 
   if (bEnableMfcExtns && p_data[NCI_GID_INDEX] == 0x00) {
     return NxpMfcReaderInstance.Write(data_len, p_data);
-  } else if (phNxpNciHal_isVendorSpecificCommand(data_len, p_data)) {
-    phNxpNciHal_print_packet("SEND", p_data, data_len,
-                             RfFwRegionDnld_handle == NULL);
-    return phNxpNciHal_handleVendorSpecificCommand(data_len, p_data);
+  } else if (phNxpNciHal_isVndSpecificAndroidCmd(data_len, p_data)) {
+    if (!(data_len >= 4 && (p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
+                                NCI_ANDROID_SET_PASSIVE_OBSERVER_EXIT_FRAME ||
+                            p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
+                                NCI_ANDROID_GET_PASSIVE_OBSERVER_EXIT_FRAME))) {
+      phNxpNciHal_print_packet("SEND", p_data, data_len,
+                               RfFwRegionDnld_handle == NULL);
+    }
+    return phNxpNciHal_hndlVndSpecificAndroidCmd(data_len, p_data);
   } else if (isObserveModeEnabled() &&
              p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
              p_data[NCI_OID_INDEX] == NCI_RF_DISC_COMMAND_OID) {
     vector<uint8_t> v_data =
         NciDiscoveryCommandBuilderInstance.reConfigRFDiscCmd();
-    return this->direct_write(v_data.size(), v_data.data());
+    uint16_t len = static_cast<uint16_t>(v_data.size());
+    NFCSTATUS status = phNxpExtn_HandleNciMsg(&len, v_data.data());
+    if (status != NFCSTATUS_EXTN_FEATURE_SUCCESS)
+      return this->direct_write(v_data.size(), v_data.data());
+    else
+      return len;
   } else if (IS_HCI_PACKET(p_data)) {
     // Inform WiredSe service that HCI Pkt is sending from libnfc layer
     phNxpNciHal_WiredSeDispatchEvent(gWiredSeHandle, SENDING_HCI_PKT);
@@ -108,19 +117,9 @@ int NfcWriter::write(uint16_t data_len, const uint8_t* p_data) {
         gWiredSeHandle, DISABLING_NFCEE,
         createWiredSeEvtData((uint8_t*)p_data, data_len));
   } else {
-    NFCSTATUS status;
-    if ((p_data[NCI_GID_INDEX] == (NCI_MT_CMD | NCI_GID_PROP)) &&
-        (p_data[NCI_OID_INDEX] == NCI_ROW_PROP_OID_VAL) &&
-        (p_data[NCI_MSG_INDEX_FOR_FEATURE] ==
-         NxpAutoCardInstance.AUTOCARD_FEATURE_SUB_OID)) {
-      status = NxpAutoCardInstance.handleNciMessage(data_len, (uint8_t*)p_data);
-    } else {
-      status = phNxpExtn_HandleNciMsg(&data_len, p_data);
-      NXPLOG_NCIHAL_D("Vendor specific status: %d", status);
-    }
-    if (status == NFCSTATUS_EXTN_FEATURE_SUCCESS) {
-      return data_len;
-    }
+    NFCSTATUS status = phNxpExtn_HandleNciMsg(&data_len, p_data);
+    NXPLOG_NCIHAL_D("Vendor specific status: %d", status);
+    if (status == NFCSTATUS_EXTN_FEATURE_SUCCESS) return data_len;
   }
   long value = 0;
   /* NXP Removal Detection timeout Config */
@@ -200,36 +199,6 @@ clean_and_return:
 }
 
 /******************************************************************************
- * Function         enqueue_write
- *
- * Description      This is the actual function which is being called by
- *                  nxp_nfc_extn_lib. This function writes the data to queue.
- *
- ******************************************************************************/
-
-void NfcWriter::enqueue_write(const uint8_t* pBuffer, uint16_t wLength) {
-  phLibNfc_DeferredCall_t tDeferredInfo;
-  phLibNfc_Message_t tMsg = {0, NULL, 0};
-  phTmlNfc_TransactInfo_t tTransactionInfo;
-
-  if ((pBuffer == NULL) || (wLength == 0x00) || (wLength > NCI_MAX_DATA_LEN)) {
-    NXPLOG_NCIHAL_E("Invalid Parameter");
-    return;
-  }
-
-  tTransactionInfo.wStatus = NFCSTATUS_SUCCESS;
-  tTransactionInfo.oem_cmd_len = wLength;
-  phNxpNciHal_Memcpy(tTransactionInfo.p_oem_cmd_data, wLength, pBuffer,
-                     wLength);
-  tDeferredInfo.pCallback = NULL;
-  tDeferredInfo.pParameter = &tTransactionInfo;
-  tMsg.eMsgType = NCI_HAL_TML_WRITE_MSG;
-  tMsg.pMsgData = &tDeferredInfo;
-  tMsg.Size = sizeof(tDeferredInfo);
-  phTmlNfc_DeferredCall(gpphTmlNfc_Context->dwCallbackThreadId, &tMsg);
-}
-
-/******************************************************************************
  * Function         write_unlocked
  *
  * Description      This is the actual function which is being called by
@@ -242,22 +211,38 @@ void NfcWriter::enqueue_write(const uint8_t* pBuffer, uint16_t wLength) {
  ******************************************************************************/
 int NfcWriter::write_unlocked(uint16_t data_len, const uint8_t* p_data,
                               int origin) {
+  write_unlocked_status = NFCSTATUS_FAILED;
+  /* check for write synchronyztion */
+  if (this->check_ncicmd_write_window(data_len, (uint8_t*)p_data) !=
+      NFCSTATUS_SUCCESS) {
+    NXPLOG_NCIHAL_D("NfcWriter::write_unlocked  CMD window  check failed");
+    return 0;
+  }
+  return write_window_checked_unlocked(data_len, p_data, origin);
+}
+
+/******************************************************************************
+ * Function         write_window_checked_unlocked
+ *
+ * Description      Same as write_unlocked but without waiting for  command
+ *                  window. It will be used whenever write is to be invoked
+ *                  in HAL worker thread context to avoid blocking HAL worker
+ *                  thread for command window on which previous responses
+ *                  also needs to be processed.
+ *
+ * Returns          It returns number of bytes successfully written to NFCC.
+ *
+ ******************************************************************************/
+int NfcWriter::write_window_checked_unlocked(uint16_t data_len,
+                                             const uint8_t* p_data,
+                                             int origin) {
   NFCSTATUS status = NFCSTATUS_INVALID_PARAMETER;
   phNxpNciHal_Sem_t cb_data;
   nxpncihal_ctrl.retry_cnt = 0;
   int sem_val = 0;
   write_unlocked_status = NFCSTATUS_FAILED;
 
-  /* check for write synchronyztion */
-  if (this->check_ncicmd_write_window(data_len, (uint8_t*)p_data) !=
-      NFCSTATUS_SUCCESS) {
-    NXPLOG_NCIHAL_D("NfcWriter::write_unlocked  CMD window  check failed");
-    data_len = 0;
-    goto clean_and_return;
-  }
-
   if (origin == ORIG_NXPHAL) HAL_ENABLE_EXT();
-
   do {
     if (!phNxpTempMgr::GetInstance().IsICTempOk()) {
       phNxpTempMgr::GetInstance().Wait();
@@ -267,7 +252,8 @@ int NfcWriter::write_unlocked(uint16_t data_len, const uint8_t* p_data,
     if (status == NFCSTATUS_SUCCESS) {
       if (origin == ORIG_EXTNS &&
           p_data[NCI_GID_INDEX] == NCI_RF_DISC_COMMD_GID &&
-          p_data[NCI_OID_INDEX] == NCI_RF_DISC_COMMAND_OID) {
+          p_data[NCI_OID_INDEX] == NCI_RF_DISC_COMMAND_OID && data_len > 2 &&
+          p_data[data_len - 2] != 0xFF && p_data[data_len - 1] != 0x01) {
         NciDiscoveryCommandBuilderInstance.setDiscoveryCommand(data_len,
                                                                p_data);
       }

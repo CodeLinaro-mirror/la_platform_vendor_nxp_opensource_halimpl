@@ -254,7 +254,9 @@ cc_library_shared {
         "halimpl_v2/autocard/*.cc",
         "halimpl_v2/hal/phNxpNciHal_WorkerThread.cc",
         "halimpl_v2/nfc_extn/NfcExtension.cc",
+        "halimpl_v2/nfc_extn/NxpNfcExtension.cc",
         "halimpl_v2/hal/phNxpNciHal_WiredSeIface.cc",
+        "halimpl_v2/ntag/phNxpNTag.cc",
     ],
 
     local_include_dirs: [
@@ -274,7 +276,8 @@ cc_library_shared {
         "halimpl_v2/autocard",
         "halimpl_v2/nfc_comm",
         "halimpl_v2/nfc_extn",
-        "halimpl_v2/dynamic_protection",
+        "halimpl_v2/ntag",
+	"halimpl_v2/dynamic_protection",
     ],
 
     include_dirs: [
