@@ -154,6 +154,7 @@ typedef enum
   TARGET_SMP_KAANAPALI                 = 661, /**< SMP_KAANAPALI target */
   TARGET_SM_KAANAPALI                  = 660, /**< SM_KAANAPALI target */
   TARGET_SM_MOLOKAI                    = 685, /**< SM_MOLOKAI target */
+  TARGET_SMP_MOLOKAI                   = 727, /**< SMP_MOLOKAI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
   TARGET_QCS6490                       = 498, /**< QCS6490 target */
@@ -420,6 +421,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_KAANAPALI:
         case TARGET_SM_KAANAPALI:
         case TARGET_SM_MOLOKAI:
+        case TARGET_SMP_MOLOKAI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
@@ -483,6 +485,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_KAANAPALI:
         case TARGET_SM_KAANAPALI:
         case TARGET_SM_MOLOKAI:
+        case TARGET_SMP_MOLOKAI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
