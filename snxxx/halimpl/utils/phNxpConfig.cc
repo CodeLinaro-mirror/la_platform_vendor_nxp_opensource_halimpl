@@ -170,6 +170,8 @@ typedef enum
   TARGET_SM_NETRANILITE                = 715, /**< SM_NETRANILITE target */
   TARGET_SMP_ELIZA                     = 686, /**< SMP_ELIZA target */
   TARGET_SM_ELIZA                      = 659, /**< SM_ELIZA target */
+  TARGET_QNA_PALOMA                    = 721, /**< QNA_PALOMA target */
+  TARGET_QMB715                        = 720, /**< QMB715 target */
   TARGET_SM_RAMOS                      = 681, /**<SM_RAMOS_BONITO target */
   TARGET_SM_BONITO                     = 655, /**<SM_BONITO_DEFAULT target */
   TARGET_SMP_BONITO                    = 694, /**<SMP_BONITO_DEFAULT target */
@@ -431,6 +433,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
 	case TARGET_SMP_ELIZA:
         case TARGET_SM_ELIZA:
+        case TARGET_QNA_PALOMA:
+	case TARGET_QMB715:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
@@ -486,6 +490,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
         case TARGET_SMP_ELIZA:
         case TARGET_SM_ELIZA:
+        case TARGET_QNA_PALOMA:
+        case TARGET_QMB715:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
