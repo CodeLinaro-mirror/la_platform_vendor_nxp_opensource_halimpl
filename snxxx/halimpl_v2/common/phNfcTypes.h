@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2020, 2023-2024 NXP
+ * Copyright 2010-2020, 2023-2025 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,6 +64,7 @@ typedef enum {
   ENUM_LINK_TYPE_COM7,
   ENUM_LINK_TYPE_COM8,
   ENUM_LINK_TYPE_I2C,
+  ENUM_LINK_TYPE_I3C,
   ENUM_LINK_TYPE_SPI,
   ENUM_LINK_TYPE_USB,
   ENUM_LINK_TYPE_TCP,

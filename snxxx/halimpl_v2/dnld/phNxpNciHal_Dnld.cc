@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2024 NXP
+ * Copyright 2012-2025 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1819,13 +1819,19 @@ static NFCSTATUS phNxpNciHal_releasePendingRead() {
   NFCSTATUS status = NFCSTATUS_FAILED;
   phTmlNfc_Config_t tTmlConfig;
   const uint16_t max_len = 260;
+  unsigned long value = 0;
   char nfc_dev_node[max_len] = {};
+  char *i3c = "-i3c";
   if (!GetNxpStrValue(NAME_NXP_NFC_DEV_NODE, nfc_dev_node,
                       sizeof(nfc_dev_node))) {
     NXPLOG_FWDNLD_D(
         "Invalid nfc device node name keeping the default device node "
         "/dev/nxp-nci");
     strlcpy(nfc_dev_node, "/dev/nxp-nci", (sizeof(nfc_dev_node)));
+  }
+  int isfound = GetNxpNumValue(NAME_NXP_TRANSPORT, &value, sizeof(value));
+  if (isfound > 0 && value == I3C) {
+    strlcat(nfc_dev_node, i3c, sizeof(i3c));
   }
   tTmlConfig.pDevName = (int8_t*)nfc_dev_node;
   gpTransportObj->Close(gpphTmlNfc_Context->pDevHandle);
