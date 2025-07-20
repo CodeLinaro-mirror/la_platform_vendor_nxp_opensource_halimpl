@@ -537,7 +537,7 @@ void phNxpNciHal_HexToString(char* hex, size_t len, char* str) {
     ss << std::setfill('0') << std::hex << std::uppercase << std::setw(2)
        << (0xFF & hex[i]);
   }
-  strlcpy(str, ss.str().c_str(), sizeof(ss));
+  strcpy(str, ss.str().c_str());
 }
 
 /*******************************************************************************

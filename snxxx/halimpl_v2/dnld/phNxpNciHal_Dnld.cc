@@ -1821,7 +1821,6 @@ static NFCSTATUS phNxpNciHal_releasePendingRead() {
   const uint16_t max_len = 260;
   unsigned long value = 0;
   char nfc_dev_node[max_len] = {};
-  char *i3c = "-i3c";
   if (!GetNxpStrValue(NAME_NXP_NFC_DEV_NODE, nfc_dev_node,
                       sizeof(nfc_dev_node))) {
     NXPLOG_FWDNLD_D(
@@ -1831,7 +1830,7 @@ static NFCSTATUS phNxpNciHal_releasePendingRead() {
   }
   int isfound = GetNxpNumValue(NAME_NXP_TRANSPORT, &value, sizeof(value));
   if (isfound > 0 && value == I3C) {
-    strlcat(nfc_dev_node, i3c, sizeof(i3c));
+    strcat(nfc_dev_node, "-i3c");
   }
   tTmlConfig.pDevName = (int8_t*)nfc_dev_node;
   gpTransportObj->Close(gpphTmlNfc_Context->pDevHandle);
