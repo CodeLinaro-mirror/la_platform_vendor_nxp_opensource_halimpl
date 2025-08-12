@@ -158,8 +158,9 @@ typedef enum
   TARGET_SMP_PALAWAN                   = 642, /**< SMP_PALAWAN target */
   TARGET_SMP_LAMMA                     = 643, /**< SMP_LAMMA target */
   TARGET_SMP_MILOS                     = 641, /**< SMP_MILOS target */
-  TARGET_SM_MILOS                      = 640, /**< SMP_MILOS target */
-  TARGET_SM_KIMOLOS                    = 636, /**< SMP_KIMOLOS target */
+  TARGET_SM_MILOS                      = 640, /**< SM_MILOS target */
+  TARGET_SM_KIMOLOS                    = 636, /**< SM_KIMOLOS target */
+  TARGET_SMP_KIMOLOS                   = 712, /**< SMP_KIMOLOS target */
   TARGET_IOT_QCM_MILOS                 = 657, /**< MILOS QCM IOT with Modem target*/
   TARGET_IOT_QCS_MILOS                 = 658, /**< MILOS QCS  without Modem target*/
   TARGET_SGP_LANAI                     = 682, /**< SGP_LANAI Gaming SKU without modem*/
@@ -431,7 +432,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_MILOS:
         case TARGET_SM_MILOS:
         case TARGET_SM_KIMOLOS:
-        case TARGET_IOT_QCM_MILOS:
+        case TARGET_SMP_KIMOLOS:
+	case TARGET_IOT_QCM_MILOS:
         case TARGET_IOT_QCS_MILOS:
             //SN220 V1
             config_id = GENERIC_19_2_TYPE_SN220;
@@ -475,7 +477,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SMP_MILOS:
         case TARGET_SM_MILOS:
         case TARGET_SM_KIMOLOS:
-        case TARGET_IOT_QCM_MILOS:
+        case TARGET_SMP_KIMOLOS:
+	case TARGET_IOT_QCM_MILOS:
         case TARGET_IOT_QCS_MILOS:
             //SN220 V1
             config_id = GENERIC_19_2_TYPE_SN220;
