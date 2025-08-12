@@ -159,6 +159,8 @@ typedef enum
   TARGET_SM_NETRANIPRO                 = 663, /**< SM_NETRANIPRO target */
   TARGET_SMP_CLARENCE                  = 602, /**< SMP_CLARENCE target */
   TARGET_SM_CLARENCE                   = 568, /**< SM_CLARENCE target */
+  TARGET_QCM_CLARENCE                  = 581, /**< QCM_CLARENCE IOT target */
+  TARGET_QCS_CLARENCE                  = 582, /**< QCS_CLARENCE IOT target */
   TARGET_SGP_CLARENCE                  = 654, /**< SGP_CLARENCE target */
   TARGET_SG_CLARENCE                   = 653, /**< SG_CLARENCE target */
   TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
@@ -168,6 +170,8 @@ typedef enum
   TARGET_SM_NETRANILITE                = 715, /**< SM_NETRANILITE target */
   TARGET_SMP_ELIZA                     = 686, /**< SMP_ELIZA target */
   TARGET_SM_ELIZA                      = 659, /**< SM_ELIZA target */
+  TARGET_QNA_PALOMA                    = 721, /**< QNA_PALOMA target */
+  TARGET_QMB715                        = 720, /**< QMB715 target */
   TARGET_SM_RAMOS                      = 681, /**<SM_RAMOS_BONITO target */
   TARGET_SM_BONITO                     = 655, /**<SM_BONITO_DEFAULT target */
   TARGET_SMP_BONITO                    = 694, /**<SMP_BONITO_DEFAULT target */
@@ -429,6 +433,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
 	case TARGET_SMP_ELIZA:
         case TARGET_SM_ELIZA:
+        case TARGET_QNA_PALOMA:
+	case TARGET_QMB715:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
@@ -461,6 +467,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SM_CLARENCE:
        case TARGET_SGP_CLARENCE:
        case TARGET_SG_CLARENCE:
+       case TARGET_QCM_CLARENCE:
+       case TARGET_QCS_CLARENCE:
             //SN110
             config_id =  GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -482,6 +490,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
         case TARGET_SMP_ELIZA:
         case TARGET_SM_ELIZA:
+        case TARGET_QNA_PALOMA:
+        case TARGET_QMB715:
 	case TARGET_SM_RAMOS:
 	case TARGET_SM_BONITO:
 	case TARGET_SMP_BONITO:
@@ -514,6 +524,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_CLARENCE:
         case TARGET_SGP_CLARENCE:
         case TARGET_SG_CLARENCE:
+        case TARGET_QCM_CLARENCE:
+        case TARGET_QCS_CLARENCE:
             //SN110
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
