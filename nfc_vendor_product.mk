@@ -1,6 +1,6 @@
 # Enable build support for NFC open source vendor modules
 ifeq ($(call is-board-platform-in-list, pineapple blair pitti volcano),true)
-TARGET_USES_NQ_NFC := true
+TARGET_USES_NQ_NFC := false
 endif
 
 NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
