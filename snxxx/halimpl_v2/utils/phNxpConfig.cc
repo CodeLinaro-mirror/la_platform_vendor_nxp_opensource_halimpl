@@ -420,8 +420,6 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750P:
         case TARGET_SMP_KAANAPALI:
         case TARGET_SM_KAANAPALI:
-        case TARGET_SM_MOLOKAI:
-        case TARGET_SMP_MOLOKAI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300
                  config_id = GENERIC_38_4_TYPE_SN300;
@@ -467,6 +465,18 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             config_id =  GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
+        case TARGET_SM_MOLOKAI:
+        case TARGET_SMP_MOLOKAI:
+            if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300
+                 config_id = GENERIC_38_4_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                 // SN220 V1 and V3
+                 config_id = GENERIC_38_4_TYPE_SN220;
+                 strlcpy(config_file, config_name_qrd_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            }
+        break;
 	default:
             config_id = QRD_TYPE_DEFAULT;
             strlcpy(config_file, config_name_qrd, MAX_DATA_CONFIG_PATH_LEN);
