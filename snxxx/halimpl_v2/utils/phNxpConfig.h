@@ -205,6 +205,7 @@ extern char Fw_Lib_Path[256];
 #define config_name_qrd_SN100_38_4MHZ   "libnfc-qrd-SN100_38_4MHZ.conf"
 #define config_name_SN220_19_2MHZ   "libnfc-SN220_19_2MHZ.conf"
 #define config_name_SN220_38_4MHZ   "libnfc-SN220_38_4MHZ.conf"
+#define config_name_qrd_SN220_38_4MHZ   "libnfc-qrd-SN220_38_4MHZ.conf"
 #define config_name_SN300_19_2MHZ   "libnfc-SN300_19_2MHZ.conf"
 #define config_name_SN300_38_4MHZ   "libnfc-SN300_38_4MHZ.conf"
 #define config_name_default     "libnfc-nxp_default.conf"

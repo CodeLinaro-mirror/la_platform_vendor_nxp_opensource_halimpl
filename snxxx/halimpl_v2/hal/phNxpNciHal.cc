@@ -543,6 +543,7 @@ int phNxpNciHal_MinOpen() {
   phOsalNfc_Config_t tOsalConfig;
   phTmlNfc_Config_t tTmlConfig;
   char* nfc_dev_node = NULL;
+  char *i3c = "-i3c";
   const uint16_t max_len = 260;
   NFCSTATUS wConfigStatus = NFCSTATUS_SUCCESS;
   NFCSTATUS status = NFCSTATUS_SUCCESS;
@@ -623,7 +624,7 @@ int phNxpNciHal_MinOpen() {
   int isfound = GetNxpNumValue(NAME_NXP_TRANSPORT, &value, sizeof(value));
   if (isfound > 0 && value == I3C) {
     nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I3C; /* For NFCC */
-    strcat(nfc_dev_node, "-i3c");
+    strlcat(nfc_dev_node, i3c, sizeof(i3c));
   } else {
     nxpncihal_ctrl.gDrvCfg.nLinkType = ENUM_LINK_TYPE_I2C; /* For NFCC */
   }
