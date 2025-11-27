@@ -166,6 +166,8 @@ typedef enum
   TARGET_SM_ALANA                      = 722, /**< SM_ALANA target */
   TARGET_SM_SKYROS                     = 724, /**< SM_SKYROS target */
   TARGET_SMP_SKYROS                    = 744, /**< SMP_SKYROS target */
+  TARGET_SM_ALDABRA                    = 733, /**< SM_ALDABRA target */
+  TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
   TARGET_SGP_KAANAPALI                 = 743, /**< SGP_KAANAPALI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
@@ -447,6 +449,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
 	    break;
         case TARGET_SM_SKYROS:
         case TARGET_SMP_SKYROS:
+        case TARGET_SM_ALDABRA:
+        case TARGET_SMP_ALDABRA:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                   // SN300U
                   config_id = GENERIC_19_2_TYPE_SN300;
@@ -546,6 +550,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
        case TARGET_SM_SKYROS:
        case TARGET_SMP_SKYROS:
+       case TARGET_SM_ALDABRA:
+       case TARGET_SMP_ALDABRA:
            if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
                  // SN300U
                  config_id = GENERIC_19_2_TYPE_SN300;
