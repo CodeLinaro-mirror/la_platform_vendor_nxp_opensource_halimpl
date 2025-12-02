@@ -164,6 +164,10 @@ typedef enum
   TARGET_SMP_MOLOKAI                   = 727, /**< SMP_MOLOKAI target */
   TARGET_SMP_ALANA                     = 723, /**< SMP_ALANA target */
   TARGET_SM_ALANA                      = 722, /**< SM_ALANA target */
+  TARGET_SM_SKYROS                     = 724, /**< SM_SKYROS target */
+  TARGET_SMP_SKYROS                    = 744, /**< SMP_SKYROS target */
+  TARGET_SM_ALDABRA                    = 733, /**< SM_ALDABRA target */
+  TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
   TARGET_SGP_KAANAPALI                 = 743, /**< SGP_KAANAPALI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
@@ -443,7 +447,22 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
 	    break;
-        case TARGET_SM_NETRANI:
+        case TARGET_SM_SKYROS:
+        case TARGET_SMP_SKYROS:
+        case TARGET_SM_ALDABRA:
+        case TARGET_SMP_ALDABRA:
+            if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                  // SN300U
+                  config_id = GENERIC_19_2_TYPE_SN300;
+                  strlcpy(config_file, config_name_SN300_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             } else {
+                  // SN220U
+                  config_id = GENERIC_19_2_TYPE_SN220;
+                  strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+             }
+            break;
+
+	case TARGET_SM_NETRANI:
         case TARGET_SCP_NETRANI:
         case TARGET_SCQ_NETRANI:
         case TARGET_SM_NETRANI7:
@@ -529,7 +548,21 @@ int CNfcConfig::getconfiguration_id (char * config_file)
                  strlcpy(config_file, config_name_SN220_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
             }
             break;
-        case TARGET_SM_NETRANI:
+       case TARGET_SM_SKYROS:
+       case TARGET_SMP_SKYROS:
+       case TARGET_SM_ALDABRA:
+       case TARGET_SMP_ALDABRA:
+           if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
+                 // SN300U
+                 config_id = GENERIC_19_2_TYPE_SN300;
+                 strlcpy(config_file, config_name_SN300_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            } else {
+                 // SN220U
+                 config_id = GENERIC_19_2_TYPE_SN220;
+                 strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
+            }
+            break;
+	case TARGET_SM_NETRANI:
         case TARGET_SCP_NETRANI:
         case TARGET_SCQ_NETRANI:
         case TARGET_SM_NETRANI7:
