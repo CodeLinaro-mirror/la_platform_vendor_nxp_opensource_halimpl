@@ -3,6 +3,10 @@ ifeq ($(call is-board-platform-in-list, kalama bengal crow bengal_515),true)
 TARGET_USES_NQ_NFC := true
 endif
 
+ifneq ($(filter bengal_515s bengal_515s_32go bengal_515tiny bengal_515tiny_32go,$(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)),)
+TARGET_USES_NQ_NFC := false
+endif
+
 NQ_VENDOR_NFC := vendor.nxp.hardware.nfc@2.0-service
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 
