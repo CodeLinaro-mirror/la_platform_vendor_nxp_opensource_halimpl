@@ -475,12 +475,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
-        case TARGET_SM_KODIAK:
         case TARGET_QCM6490:
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_SMP_KODIAK:
         case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
@@ -494,6 +492,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
        case TARGET_SMP_CLARENCE:
        case TARGET_SM_CLARENCE:
+       case TARGET_SM_KODIAK:
+       case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
             config_id =  GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
@@ -580,12 +580,10 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
             break;
-        case TARGET_SM_KODIAK:
         case TARGET_QCM6490:
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_SMP_KODIAK:
         case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
@@ -599,6 +597,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SMP_CLARENCE:
         case TARGET_SM_CLARENCE:
+        case TARGET_SM_KODIAK:
+        case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
