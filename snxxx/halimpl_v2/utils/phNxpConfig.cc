@@ -144,6 +144,7 @@ typedef enum
   TARGET_SM_NETRANI                    = 537, /**< SM_NETRANI target */
   TARGET_SCP_NETRANI                   = 583, /**< SCP_NETRANI target */
   TARGET_SM_DIVAR                      = 518, /**< SM_DIVAR target */
+  TARGET_SMP_DIVAR                     = 762, /**< SMP_DIVAR target*/
   TARGET_STP_DIVAR                     = 561, /**< STP_DIVAR target */
   TARGET_STP_DIVAR_L                   = 562, /**< STP_DIVAR_L target */
   TARGET_SM_KAMORTA                    = 417, /**< SM_KAMORTA target */
@@ -493,17 +494,22 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
        case TARGET_SMP_CLARENCE:
        case TARGET_SM_CLARENCE:
+	    //SN110 or SN100
+            config_id =  GENERIC_19_2_TYPE_SN1xx;
+            strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
+            break;
        case TARGET_SM_DIVAR:
+       case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
-	    //SN110 or SN100
-            config_id =  GENERIC_19_2_TYPE_SN1xx;
-            strlcpy(config_file, config_name_qrd_SN100, MAX_DATA_CONFIG_PATH_LEN);
-            break;
+            // SN110 or SN100
+            config_id = GENERIC_38_4_TYPE_SN1xx;
+            strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+	    break;
         case TARGET_SM_MOLOKAI:
         case TARGET_SMP_MOLOKAI:
             if (!strncmp(nq_chip_info.nq_chipid, SN300_CHIP_ID, PROPERTY_VALUE_MAX)) {
@@ -593,17 +599,22 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SMP_CLARENCE:
         case TARGET_SM_CLARENCE:
-        case TARGET_SM_DIVAR:
-        case TARGET_STP_DIVAR:
-        case TARGET_STP_DIVAR_L:
-        case TARGET_SM_KAMORTA:
-        case TARGET_KAMORTA_H:
-        case TARGET_SMP_KAMORTA:
-        case TARGET_SMP_KAMORTA_H:
 	    //SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100, MAX_DATA_CONFIG_PATH_LEN);
             break;
+       case TARGET_SM_DIVAR:
+       case TARGET_SMP_DIVAR:
+       case TARGET_STP_DIVAR:
+       case TARGET_STP_DIVAR_L:
+       case TARGET_SM_KAMORTA:
+       case TARGET_KAMORTA_H:
+       case TARGET_SMP_KAMORTA:
+       case TARGET_SMP_KAMORTA_H:
+            // SN110 or SN100
+            config_id = GENERIC_38_4_TYPE_SN1xx;
+            strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
+	    break;
 	default:
             config_id = MTP_TYPE_DEFAULT;
             strlcpy(config_file, config_name_mtp, MAX_DATA_CONFIG_PATH_LEN);
