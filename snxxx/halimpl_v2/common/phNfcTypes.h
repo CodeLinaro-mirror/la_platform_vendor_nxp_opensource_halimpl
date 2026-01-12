@@ -116,7 +116,6 @@ typedef struct phLibNfc_Message {
   uint32_t Size;     /* Size of the datablock*/
   uint8_t data[PHNCI_MAX_DATA_LEN]; /* Message data maintained with MAX*/
   NFCSTATUS w_status;               /* Status of the Transaction Completion*/
-  ;
 } phLibNfc_Message_t, *pphLibNfc_Message_t;
 
 /*
