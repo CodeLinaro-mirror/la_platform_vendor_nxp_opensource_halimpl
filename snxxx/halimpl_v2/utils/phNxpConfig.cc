@@ -176,6 +176,9 @@ typedef enum
   TARGET_QCS5430                       = 575, /**< QCS_KODIAK_LITE */
   TARGET_QCM5430                       = 576, /**< QCM_KODIAK_LITE */
   TARGET_SMP_KODIAK                    = 499, /**< SMP_KODIAK target */
+  TARGET_SM_LAHAINA                    = 415, /**< SM_LAHAINA target */
+  TARGET_SMP_LAHAINA                   = 439, /**< SMP_LAHAINA target */
+  TARGET_SM_LAHAINA_MODULE             = 456, /**< SM_LAHAINA_MODULE */
   TARGET_FAROE                         = 515, /**< FAROE target */
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
@@ -492,6 +495,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
        case TARGET_SMP_CLARENCE:
        case TARGET_SM_CLARENCE:
+       case TARGET_SM_LAHAINA:
+       case TARGET_SMP_LAHAINA:
+       case TARGET_SM_LAHAINA_MODULE:
        case TARGET_SM_KODIAK:
        case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
@@ -597,6 +603,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
             break;
         case TARGET_SMP_CLARENCE:
         case TARGET_SM_CLARENCE:
+        case TARGET_SM_LAHAINA:
+        case TARGET_SMP_LAHAINA:
+        case TARGET_SM_LAHAINA_MODULE:
         case TARGET_SM_KODIAK:
         case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
