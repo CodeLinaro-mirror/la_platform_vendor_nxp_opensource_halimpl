@@ -1,5 +1,5 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, sun canoe bengal chora malabar),true)
+ifeq ($(call is-board-platform-in-list, sun canoe bengal chora malabar lahaina),true)
 TARGET_USES_NQ_NFC := true
 endif
 
