@@ -169,6 +169,8 @@ typedef enum
   TARGET_SCQ_NETRANIPRO                = 714, /**< SCQ_NETRANIPRO target */
   TARGET_SM_NETRANILITE                = 715, /**< SM_NETRANILITE target */
   TARGET_SMP_ELIZA                     = 686, /**< SMP_ELIZA target */
+  TARGET_SM_ELIZA_CQ7790M              = 731, /**< ELIZA IOT CQ7790M MTP target */
+  TARGET_SM_ELIZA_CQ7790S              = 732, /**< ELIZA IOT CQ7790S MTP target */
   TARGET_SM_ELIZA                      = 659, /**< SM_ELIZA target */
   TARGET_QNA_PALOMA                    = 721, /**< QNA_PALOMA target */
   TARGET_QMB715                        = 720, /**< QMB715 target */
@@ -432,6 +434,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750:
         case TARGET_SM8750P:
 	case TARGET_SMP_ELIZA:
+        case TARGET_SM_ELIZA_CQ7790M:
+        case TARGET_SM_ELIZA_CQ7790S:
         case TARGET_SM_ELIZA:
         case TARGET_QNA_PALOMA:
 	case TARGET_QMB715:
@@ -489,6 +493,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM8750:
         case TARGET_SM8750P:
         case TARGET_SMP_ELIZA:
+        case TARGET_SM_ELIZA_CQ7790M:
+        case TARGET_SM_ELIZA_CQ7790S:
         case TARGET_SM_ELIZA:
         case TARGET_QNA_PALOMA:
         case TARGET_QMB715:
