@@ -122,6 +122,13 @@ intptr_t phDal4Nfc_msgsnd(intptr_t msqid, phLibNfc_Message_t* msg, int msgflg) {
   UNUSED_PROP(msgflg);
   if ((msqid == 0) || (msg == NULL)) return -1;
 
+  /* Validate message structure size to prevent buffer overflow */
+  if (sizeof(*msg) != sizeof(phLibNfc_Message_t)) {
+    NXPLOG_TML_E("Invalid message size: expected %zu, got %zu",
+                 sizeof(phLibNfc_Message_t), sizeof(*msg));
+    return -1;
+  }
+
   pQueue = (phDal4Nfc_message_queue_t*)msqid;
   pNew = (phDal4Nfc_message_queue_item_t*)malloc(
       sizeof(phDal4Nfc_message_queue_item_t));
@@ -185,10 +192,18 @@ int phDal4Nfc_msgrcv(intptr_t msqid, phLibNfc_Message_t* msg, long msgtyp,
   pthread_mutex_lock(&pQueue->nCriticalSectionMutex);
 
   if (pQueue->pItems != NULL) {
+    /* Validate queue item before copying to prevent buffer overflow */
+    if (sizeof(pQueue->pItems->nMsg) != sizeof(phLibNfc_Message_t)) {
+      NXPLOG_TML_E("Queue item message size mismatch");
+      pthread_mutex_unlock(&pQueue->nCriticalSectionMutex);
+      return -1;
+    }
     memcpy(msg, &(pQueue->pItems)->nMsg, sizeof(phLibNfc_Message_t));
     p = pQueue->pItems->pNext;
     free(pQueue->pItems);
     pQueue->pItems = p;
+  } else {
+    NXPLOG_TML_E("Queue is empty, no message to receive");
   }
   pthread_mutex_unlock(&pQueue->nCriticalSectionMutex);
 
