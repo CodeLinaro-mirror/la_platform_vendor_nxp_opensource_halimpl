@@ -174,6 +174,9 @@ typedef enum
   TARGET_SM_WAIPIO                     = 457, /**< SM_WAIPIO target */
   TARGET_SM_WAIPIO_APQ                 = 482, /**< SM_WAIPIO_APQ target */
   TARGET_SM_ALAKAI                     = 552, /**< SM_ALAKAI target */
+  TARGET_SM_FILLMORE                   = 506, /**< SM_FILLMORE  target */
+  TARGET_SMP_FILLMORE                  = 547, /**< SMP_FILLMORE */
+  TARGET_SM_FILLMORE_LTE_ONLY          = 564, /**< SM_FILLMORE_LTE_ONLY target */
   TARGET_SGP_KAANAPALI                 = 743, /**< SGP_KAANAPALI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
@@ -490,6 +493,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS5430:
         case TARGET_QCM5430:
         case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
 	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
@@ -603,6 +609,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS5430:
         case TARGET_QCM5430:
         case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
 	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
