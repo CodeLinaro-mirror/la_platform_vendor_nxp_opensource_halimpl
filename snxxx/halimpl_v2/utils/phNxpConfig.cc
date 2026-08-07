@@ -189,6 +189,11 @@ typedef enum
   TARGET_SMP_LAHAINA                   = 439, /**< SMP_LAHAINA target */
   TARGET_SM_LAHAINA_MODULE             = 456, /**< SM_LAHAINA_MODULE */
   TARGET_FAROE                         = 515, /**< FAROE target */
+  TARGET_DIVAR_QCM4325                 = 586, /**< QCM4325_DIVAR target */
+  TARGET_KAMORTA_QCM4290               = 470, /**<QCM4290_KAMORTA target */
+  TARGET_KAMORTA_QCS4290               = 469, /**<QCS4290_KAMORTA target */
+  
+
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -526,10 +531,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -643,10 +652,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
