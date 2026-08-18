@@ -171,6 +171,12 @@ typedef enum
   TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
   TARGET_SM_POROS                      = 776, /**< SM_POROS target */
   TARGET_SMP_POROS                     = 777, /**< SMP_POROS target */
+  TARGET_SM_WAIPIO                     = 457, /**< SM_WAIPIO target */
+  TARGET_SM_WAIPIO_APQ                 = 482, /**< SM_WAIPIO_APQ target */
+  TARGET_SM_ALAKAI                     = 552, /**< SM_ALAKAI target */
+  TARGET_SM_FILLMORE                   = 506, /**< SM_FILLMORE  target */
+  TARGET_SMP_FILLMORE                  = 547, /**< SMP_FILLMORE */
+  TARGET_SM_FILLMORE_LTE_ONLY          = 564, /**< SM_FILLMORE_LTE_ONLY target */
   TARGET_SGP_KAANAPALI                 = 743, /**< SGP_KAANAPALI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
@@ -486,7 +492,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_FAROE:
+        case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
+	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
@@ -502,6 +512,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SM_LAHAINA:
        case TARGET_SMP_LAHAINA:
        case TARGET_SM_LAHAINA_MODULE:
+       case TARGET_SM_WAIPIO:
+       case TARGET_SM_WAIPIO_APQ:
        case TARGET_SM_KODIAK:
        case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
@@ -596,7 +608,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_FAROE:
+        case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
+	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
@@ -612,7 +628,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_LAHAINA:
         case TARGET_SMP_LAHAINA:
         case TARGET_SM_LAHAINA_MODULE:
-        case TARGET_SM_KODIAK:
+        case TARGET_SM_WAIPIO:
+	case TARGET_SM_WAIPIO_APQ:
+	case TARGET_SM_KODIAK:
         case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
