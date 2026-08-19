@@ -169,6 +169,7 @@ typedef enum
   TARGET_SMP_SKYROS                    = 744, /**< SMP_SKYROS target */
   TARGET_SM_ALDABRA                    = 733, /**< SM_ALDABRA target */
   TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
+  TARGET_QMB410                        = 800, /**< QMB410 target */
   TARGET_SM_POROS                      = 776, /**< SM_POROS target */
   TARGET_SMP_POROS                     = 777, /**< SMP_POROS target */
   TARGET_SM_WAIPIO                     = 457, /**< SM_WAIPIO target */
@@ -482,7 +483,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_NETRANIPRO:
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
-        case TARGET_SM_POROS:
+        case TARGET_QMB410:
+	case TARGET_SM_POROS:
         case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
@@ -599,7 +601,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
         case TARGET_SM_POROS:
-        case TARGET_SMP_POROS:
+        case TARGET_QMB410:
+	case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
