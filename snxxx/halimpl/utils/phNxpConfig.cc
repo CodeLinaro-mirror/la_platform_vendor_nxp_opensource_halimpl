@@ -163,6 +163,7 @@ typedef enum
   TARGET_QCS_CLARENCE                  = 582, /**< QCS_CLARENCE IOT target */
   TARGET_SGP_CLARENCE                  = 654, /**< SGP_CLARENCE target */
   TARGET_SG_CLARENCE                   = 653, /**< SG_CLARENCE target */
+  TARGET_QMB415                        = 734, /**< QMB415 target */
   TARGET_SGP_NETRANI                   = 634, /**< SGP_NETRANI target */
   TARGET_SG_NETRANI                    = 633, /**< SG_NETRANI target */
   TARGET_SCP_NETRANIPRO                = 713, /**< SCP_NETRANIPRO target */
@@ -468,6 +469,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SGP_CLARENCE:
        case TARGET_SG_CLARENCE:
        case TARGET_QCM_CLARENCE:
+       case TARGET_QMB415:
        case TARGET_QCS_CLARENCE:
             //SN110
             config_id =  GENERIC_19_2_TYPE_SN1xx;
@@ -524,6 +526,7 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_CLARENCE:
         case TARGET_SGP_CLARENCE:
         case TARGET_SG_CLARENCE:
+        case TARGET_QMB415:
         case TARGET_QCM_CLARENCE:
         case TARGET_QCS_CLARENCE:
             //SN110
