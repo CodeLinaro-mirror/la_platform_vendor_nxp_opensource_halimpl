@@ -3,6 +3,10 @@ ifeq ($(call is-board-platform-in-list, sun canoe bengal chora malabar lahaina t
 TARGET_USES_NQ_NFC := true
 endif
 
+ifneq ($(filter bengal_612s bengal_612s_32go,$(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)),)
+TARGET_USES_NQ_NFC := false
+endif
+
 NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
 NQ_VENDOR_NFC += nfc_nci.nqx.default.hw
 NQ_VENDOR_NFC += libnfc_vendor_extn_vnd
