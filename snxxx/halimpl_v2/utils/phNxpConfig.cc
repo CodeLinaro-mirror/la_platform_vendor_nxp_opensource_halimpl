@@ -169,8 +169,15 @@ typedef enum
   TARGET_SMP_SKYROS                    = 744, /**< SMP_SKYROS target */
   TARGET_SM_ALDABRA                    = 733, /**< SM_ALDABRA target */
   TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
+  TARGET_QMB410                        = 800, /**< QMB410 target */
   TARGET_SM_POROS                      = 776, /**< SM_POROS target */
   TARGET_SMP_POROS                     = 777, /**< SMP_POROS target */
+  TARGET_SM_WAIPIO                     = 457, /**< SM_WAIPIO target */
+  TARGET_SM_WAIPIO_APQ                 = 482, /**< SM_WAIPIO_APQ target */
+  TARGET_SM_ALAKAI                     = 552, /**< SM_ALAKAI target */
+  TARGET_SM_FILLMORE                   = 506, /**< SM_FILLMORE  target */
+  TARGET_SMP_FILLMORE                  = 547, /**< SMP_FILLMORE */
+  TARGET_SM_FILLMORE_LTE_ONLY          = 564, /**< SM_FILLMORE_LTE_ONLY target */
   TARGET_SGP_KAANAPALI                 = 743, /**< SGP_KAANAPALI target */
   TARGET_SM_KODIAK                     = 475, /**< SM_KODIAK target */
   TARGET_QCM6490                       = 497, /**< QCM6490 target */
@@ -182,6 +189,11 @@ typedef enum
   TARGET_SMP_LAHAINA                   = 439, /**< SMP_LAHAINA target */
   TARGET_SM_LAHAINA_MODULE             = 456, /**< SM_LAHAINA_MODULE */
   TARGET_FAROE                         = 515, /**< FAROE target */
+  TARGET_DIVAR_QCM4325                 = 586, /**< QCM4325_DIVAR target */
+  TARGET_KAMORTA_QCM4290               = 470, /**<QCM4290_KAMORTA target */
+  TARGET_KAMORTA_QCS4290               = 469, /**<QCS4290_KAMORTA target */
+  
+
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -476,7 +488,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_NETRANIPRO:
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
-        case TARGET_SM_POROS:
+        case TARGET_QMB410:
+	case TARGET_SM_POROS:
         case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
@@ -486,7 +499,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_FAROE:
+        case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
+	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
@@ -502,6 +519,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SM_LAHAINA:
        case TARGET_SMP_LAHAINA:
        case TARGET_SM_LAHAINA_MODULE:
+       case TARGET_SM_WAIPIO:
+       case TARGET_SM_WAIPIO_APQ:
        case TARGET_SM_KODIAK:
        case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
@@ -512,10 +531,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -587,7 +610,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
         case TARGET_SM_POROS:
-        case TARGET_SMP_POROS:
+        case TARGET_QMB410:
+	case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -596,7 +620,11 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_QCS6490:
         case TARGET_QCS5430:
         case TARGET_QCM5430:
-        case TARGET_FAROE:
+        case TARGET_SM_ALAKAI:
+        case TARGET_SM_FILLMORE:
+        case TARGET_SMP_FILLMORE:
+        case TARGET_SM_FILLMORE_LTE_ONLY:
+	case TARGET_FAROE:
             if (!strncmp(nq_chip_info.nq_chipid, SN220_CHIP_ID, PROPERTY_VALUE_MAX)) {
                 //SN220
                 config_id = GENERIC_19_2_TYPE_SN220;
@@ -612,7 +640,9 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_LAHAINA:
         case TARGET_SMP_LAHAINA:
         case TARGET_SM_LAHAINA_MODULE:
-        case TARGET_SM_KODIAK:
+        case TARGET_SM_WAIPIO:
+	case TARGET_SM_WAIPIO_APQ:
+	case TARGET_SM_KODIAK:
         case TARGET_SMP_KODIAK:
 	    //SN110 or SN100
             config_id = GENERIC_19_2_TYPE_SN1xx;
@@ -622,10 +652,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
