@@ -169,6 +169,7 @@ typedef enum
   TARGET_SMP_SKYROS                    = 744, /**< SMP_SKYROS target */
   TARGET_SM_ALDABRA                    = 733, /**< SM_ALDABRA target */
   TARGET_SMP_ALDABRA                   = 757, /**< SMP_ALDABRA target */
+  TARGET_QMB410                        = 800, /**< QMB410 target */
   TARGET_SM_POROS                      = 776, /**< SM_POROS target */
   TARGET_SMP_POROS                     = 777, /**< SMP_POROS target */
   TARGET_SM_WAIPIO                     = 457, /**< SM_WAIPIO target */
@@ -188,6 +189,11 @@ typedef enum
   TARGET_SMP_LAHAINA                   = 439, /**< SMP_LAHAINA target */
   TARGET_SM_LAHAINA_MODULE             = 456, /**< SM_LAHAINA_MODULE */
   TARGET_FAROE                         = 515, /**< FAROE target */
+  TARGET_DIVAR_QCM4325                 = 586, /**< QCM4325_DIVAR target */
+  TARGET_KAMORTA_QCM4290               = 470, /**<QCM4290_KAMORTA target */
+  TARGET_KAMORTA_QCS4290               = 469, /**<QCS4290_KAMORTA target */
+  
+
   TARGET_DEFAULT                       = TARGET_GENERIC, /**< new targets */
   TARGET_INVALID                       = 0xFF
 } TARGETTYPE;
@@ -482,7 +488,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SM_NETRANIPRO:
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
-        case TARGET_SM_POROS:
+        case TARGET_QMB410:
+	case TARGET_SM_POROS:
         case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
@@ -524,10 +531,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_qrd_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -599,7 +610,8 @@ int CNfcConfig::getconfiguration_id (char * config_file)
         case TARGET_SGP_NETRANI:
         case TARGET_SG_NETRANI:
         case TARGET_SM_POROS:
-        case TARGET_SMP_POROS:
+        case TARGET_QMB410:
+	case TARGET_SMP_POROS:
 	    // SN220
             config_id = GENERIC_19_2_TYPE_SN220;
             strlcpy(config_file, config_name_SN220_19_2MHZ, MAX_DATA_CONFIG_PATH_LEN);
@@ -640,10 +652,14 @@ int CNfcConfig::getconfiguration_id (char * config_file)
        case TARGET_SMP_DIVAR:
        case TARGET_STP_DIVAR:
        case TARGET_STP_DIVAR_L:
+       case TARGET_DIVAR_QCM4325:
        case TARGET_SM_KAMORTA:
        case TARGET_KAMORTA_H:
        case TARGET_SMP_KAMORTA:
        case TARGET_SMP_KAMORTA_H:
+       case TARGET_KAMORTA_QCM4290:
+       case TARGET_KAMORTA_QCS4290:
+
             // SN110 or SN100
             config_id = GENERIC_38_4_TYPE_SN1xx;
             strlcpy(config_file, config_name_mtp_SN100_38_4MHZ, MAX_DATA_CONFIG_PATH_LEN);
