@@ -1,6 +1,10 @@
 # Enable build support for NFC open source vendor modules
-ifeq ($(call is-board-platform-in-list, sun canoe bengal chora malabar lahaina),true)
+ifeq ($(call is-board-platform-in-list, sun canoe bengal chora malabar lahaina taro),true)
 TARGET_USES_NQ_NFC := true
+endif
+
+ifneq ($(filter bengal_612s bengal_612s_32go,$(TARGET_BOARD_PLATFORM)$(TARGET_BOARD_SUFFIX)),)
+TARGET_USES_NQ_NFC := false
 endif
 
 NQ_VENDOR_NFC := android.hardware.nqnfc-service.nxp
