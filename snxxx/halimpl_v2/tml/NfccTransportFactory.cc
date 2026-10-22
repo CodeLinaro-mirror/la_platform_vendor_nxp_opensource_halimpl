@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <NfccI2cTransport.h>
+#include <NfccI3cTransport.h>
 #include <NfccTransportFactory.h>
 #include <phNxpLog.h>
 
@@ -64,6 +65,9 @@ spTransport NfccTransportFactory::getTransport(transportIntf transportType) {
   NXPLOG_TML_D("%s Requested transportType: %d\n", __func__, transportType);
   spTransport mspTransportInterface;
   switch (transportType) {
+    case I3C:
+      mspTransportInterface = std::make_shared<NfccI3cTransport>();
+      break;
     case I2C:
     case UNKNOWN:
     default:

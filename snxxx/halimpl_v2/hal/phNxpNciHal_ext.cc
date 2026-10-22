@@ -35,13 +35,13 @@
 #include "phNxpNciHal_PowerTrackerIface.h"
 #include "phNxpNciHal_VendorProp.h"
 
-#define NXP_EN_SN110U 1
-#define NXP_EN_SN100U 1
-#define NXP_EN_SN220U 1
-#define NXP_EN_PN557 1
-#define NXP_EN_PN560 1
+#define NXP_EN_SN110U 0
+#define NXP_EN_SN100U 0
+#define NXP_EN_SN220U 0
+#define NXP_EN_PN557 0
+#define NXP_EN_PN560 0
 #define NXP_EN_SN300U 1
-#define NXP_EN_SN330U 1
+#define NXP_EN_SN330U 0
 #define NXP_NDEF_TAG_EMULATION_LOGICAL_CHANNEL 5
 #define NFC_NXP_MW_ANDROID_VER (17U)  /* Android version used by NFC MW */
 #define NFC_NXP_MW_VERSION_MAJ (0x07) /* MW Major Version */
@@ -141,7 +141,7 @@ void printNfcMwVersion() {
   validation |= (NXP_EN_SN330U << 18);
   validation |= (NXP_EN_PN557 << 11);
 
-  ALOGE("MW-HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x",
+  ALOGE("MW-HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x_I3C",
         NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
         NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
 }
